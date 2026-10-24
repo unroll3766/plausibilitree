@@ -1,0 +1,27 @@
+{
+  "plot_uid": "plot_demo",
+  "tree_id": 2,
+  "tree_uid": "002",
+  "n_branch_points": 2597,
+  "bbox_world": {
+    "x_min": -4.4363,
+    "x_max": 4.9968,
+    "y_min": 0.4056,
+    "y_max": 7.5957,
+    "z_min": 4.6901,
+    "z_max": 27.2572,
+    "dx": 9.433,
+    "dy": 7.19,
+    "dz": 22.567
+  },
+  "bbox_volume_m3": 1530.567734,
+  "bbox_pixel_buffered": {
+    "col_min": 67,
+    "row_min": 0,
+    "col_max": 165,
+    "row_max": 73,
+    "width": 99,
+    "height": 74,
+    "buffer_px": 2
+  }
+}

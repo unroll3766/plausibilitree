@@ -1,0 +1,22 @@
+{
+  "shrub_id": 1,
+  "n_points": 300,
+  "height_m": 1.1750111609211942,
+  "width_m": 1.2473657285963309,
+  "base_z_m": 3.170561347574984,
+  "center_xy": [
+    6.023699257738972,
+    -6.452787263819085
+  ],
+  "volume_m3": {
+    "primitive": 0.9572562914309644,
+    "mesh": 0.886357471806655,
+    "voxel": 0.23600000000000004
+  },
+  "voxel_volume_params": {
+    "occupied_voxel_size_m": 0.1,
+    "occupied_voxel_threshold": 1,
+    "n_occupied_voxels": 236,
+    "n_nonempty_voxels": 236
+  }
+}

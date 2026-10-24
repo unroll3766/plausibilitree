@@ -1,0 +1,97 @@
+{
+  "tree_uid": "003",
+  "plot_uid": "plot_demo",
+  "tree_id": 3,
+  "func_group": "DF",
+  "x": 5.5,
+  "y": -3.0,
+  "target_points": 2560,
+  "points_per_metre": 256,
+  "ht_hi_used_for_budget": 20.0,
+  "stem_frac_lambda": [
+    0.1,
+    0.3
+  ],
+  "model_params": {
+    "height_range": [
+      18.0,
+      20.0
+    ],
+    "diam_range": [
+      0.4,
+      0.5
+    ],
+    "split_height_range": [
+      0.2,
+      0.55
+    ],
+    "num_branches": [
+      70,
+      110
+    ],
+    "min_can_height": [
+      0.3,
+      0.55
+    ],
+    "max_can_width_height": [
+      0.35,
+      0.65
+    ],
+    "split_prob": 0.08,
+    "max_can_width": 6.5,
+    "tree_top_dist": 2.0,
+    "tree_mid_dist": 0.4,
+    "foliage_noise": 0.5,
+    "num_splits": [
+      1,
+      1
+    ]
+  },
+  "rng": {
+    "library": "numpy.random (global)",
+    "seed": 3191687781,
+    "base_seed": 42,
+    "attempts": 1
+  },
+  "realised": {
+    "n_points": 2560,
+    "n_stem_points": 447,
+    "n_foliage_points": 2113,
+    "height_m": 19.060349647836148,
+    "base_radius_m": 0.23987892086724374,
+    "fork": 1
+  },
+  "outputs": {
+    "las": "003_raw.laz",
+    "skeleton": "003_raw_skeleton.json"
+  },
+  "source_row": {
+    "TREE_UID": "003",
+    "X": 5.5,
+    "Y": -3.0,
+    "HT_LO": 18,
+    "HT_HI": 20,
+    "BASE_DIA_LO": 0.4,
+    "BASE_DIA_HI": 0.5,
+    "MAX_CAN_W": 6.5,
+    "SPLIT_HT_LO": 0.2,
+    "SPLIT_HT_HI": 0.55,
+    "SPLIT_PROB": 0.08,
+    "SPLIT_NUM_LO": 1,
+    "SPLIT_NUM_HI": 1,
+    "NUM_BRANCH_LO": 70,
+    "NUM_BRANCH_HI": 110,
+    "MIN_CAN_HT_LO": 0.3,
+    "MIN_CAN_HT_HI": 0.55,
+    "MAX_CAN_W_HT_LO": 0.35,
+    "MAX_CAN_W_HT_HI": 0.65,
+    "TOP_DIST": 2.0,
+    "MID_DIST": 0.4,
+    "FP_RAND_HT": 0.5,
+    "SPR_LO": 0.1,
+    "SPR_HI": 0.3,
+    "FUNC_GROUP": "DF"
+  },
+  "generated_utc": "2026-10-19T23:35:33+00:00",
+  "generator": "SimpleSynthTree / treesim.gen_simtree (skeleton patch)"
+}

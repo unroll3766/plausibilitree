@@ -1,0 +1,61 @@
+{
+  "meta": {
+    "tree_uid": "002",
+    "plot_uid": "plot_demo",
+    "coordinate_system": "local",
+    "units": "meters",
+    "bounding_box": {
+      "x_min": -4.436094568036129,
+      "y_min": 0.40588051000350855,
+      "z_min": 0.15860502537549087,
+      "x_max": 4.995905431963871,
+      "y_max": 7.595880510003509,
+      "z_max": 27.25760502537549
+    }
+  },
+  "tree_characteristics": {
+    "center": [
+      0.0,
+      4.5
+    ],
+    "dbh_m": 0.40972945983780373,
+    "height_m": 25.956565025511946,
+    "canopy": {
+      "convex_hull_volume_m3": {
+        "raw": 679.305752,
+        "trimmed": 679.305752
+      },
+      "major_axis": {
+        "length_m": 9.58691175509611,
+        "orientation_deg": 33.23257297749037
+      },
+      "minor_axis": {
+        "length_m": 8.19783763610995,
+        "orientation_deg": 123.23257297749036
+      }
+    },
+    "volume_m3": {
+      "trunk": {
+        "raw": 1.7356529005071761,
+        "trimmed": 1.7356529005071761
+      },
+      "branch": {
+        "raw": 10.94781787603158,
+        "trimmed": 10.94781787603158
+      },
+      "foliage": {
+        "raw": 2.5670000000000006,
+        "trimmed": 2.5640000000000005
+      }
+    }
+  },
+  "neighborhood": {
+    "n_other_trees_in_bbox": 1,
+    "n_shrubs_in_bbox": 0,
+    "target_voxel_volume_m3": 3.198000000000001,
+    "proportion_target_vs_other_trees": 0.9931677018633541,
+    "proportion_target_vs_shrubs": 1.0,
+    "proportion_target_vs_grass": 0.49489322191272056,
+    "proportion_target_vs_all_other_veg": 0.4932140653917335
+  }
+}

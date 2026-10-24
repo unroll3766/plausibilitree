@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+._*
+
+# Generated outputs -- the pipeline's own products; keep the repo source-only.
+# Patterns are anchored to the repo root so the committed demo under
+# examples/ is unaffected.
+/plots/
+/plot_*/
+/plot_*.csv
+/*_r[0-9]*.csv
+/*.env.json
+/replicates_manifest.json
+
+# Editor / session artifacts
+*.npz
+*.npy
+.vscode/
+.idea/

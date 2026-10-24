@@ -1,0 +1,8 @@
+numpy
+laspy
+lazrs
+trimesh
+pandas
+scipy
+matplotlib
+rasterio

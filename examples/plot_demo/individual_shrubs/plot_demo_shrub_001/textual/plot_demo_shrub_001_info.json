@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "shrub_uid": "001",
+    "plot_uid": "plot_demo",
+    "coordinate_system": "local",
+    "units": "meters",
+    "bounding_box": {
+      "x_min": 5.2337010858733315,
+      "y_min": -7.07433657582003,
+      "z_min": 3.1791125132728224,
+      "x_max": 6.7337010858733315,
+      "y_max": -5.60233657582003,
+      "z_max": 4.463112513272822
+    }
+  },
+  "shrub_characteristics": {
+    "center": [
+      6.023699257738972,
+      -6.452787263819085
+    ],
+    "dbh_m": 0.0,
+    "max_width_m": 1.2473657285963309,
+    "height_of_max_width_m": 3.758066928035581,
+    "height_m": 1.1750111609211942,
+    "volume_m3": {
+      "primitive": 0.9572562914309644,
+      "mesh": 0.886357471806655,
+      "voxel": 0.23600000000000004
+    }
+  },
+  "neighborhood": {
+    "n_trees_in_bbox": 0,
+    "n_other_shrubs_in_bbox": 0,
+    "target_voxel_volume_m3": 0.23600000000000004,
+    "proportion_target_vs_other_shrubs": 1.0,
+    "proportion_target_vs_trees": 1.0,
+    "proportion_target_vs_grass": 0.9076923076923077,
+    "proportion_target_vs_all_other_veg": 0.9076923076923077
+  }
+}

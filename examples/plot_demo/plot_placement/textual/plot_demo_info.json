@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "plot_uid": "plot_demo",
+    "coordinate_system": "local",
+    "units": "meters",
+    "plot_shape": {
+      "shape": "circle",
+      "radius_m": 15.0
+    },
+    "plot_center": {
+      "lat": null,
+      "lon": null,
+      "elev_m": null
+    },
+    "bounding_box": {
+      "x_min": -11.400298914126669,
+      "y_min": -7.66833657582003,
+      "z_min": 0.02611251327282236,
+      "x_max": 7.774701085873332,
+      "y_max": 7.595663424179971,
+      "z_max": 30.93511251327282
+    }
+  },
+  "vegetation_characteristics": {
+    "trees": {
+      "n_trees": 4,
+      "basal_area_m2": 0.5094686308297733,
+      "total_volume_m3": {
+        "raw": 36.70967617020195,
+        "trimmed": 36.63633848213115
+      },
+      "trunk_volume_m3": {
+        "raw": 5.7932214497569445,
+        "trimmed": 5.7932214497569445
+      },
+      "branch_volume_m3": {
+        "raw": 22.957454720445003,
+        "trimmed": 22.887117032374206
+      },
+      "foliage_volume_m3": {
+        "raw": 7.959000000000001,
+        "trimmed": 7.956000000000001
+      },
+      "canopy_volume_m3": {
+        "raw": 1356.8836430000001,
+        "trimmed": 1356.8836430000001
+      }
+    },
+    "shrubs": {
+      "n_shrubs": 1,
+      "total_volume_m3": {
+        "primitive": 0.9572562914309644,
+        "mesh": 0.886357471806655,
+        "voxel": 0.23600000000000004
+      }
+    },
+    "grass": {
+      "percent_cover": 98.53896103896103,
+      "total_volume_m3": 12.079000000000002
+    }
+  }
+}

@@ -1,0 +1,25 @@
+SPCD,COMMON_NAME,FUNC_GROUP
+15,white fir,TF
+20,California red fir,TF
+81,incense-cedar,CE
+108,lodgepole pine,PP
+116,Jeffrey pine,PP
+117,sugar pine,PP
+119,western white pine,PP
+122,ponderosa pine,PP
+127,gray pine,PP
+202,Douglas-fir,DF
+211,redwood,RW
+212,giant sequoia,RW
+242,western redcedar,CE
+263,western hemlock,TF
+312,bigleaf maple,HW
+330,buckeye/horsechestnut,HW
+351,red alder,HW
+361,Pacific madrone,HW
+631,tanoak,OK
+805,canyon live oak,OK
+807,blue oak,OK
+815,Oregon white oak,OK
+818,California black oak,OK
+839,interior live oak,OK
