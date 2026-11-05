@@ -33,13 +33,13 @@ Section 11 lists every known code-to-design gap as actionable work items.
    with positions skips that machinery entirely.
 4. **Derived outputs are separate stages.** The core run produces the labelled
    plot cloud, terrain, understory and info JSONs. Everything downstream
-   (individual-tree crops, normalization, stem/canopy rasters, HELIOS++ scan
+   (individual-tree extraction, normalization, stem/canopy rasters, HELIOS++ scan
    simulation, polygon meshes) is an opt-in derived stage, never bundled into
    the core run.
-5. **Metres internally, EPSG:4326 on export.** The user thinks and specifies
-   in metres in a local plot frame; every georeferenced output file is written
-   in EPSG:4326 (with heights in EPSG:5773) whenever the plot center is known
-   (Section 10).
+5. **Metres in thought, WGS84 at the edges, UTM inside.** Users specify
+   everything in metres of local plot space; ingestion and export are
+   EPSG:4326 (heights in EPSG:5773), and processing internally converts to
+   metric UTM (Section 10).
 6. **Reproducibility.** Every stochastic draw (tree shape, rotation,
    placement, terrain, understory) is derived from explicit seeds recorded in
    the scene JSON, so any plot can be regenerated exactly.
@@ -58,13 +58,16 @@ The core consumes:
   consumed by SST (Section 7.3).
 - A **generator module** selection. Currently SST only; the module must
   satisfy the contract in Section 7.1.
-- A **topography dict** (Section 8.7).
-- A **vegetation dict** (Section 8.8).
+- A **topography dict** (Section 8.7) and a **vegetation dict**
+  (Section 8.8).
 - **Point cloud settings**: points-per-metre budget for generation, and
   derived-stage settings such as max density for normalization (Section 9).
 
-A plot with its own measured positions does not run the FIA helper at all; a
-hand-authored tree list in the Section 8.1 format is a first-class input.
+All interchange data between tools and stages — tree lists, parameter
+dictionaries, scene/info records — is JSON; CSV appears only as a legacy
+input form (item W13). A plot with its own measured positions does not run
+the FIA helper at all; a hand-authored tree list in the Section 8.1 format
+is a first-class input.
 
 ## 3. Core process
 
@@ -148,7 +151,19 @@ is identical).
 - **Grass next.** Any grass point intersecting a tree point or a shrub point
   is removed. Grass carries no per-plant identity (semantics only).
 
-### 3.5 Info JSONs — **[implemented]**
+### 3.5 Downed woody debris (DWD) — **[planned]**
+
+Final core step, after vegetation: populate downed woody debris (future work
+item W10; details TBD when the stage is designed):
+
+- downed logs of varying radius and length;
+- tree stumps of varying radius and height.
+
+Interaction rules (collision trimming against debris, shrub/grass removal
+against debris points, semantic codes, volume accounting) will be specified
+as part of W10.
+
+### 3.6 Info JSONs — **[implemented]**
 
 After all clouds exist, plot-level and tree-level info JSONs are written
 (Section 8.4), including volumes with raw and trimmed variants:
@@ -158,9 +173,11 @@ volume of foliage).
 
 ## 4. Core outputs
 
-**[partial]** — core writes plot-level cloud, per-tree intermediate clouds,
-scene JSON and info JSONs; the derived stages are currently always run
-(Section 11, item W6).
+**[partial]** — the design target is exactly one point cloud per plot, plus
+per-tree and per-shrub JSONs carrying everything needed to extract
+individuals (position, bounding box, tree_id/shrub_id, volumes). Per-tree
+sub-clouds are never written as outputs. Today the pipeline writes per-tree
+clouds at every stage instead (Section 11, item W6).
 
 All point clouds are LAZ (compressed LAS, lazrs backend). All artifacts are
 written into the canonical per-plot layout (Section 8.2), and one
@@ -168,24 +185,34 @@ written into the canonical per-plot layout (Section 8.2), and one
 bounds, rotations, and the collision log.
 
 - **Plot cloud** (raw, trimmed, terrain, understory variants) with the
-  canonical extra dimensions (Section 8.3).
-- **Per-tree intermediate clouds** (required by trimming and derived stages;
-  cached in `individual_trees/`).
-- **Plot info JSON** and **per-tree info JSONs** (Section 8.4).
-- **Skeleton JSON** per tree, in the generator module's format
-  (Section 7.4).
+  canonical extra dimensions (Section 8.3). The `tree_id` and `shrub_id`
+  dimensions plus the per-object JSONs make extracting individuals from this
+  single cloud possible without any per-tree sub-clouds.
+- **Plot info JSON** and, at the individual level, one **tree info JSON**
+  and one **skeleton JSON** per tree, one **shrub info JSON** per shrub
+  (Sections 8.4 and 7.4); positions, bounding boxes and realized
+  dimensions so any consumer can crop individuals themselves.
 - **DTM** (GeoTIFF, EPSG:4326 per Section 10) when one was generated.
+
+(Per-tree clouds still exist as internal runtime artifacts — trimming
+operates on them — but they are not deliverables.)
 
 ## 5. Derived output stages (opt-in)
 
 Each is a separate stage over the core outputs, never part of the core run.
 
-- **Individual-tree crops** — final per-tree clouds with surrounding-plot
-  points. **[partial]**: written by every core run today.
-- **Stem map** **[implemented as an always-on stage]** — a point-count raster
-  of the breast-height slab (DBH_HT +/- STEM_THRESHOLD, cell
-  STEM_CELL_SIZE), plus per-tree stem bounding boxes (JSON) and per-tree
-  cropped maps with semantic masks for DL labels.
+- **Individual-tree extraction** — optional convenience stage: crop per-tree
+  clouds (optionally with surrounding-plot points) from the single plot
+  cloud using `tree_id` and the per-tree JSONs. The core outputs alone are
+  sufficient for anyone to do this themselves. **[partial]**: today per-tree
+  sub-clouds are instead written directly by every core run (item W6).
+- **Stem map** **[implemented as an always-on stage]** — a 2-band raster of
+  the breast-height slab (DBH_HT +/- STEM_THRESHOLD, cell STEM_CELL_SIZE),
+  both bands covering the whole plot: band 1 counts all points in the
+  slab; band 2 is a binary mask, 1 where a tree point lies in the slab, 0
+  elsewhere. Per-tree stem bounding boxes (JSON) accompany it.
+  **[partial]**: the implementation writes a single-band count raster and
+  expresses masks as per-tree cropped rasters (item W6).
 - **Canopy map (CHM)** **[implemented as an always-on stage]** — a canopy
   raster at CANOPY_CELL_SIZE (max height above ground per cell; foliage
   presence), plus per-tree crown bounding boxes and convex hulls.
@@ -207,6 +234,11 @@ Each is a separate stage over the core outputs, never part of the core run.
 Converts widely available FIA inventory data into placed tree lists. This is
 where placement lives; the core never places trees.
 
+Scope: FIA trees do not come with individual coordinates, and variable plot
+size means trees are not recorded exhaustively over the plot. The helper
+works at the scale of one unit of analysis (a whole plot, or a plot +
+subplot combination).
+
 Inputs:
 
 - FIA TREE table (plus optional PLOT join for lat/lon/elev) for a state.
@@ -224,25 +256,41 @@ Inputs:
 
 Process:
 
-1. Extract the geographic coordinate of the plot center (passes through
-   to outputs as PLOT_LAT/PLOT_LON/PLOT_ELEV).
-2. Remove dead trees (DECAYCD >= 1) and rows missing DIA/HT/TPA/condition.
-3. Resolve each tree's code to a functional group (species code ->
+1. Extract the geographic coordinate of the plot center by joining the
+   FIA PLOT table (or equivalent). This join is optional: because FIA TREE
+   data no longer carries tree coordinates, it is the only route to
+   real-world positions. When supplied, the plot center combines with each
+   tree's local placement to produce per-tree LON/LAT/ELEV (passed through
+   as PLOT_LAT/PLOT_LON/PLOT_ELEV and written into the tree list's optional
+   geo columns). When absent, everything stays in local coordinates and
+   the geospatial ingest/export policy (Section 10) is moot — outputs are
+   local and un-georeferenced.
+2. Remove dead trees (DECAYCD >= 1; snags are out of scope) and rows
+   missing any of: DIA, HT, TPA_UNADJ, CCLCD, or the selected
+   functional-group column (SPCD, SPGRPCD, ...).
+3. Convert units: DIA and HT to metres; TPA_UNADJ to trees per m^2.
+4. Resolve each tree's code to a functional group (species code ->
    functional group table, coarse group fallback, DEFAULT fallback).
-4. Populate the expected tree count from the expansion factor and the
-   user-supplied modifier for the user-supplied plot dimensions.
-5. Placement: sort descending by height with DBH as tiebreaker (ties broken
+5. Expansion: for each tree, the expected count is
+   N = ceil(TPA [trees/m^2] * plot area [m^2] * expansion factor modifier),
+   with a floor of 1. A modifier of 0 therefore generates exactly the
+   documented trees (no expansion), values in (0, 1) thin globally, and
+   values > 1 multiply the recorded stocking.
+6. Per tree row: N > 1 duplicates the row N times (each copy becomes an
+   independent tree); N = 1 keeps it; N = 0 removes it.
+7. Placement: sort descending by height with DBH as tiebreaker (ties broken
    randomly, seeded); place each tree at a random position inside the plot;
    the trunk disc (diameter DBH + minimum distance) must not overlap
    previously placed trunks, and the proportion of the disc outside the plot
    must be <= edge effects; failed placements retry up to the maximum number
    of tries; placed trees get ascending UIDs.
-6. Write the placed tree list (Section 8.1) and a JSON report of parameters
-   used, trees placed, trees not placed, and the proportion.
+8. Write the placed tree list (Section 8.1) as JSON and a JSON report of
+   parameters used, trees placed, trees not placed, and the proportion.
 
 Implementation status: unit conversion, dead-tree removal, functional-group
-resolution, `--allowed-overlap` spacing and the CSV/JSON outputs are
-implemented. TPA expansion is a placeholder (round-to-nearest); the
+resolution, `--allowed-overlap` spacing and the report outputs are
+implemented (as CSV/JSON today; JSON-based tree list output is item W13).
+TPA expansion is a placeholder (rounds to nearest, not up); the
 expansion factor modifier, minimum distance, max tries and edge-effects
 controls are not implemented (items W2a-W2c). A user-supplied inventory with
 positions replaces this helper entirely.
@@ -252,9 +300,9 @@ positions replaces this helper entirely.
 A tool for establishing generator parameters that produce realistic trees for
 a given tree code: load a tree-code parameter dictionary (or a tree list to
 derive one), edit per code, sample trees from a row at chosen HT/DBH, inspect
-in a 3D viewer, save the dictionary. **[partial]**: today this is the SST
-functional-group editor (`param_editor.py`), which edits a per-code CSV and
-samples trees per row; it satisfies the design against the SST dict format.
+in a 3D viewer, save and export the dictionary as JSON. **[partial]**: today
+this is the SST functional-group editor (`param_editor.py`), which edits a
+per-code CSV; JSON import/export is item W13.
 
 ### 6.3 Environment / vegetation parameter editor — **[implemented]**
 
@@ -340,8 +388,16 @@ Synthesis chain for one tree (H = HT, DBH in metres, DBH_HT = 1.37 m):
    widest height, then taper toward the tip. A count drawn from
    NUM_BRANCH_LO/HI is split between a lower crown band and an upper
    crown/fork band.
-6. **Point sampling.** The total budget scales with the tree size
-   (POINTS_PER_METRE). A fraction drawn from SPR_LO/HI is spent on the
+6. **Point sampling.** The point budget scales with both tree height and
+   trunk thickness, so that vertical point density is constant across the
+   plot and thick trunks carry proportionally more points than thin ones:
+
+   Np = POINTS_PER_METRE * ceil(H) * base_dia(m)
+
+   POINTS_PER_METRE is the number of points per 1 m height slice; the
+   base-diameter factor keeps point density per unit stem surface
+   comparable across DBH classes. A fraction drawn from SPR_LO/HI is spent
+   on the
    trunk and branch stem meshes, the rest on foliage meshes. Foliage
    points are allocated across 1 m height slices in proportion to the
    number of branches rooted in each slice (within a slice, by mesh
@@ -372,6 +428,7 @@ HT by the entry's allometry (Section 7.2).
 | FUNC_GROUP | tree code this entry is keyed by | — |
 | CW_A0, CW_A1 | crown-width allometry: CW (ft) = exp(A0 + A1 ln(DBH_in)), then to metres | widens the crown at a given DBH (A0) / makes big trees disproportionately wide (A1); wider crowns mean more collision trimming in dense plots |
 | TAPER_B | butt-swell exponent, Section 7.2 step 1 | reduces butt swell (base diameter closer to DBH); lowering it thickens the trunk base |
+| DBH_TOL, HT_TOL | proportional size tolerances (default 0.01, i.e. +/- 1%). SST requires bounded height/base-diameter ranges, so the module bounds each tree's realized size around its tree list values: HT is drawn in [HT(1-tol), HT(1+tol)] and base diameter is derived from taper then bounded likewise | wider tolerances = more realized-size variation around the same DBH/HT |
 | SPLIT_PROB | probability the tree forks at all (0 = single straight stem) | more forked trees |
 | SPLIT_NUM_LO/HI | number of cascading trunk splits, drawn per tree (default 1:1 = single fork) | more levels of forking and bushier multi-leader crowns; each leader's crown is airier at the same point count, so raise the point budget for dense multi-leader crowns |
 | SPLIT_HT_LO/HI | where each split happens, as a fraction of the stem being split | pushes splits higher up the stems |
@@ -391,9 +448,9 @@ stem geometry, so they add variety without changing the crown.
 
 **[partial]**: keyed-by-code consumption already exists in the editor and in
 the helper's derivations; the pipeline path still carries frozen per-tree
-ranges in the plot CSV, and the tree's height/diameter tolerance ranges are
-computed by the FIA helper around the inventory values rather than drawn at
-generation time (item W1).
+tolerance ranges in the plot CSV rather than computing them at generation
+time from DBH_TOL/HT_TOL (item W1), and the dictionary is a CSV table
+today rather than JSON (item W13).
 
 ### 7.4 SST skeleton JSON — **[implemented]**
 
@@ -415,13 +472,20 @@ splits; there is no separate SOURCE/DESTINATION table.
 - `treesim.py`: optional skeleton export (Section 7.4); a translation factor
   so tree tops can grow towards any point.
 - `las.py`: canonical LAZ writer writing x/y/z plus the extra dims of
-  Section 8.3 at their schema dtypes (LAS 1.2, point format 0, extra bytes
-  records; LAZ compression via lazrs).
+  Section 8.3 at their schema dtypes via extra-bytes records (LAZ
+  compression via lazrs). **LAS 1.4 is the target format** (current spec
+  generation, no uint32 point-count ceiling on merged files; point
+  formats 0-5 remain valid so no data migration); today the writer emits
+  LAS 1.2, point format 0 (item W12).
 
 ## 8. Data structures
 
 ### 8.1 Tree list (input; emitted by the FIA helper or authored by hand)
 
+Serialized as **JSON**: one object per plot (PLOT_UID, plot shape and
+dimensions, optional plot center geo) containing a `trees` array whose
+elements carry the attributes below. Every tool in the pipeline exchanges
+tree lists as JSON; CSV is the legacy form (item W13).
 Required attributes:
 
 | Attribute | Type | Description | Range | Notes |
@@ -438,13 +502,14 @@ Optional attributes:
 | Attribute | Type | Description | Range | Notes |
 |---|---|---|---|---|
 | Z | float | local z of tree base, metres | [0, inf) | typically 0 |
-| LON | float | centroid longitude, EPSG:4326 | [-180.0, 180.0] | |
-| LAT | float | centroid latitude, EPSG:4326 | [-90.0, 90.0] | |
-| ELEV | float | base elevation, metres (EPSG:5773) | [-430, 5000] | Dead Sea shore to Andes treeline |
+| LON | float | centroid longitude, EPSG:4326 | [-180.0, 180.0] | plot center + local placement; absent without a known plot center |
+| LAT | float | centroid latitude, EPSG:4326 | [-90.0, 90.0] | plot center + local placement; absent without a known plot center |
+| ELEV | float | base elevation, metres (EPSG:5773) | [-500, 5000] | plot center + local placement; absent without a known plot center |
 
-**[partial]**: the current CSV contract is the SST per-tree parameter table
+**[partial]**: the current contract is the SST per-tree parameter CSV
 (TREE_UID, FUNC_GROUP, X, Y, HT_LO/HI, BASE_DIA_LO/HI, SPLIT_*, ...,
-PLOT_LAT/LON/ELEV); the minimal contract above is the target (item W1).
+PLOT_LAT/LON/ELEV); the minimal JSON contract above is the target
+(items W1, W13).
 
 ### 8.2 Canonical output layout
 
@@ -455,8 +520,11 @@ PLOT_LAT/LON/ELEV); the minimal contract above is the target (item W1).
     textual/        scene JSON, manifest, plot info JSON, DTM crop
     deep_learning/  stem_map / canopy_map feature+label rasters    (derived)
   individual_trees/<PLOT_UID>_<TREE_UID>/
-    las/ textual/ deep_learning/          (intermediates + derived crops)
-  individual_shrubs/<PLOT_UID>_shrub_<SHRUB_UID>/  (understory stage)
+    textual/        generation, skeleton and info JSONs  (no sub-clouds;
+                    extract individuals from the plot cloud)
+    deep_learning/  per-tree derived artifacts only            (derived)
+  individual_shrubs/<PLOT_UID>_shrub_<SHRUB_UID>/
+    textual/        shrub info JSONs         (understory stage)
 ```
 
 ### 8.3 Point cloud dimensions — **[implemented]**
@@ -502,9 +570,13 @@ dict + vegetation settings.
 
 ### 8.6 Tree parameter dictionary
 
-Module-specific mapping tree code -> parameters (SST format in Section 7.3);
-edited with the Section 6.2 helper. Height and diameter come from the tree
-list, never from this dictionary.
+Module-specific mapping tree code -> parameters, serialized as **JSON**
+(the SST entry format is Section 7.3); edited with the Section 6.2 helper.
+Height and diameter originate from the tree list, never from this
+dictionary — the dictionary supplies only the proportional tolerances
+(DBH_TOL, HT_TOL) that bound each tree's realized size around its
+tree list values. **[partial]**: today the dictionary is the
+functional-group CSV (item W13).
 
 ### 8.7 Topography dict
 
@@ -532,21 +604,21 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
 |---|---|---|---|
 | PLOT_SHAPE | string | CIRCLE | plot geometry, CIRCLE or RECTANGLE |
 | PLOT_LENGTH, PLOT_WIDTH | (float, float) | (30.0, 30.0) | rectangle sides, m; only if RECTANGLE |
-| PLOT_RADIUS | float | 15.0 | circle radius, m; only if CIRCLE. FIA subplot ladder uses 7.315 m |
+| PLOT_RADIUS | float | 7.315 | circle radius, m; only if CIRCLE. Default is the FIA subplot radius; code currently defaults to 15.0 (item W11) |
 | MIN_DBH | float | 0.127 | minimum DBH for a tree to be placed, m |
 | DBH_HT | float | 1.37 | breast height, m |
-| POINTS_PER_METRE | int | 4096 | generation point budget per metre of tree height |
+| POINTS_PER_METRE | int | 4096 | points per 1 m height slice, scaled by base diameter: Np = POINTS_PER_METRE x ceil(HT) x BASE_DIA |
 | MAX_ATTEMPTS | int | 10 | retries when resolving tree generation |
 | BRANCH_RADIUS_FRAC | float | 0.10 | branch collision radius as a fraction of branch length |
 | MIN_BRANCH_RADIUS | float | 0.02 | floor for the above, m |
 | COLLISION_TOLERANCE | float | 0.0 | trim radius relaxation, m |
-| STEM_CELL_SIZE | float | 0.1 | stem map cell size, m (was STEM_RESOLUTION) |
+| STEM_CELL_SIZE | float | 0.05 | stem map cell size, m (was STEM_RESOLUTION; code default 0.1, item W11) |
 | STEM_THRESHOLD | float | 0.25 | half-height of the breast-height stem slab, m (was STEM_SECTION buffer) |
-| CANOPY_CELL_SIZE | float | 0.1 | canopy map cell size, m (was CHM_RESOLUTION) |
+| CANOPY_CELL_SIZE | float | 0.05 | canopy map cell size, m (was CHM_RESOLUTION; code default 0.1, item W11) |
 | CANOPY_BUFFER | int | 2 | canopy raster growth padding, cells |
 | OCCUPIED_VOXEL_SIZE | float | 0.1 | voxel size for foliage/grass/shrub volume, m (was FOLIAGE_VOXEL / GRASS_VOXEL) |
 | OCCUPIED_VOXEL_THRESHOLD | int | 1 | points needed to count a voxel occupied |
-| DTM_CELL_SIZE | float | 1.0 | generated DTM cell size, m (was DTM_RESOLUTION) |
+| DTM_CELL_SIZE | float | 0.25 | generated DTM cell size, m (was DTM_RESOLUTION; code default 1.0, item W11) |
 | DTM_BUMPINESS | float | 0.5 | generated terrain micro-relief scale |
 | DTM_RELIEF | float | 10.0 | generated terrain total relief, m |
 | GROUND_DENSITY | float | 1.0 | ground points per DTM cell |
@@ -565,21 +637,35 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
 
 ## 10. Coordinate reference policy — **[planned]**
 
-- All computation, parameters and user-facing lengths are in metres in a
-  local plot frame (z = 0 at DTM base), independent of any CRS.
-- Every exportable georeferenced artifact (DTM GeoTIFF, stem map, canopy
-  map) is written in EPSG:4326 with heights in EPSG:5773, when the plot
-  center is known from the tree list's LON/LAT/ELEV. Cell sizes are
-  specified in metres and converted to degrees at the plot's latitude
-  (1 deg latitude ~ 111320 m; longitude metres scale by 1/cos(lat)).
-- When no geographic position is known, artifacts stay in the local
-  metre frame and are marked as un-georeferenced.
+- **Ingest and export geospatial:** EPSG:4326 (lat/lon) with elevations in
+  EPSG:5773, universally, for consistency.
+- **Users think in metres.** Every user-facing length — buffers, cell
+  sizes, ranges — is specified in metres of local plot space, and the tree
+  list's X, Y are local metres relative to the plot origin (its lower-left
+  or center).
+- **Processing runs in UTM metres.** Internally, EPSG:4326 inputs are
+  converted to a metric UTM projection (via the `utm` Python library, zone
+  derived from the plot center) and the local plot frame is anchored there;
+  every geometric stage (placement, trimming, DTM sampling, rasters) runs
+  in metres of that frame.
+- **Exports convert back.** Every georeferenced artifact (DTM GeoTIFF,
+  stem map, canopy map) is written in EPSG:4326 with heights in EPSG:5773
+  when the plot center is known. Cell sizes are specified in metres and
+  converted to degrees at the plot's latitude (1 deg latitude ~ 111320 m;
+  longitude metres scale by 1/cos(lat)).
+- Geographic position is optional. It reaches the pipeline as the plot
+  center — via the FIA helper's PLOT-table join (Section 6.1) or a
+  hand-authored tree list's LAT/LON/ELEV — and per-tree real-world
+  positions are the plot center plus the tree's local placement. Without
+  it, the entire WGS84 ingest/export leg is moot: every artifact stays in
+  the local metre frame and is marked as un-georeferenced.
 - Limits of agreement: lat in [-90, 90], lon in [-180, 180], elevation in
-  [-430, 5000] m (EPSG:5773; Dead Sea shore to Andes treeline).
+  [-500, 5000] m (EPSG:5773).
 
-**[partial]**: rasters currently carry a local-metre geotransform with no
-CRS; the DTM is ASCII with optional EPSG sidecar. Reprojecting exports is
-item W5.
+**[partial]**: the codebase today computes in a CRS-less local metre frame
+(rasters carry a local-metre geotransform with no CRS; the DTM is ASCII
+with an optional EPSG sidecar; no UTM conversion is performed). Internal
+UTM processing and EPSG:4326 exports are item W5.
 
 ## 11. Code-to-design gap register
 
@@ -592,11 +678,15 @@ dependency order:
 | W2 | FIA helper placement controls | (a) implement expansion factor modifier; (b) minimum tree distance (generalize --allowed-overlap); (c) max tries and edge effects (spec Section 6.1). Replace the placeholder TPA rounding |
 | W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it |
 | W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings |
-| W5 | EPSG:4326 exports | write GeoTIFFs in EPSG:4326 (Section 10), metres-thinking preserved; keep local frame internal |
-| W6 | Derived stages opt-in | make individual-tree crops, stem/canopy maps and normalization opt-in stages; core run stops after understory + info |
+| W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved |
+| W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) |
 | W7 | Random reflection | add mirror reflection to placement draws |
 | W8 | HELIOS++ stage | planned; needs scanner parameter design and voxel export |
 | W9 | Polygon mesh export | planned; per-element semantics/ids; feeds HELIOS++ polygon pathway |
+| W10 | Downed woody debris | design and implement the DWD stage (logs, stumps) per Section 3.5 |
+| W11 | Design defaults | align code defaults with Section 9: PLOT_RADIUS 7.315 (code 15.0), DTM_CELL_SIZE 0.25 (code 1.0), CANOPY_CELL_SIZE 0.05 (code 0.1), STEM_CELL_SIZE 0.05 (code 0.1) |
+| W12 | LAS 1.4 writer | switch the canonical writer to LAS version 1.4 (point format 0 + extra bytes unchanged; Section 7.5) |
+| W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export |
 
 Registry of resolved decisions (for provenance):
 
@@ -608,4 +698,24 @@ Registry of resolved decisions (for provenance):
 - Trimmed points are removed at trim time; no per-point trimmed dimension
   (structural record in skeletons and scene JSON counts).
 - HELIOS++ export and polygon meshes are planned (not current) work.
-- Raster georeferencing: metres thinking, EPSG:4326 exports (Section 10).
+- Coordinates: EPSG:4326/5773 ingest and export; internal processing in
+  UTM metres via the `utm` library, local lengths in metres (Section 10).
+- Core output is a single plot-level cloud; individual-tree information
+  lives in per-tree JSONs (info + skeleton), so per-tree sub-clouds are
+  never written (Section 4).
+- FIA expansion: TPA converted to trees per m^2, scaled by plot area and
+  the modifier, rounded up; modifier 0 keeps exactly the documented trees.
+- Point budget: Np = POINTS_PER_METRE x ceil(HT) x base diameter —
+  per-height-slice density normalized by trunk thickness (Section 7.2).
+- Downed woody debris (logs, stumps) is planned future work (W10).
+- Stem map: 2-band design — point count + tree-point mask in the breast
+  height slab (Section 5).
+- Defaults: CIRCLE plots, PLOT_RADIUS 7.315 m (FIA subplot); finer rasters
+  (DTM 0.25, CHM 0.05, stem cell 0.05) with a robust +/-0.25 m stem slab
+  (W11).
+- LAS 1.4 is the target point cloud format (W12).
+- DBH_TOL / HT_TOL in the parameter dictionary are proportional tolerances
+  (default +/- 1%) bounding realized sizes around the tree list values;
+  sizes themselves never come from the dictionary (Section 8.6).
+- All interchange data (tree lists, parameter dictionaries, reports) is
+  JSON; CSV is legacy (W13).
