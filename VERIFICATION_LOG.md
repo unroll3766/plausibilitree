@@ -781,7 +781,7 @@ skeleton-frame bug was the same shape (no fixture ever checked the
 invariant). Cross-artifact invariant checks (recompute from a
 different artifact than the writer) are the pattern that finds them.
 
-### 2026-11-05 — tests/ promotion: standing suites moved out of /tmp
+### 2026-11-05 — tests/ promotion: standing suites moved out of /tmp (commit ab0077c)
 
 Closed the long-tracked /tmp-suite ephemerality debt: the two live
 suites behind the W7 and whole-repo rounds are now repo files,
