@@ -218,14 +218,16 @@ def run_pipeline(plotdir, *,
                              "--gen-cell-size", env.get("gen_cell_size", gen_cell_size),
                              "--gen-bumpiness", env.get("gen_bumpiness", gen_bumpiness),
                              "--gen-relief", env.get("gen_relief", gen_relief)]
-        return None                     # no terrain source for this plot
+        # no topography source: the None topography (spec Section 3.3) --
+        # terrain.py drapes onto a flat plane at z = 0 and warns if no
+        # density was configured
+        return common
 
-    # understory (shrubs + grass) is optional and requires terrain
+    # understory (shrubs + grass) is optional; terrain always runs
+    # (flat plane when no topography is configured, spec Section 3.3)
     def _understory_args(csv):
         env = envs.get(csv) or {}
         terr = _terrain_args(csv)
-        if terr is None:
-            return None                 # understory requires terrain
         if not (understory or env):
             return None                 # not requested for this plot
         args = [csv,
@@ -245,17 +247,16 @@ def run_pipeline(plotdir, *,
             args += ["--dtm", terr[terr.index("--dtm") + 1]]
         return args
 
-    have_terrain = (dtm is not None or generate_dtm or any_env)
+    # terrain always runs (after restructure, before normalize): with a
+    # provided DTM, a generated DTM, or -- when neither is configured -- the
+    # flat plane (None topography, spec Section 3.3). Sidecar "dtm" (if any)
+    # wins over synthesis; a sidecar without "dtm" synthesizes with the
+    # sidecar's drawn gen_* parameters.
+    stages.append(("terrain.py", _terrain_args))
     want_understory = (understory
                       or any("shrub_cover" in (e or {}) for e in envs.values()))
-    if have_terrain:
-        stages.append(("terrain.py", _terrain_args))
     if want_understory:
-        if have_terrain:
-            stages.append(("understory.py", _understory_args))
-        else:
-            print("note: --understory requires terrain (--dtm, --generate-dtm "
-                  "or an env sidecar); skipping understory.")
+        stages.append(("understory.py", _understory_args))
 
     # info JSONs (plot + per-tree) are always built last, after every cloud,
     # skeleton and map exists. Replaces the old per-tree/plot volume JSONs.
@@ -374,9 +375,10 @@ def main():
     ap.add_argument("--ground-noise", type=float, default=0.0,
                     help="vertical noise half-range for ground points, m (default 0)")
     ap.add_argument("--terrain-source", default="trimmed", choices=["raw", "trimmed"])
-    # understory (optional; requires terrain)
+    # understory (optional; terrain always runs -- flat plane when no
+    # topography source is configured)
     ap.add_argument("--understory", action="store_true",
-                    help="add shrubs + grass after terrain (requires terrain)")
+                    help="add shrubs + grass after terrain")
     ap.add_argument("--shrub-cover", type=float, default=0.15)
     ap.add_argument("--shrub-cell-size", type=float, default=2.0)
     ap.add_argument("--shrub-width-min", type=float, default=0.8)
@@ -418,7 +420,9 @@ def main():
     if density == "square" and (args.plot_z is None or args.tree_z is None):
         ap.error("--density square requires --plot-z and --tree-z")
     if args.dtm and args.generate_dtm:
-        ap.error("use either --dtm or --generate-dtm, not both")
+        print("warning: both --dtm and --generate-dtm given; using the "
+              "provided DTM (filepath wins, generation ignored) per the "
+              "spec's topography resolution order")
     if args.plot_shape == "rectangle" and (args.length is None or args.width is None):
         ap.error("--plot-shape rectangle requires --length and --width")
 

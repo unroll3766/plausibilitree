@@ -1,12 +1,19 @@
 # Terrain integration (`terrain.py`)
 
-Optional stage that drapes a placed plot onto a DTM, adds bare-earth ground
-points and a height-above-ground column, and classifies points per the LAS
-spec. Runs **after `restructure.py`, before `normalize.py`**.
+Stage that drapes a placed plot onto a DTM (or, when no DTM is configured,
+onto a **flat plane at z = 0**), adds bare-earth ground points and a
+height-above-ground column, and classifies points per the LAS spec. Runs
+**after `restructure.py`, before `normalize.py`** — the stage always runs;
+the three topography modes are chosen per the design spec (Section 3.3):
+a provided DTM wins over `--generate-dtm` (a warning describes the ignored
+choice), and when neither is given the topography is None: a uniform flat
+plane at z = 0, with ground sampled at the default density (warning when
+`--density` was not provided):
 
 ```
-python terrain.py plots/plot_11519.csv --dtm sample_dtm.asc \
+python terrain.py plots/plot_11519.json --dtm sample_dtm.asc \
     --density 2 --noise 0.05
+python terrain.py plots/plot_11519.json                # flat plane (None)
 ```
 
 Writes:
@@ -37,7 +44,14 @@ terrain model. You supply `--gen-cell-size`, `--gen-bumpiness` and
 `--gen-relief`; the **bounds are auto-sized to the plot's point-cloud bounding
 box** (symmetric about the centre, plus one cell of margin), so coverage is
 guaranteed and no coverage check is needed. Each plot gets its own DTM sized to
-its own footprint. `--dtm` and `--generate-dtm` are mutually exclusive.
+its own footprint. If both `--dtm` and `--generate-dtm` are given, the
+provided DTM wins and a warning describes the ignored generation.
+
+**Flat** (neither flag): the None topography — a uniform plane at z = 0
+with the same DTM interface (sampling returns 0 everywhere), so draping is
+a no-op (tree bases already sit at z = 0), height_above_ground equals z,
+and ground points are sampled across the plot bbox at `--density` (default
+1.0 per cell, applied with a warning when unconfigured).
 
 Heights (either source) are read by bilinear interpolation at each point's x,y.
 
@@ -83,13 +97,13 @@ two class axes stay **orthogonal**:
 
 ## In the pipeline
 
-`run_pipeline.py --dtm <file>` **or** `--generate-dtm` enables the step (omit
-both to skip it). It runs per plot after restructure:
+The terrain stage always runs (per plot, after restructure); `--dtm` /
+`--generate-dtm` choose the DTM source, and neither means the flat plane:
 
 ```
---dtm PATH             provided DTM .asc to drape onto
+--dtm PATH             provided DTM .asc to drape onto (wins over --generate-dtm)
 --generate-dtm         synthesize a per-plot DTM instead (bounds auto-fit)
---gen-cell-size N      generated DTM cell size, m (default 1)
+--gen-cell-size N      generated/flat DTM cell size, m (default 0.25)
 --gen-bumpiness N      generated DTM roughness (default 0.5)
 --gen-relief M         generated DTM vertical relief, m (default 10)
 --ground-density N     ground points per DTM cell (default 1)

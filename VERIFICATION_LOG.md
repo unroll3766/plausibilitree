@@ -362,6 +362,52 @@ display), tree Z consumption (W5), full 111-tree scale runs
 (performance, not correctness), and the /tmp suite ephemerality
 (promote to tests/). None of these blocked any workflow tested.
 
+### 2026-11-05 — W4: flat-plane topography (commit: pinned in the follow-up commit)
+
+**Design** (spec 3.3): the None topography is a uniform flat plane at
+z = 0 implemented as `DTM.flat(...)` — a zero grid with the full DTM
+interface (sample -> 0 everywhere), so draping/HAG/classification/ground
+sampling run unchanged; terrain is no longer skippable (the stage always
+runs; absence of --dtm/--generate-dtm means flat); conflicts resolve
+None > filepath > random with a warning; unconfigured density in flat
+mode warns and defaults to 1.0 per cell.
+
+**Unit/e2e checks** (all exit-0):
+
+1. Flat full pipeline + understory on the 6-tree JSON list: PASS;
+   scene record reads "flat plane (topography = None, z = 0)" with
+   dtm_generated false; orchested run writes 6 per-tree terrain files.
+2. Flat invariants (/tmp/w4_inv.py, on /tmp/w4_flat2): understory cloud
+   102,806 pts with 21,513 ground at |z| == 0.0 EXACTLY, ground HAG ==
+   0 exactly, no NaN; 10,704 shrub + 62,159 grass points draped on the
+   plane (grass z within [0, 0.35]); vegetation |z - HAG| <= 5.05e-4 —
+   i.e. HAG == z up to the LAZ 1 mm coordinate quantization, NOT a bug
+   (my first assert used 1e-5, below the storage scale; loosened and
+   documented).
+3. Standalone flat terrain with no --density: exit 0 AND the spec warning
+   present ("no ground sampling density provided ... default 1.0");
+   flat terrain cloud 24,665 points (0 tree files — expected, that run
+   had no canopy_map so no per-tree bboxes; pre-existing behavior, the
+   orchestrated run writes all 6).
+4. Conflict resolution: pipeline run with both --dtm <generated.asc>
+   and --generate-dtm: exit 0, orchestrator warning printed, provided
+   DTM used (filepath wins). Standalone terrain.py resolves and warns
+   in build_terrain the same way.
+5. Generated-DTM regression through the new wiring (--generate-dtm
+   --understory): identical 29,943-point terrain cloud, 6 tree files,
+   scene record "generated ... cell 0.25", ground HAG == 0 exactly,
+   z range 0.73..53.71 m.
+
+**Notable non-bug**: terrain.py standalone --gen-cell-size default
+aligned 1.0 -> 0.25 (DTM_CELL_SIZE, W11 leftover the standalone CLI had
+kept). My own edit duplicated the --gen-cell-size argparse line during
+the CLI rewrite (argparse would use the last, silently restoring the
+old default) — caught by rereading the diff before running anything;
+guarded by the density-warning e2e which exercises the flat grid's cell
+semantics. (Process lesson, related to the log-edit mistakes of earlier
+rounds: insert new entries by targeting a UNIQUE anchor string, never
+a heading used as a section boundary for content to be preserved.)
+
 ### Verification gaps / notes (W1 round)
 
 - scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was

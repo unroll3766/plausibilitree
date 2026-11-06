@@ -113,7 +113,7 @@ surviving points only). Trimming is additionally recorded structurally: the
 trimmed tree skeletons carry `node_trimmed` flags, and the scene JSON records
 per-tree removed-point counts. There is no per-point `trimmed` dimension.
 
-### 3.3 Topography — **[partial]**
+### 3.3 Topography — **[implemented]**
 
 Topography is resolved from the topography dict (Section 8.7):
 
@@ -135,10 +135,13 @@ Each tree is dropped vertically so its lowest point sits on the DTM at its
 (X, Y); the DTM must cover the plot footprint (no tiling or stretching).
 The DTM is an ESRI ASCII grid (.asc) in metres.
 
-Implementation status: filepath and random generation, draping, ground
-sampling, height_above_ground and classification are implemented. The None ->
-flat-plane path is not: when no topography source is given, the terrain stage
-is skipped entirely and no ground points or HAG are produced (item W4).
+Implementation status: all three topography resolutions are implemented —
+DTM filepath (draped with a coverage check, no tiling/stretching), random
+parameters (generated, saved as an .asc, cell DTM_CELL_SIZE), and None (a
+uniform flat plane at z = 0; the terrain stage always runs, sampling ground
+points at the default density and warning when none was configured). Conflicts
+resolve per the None > filepath > random order with a warning describing the
+ignored choice; a malformed or missing topography behaves as None.
 
 ### 3.4 Vegetation (understory) — **[implemented]**
 
@@ -697,7 +700,7 @@ matches the design).
 | W1 | Minimal tree list contract | generate_trees consumes per-tree frozen SST ranges; switch to (X, Y, DBH, HT, TREE_CODE) + param-dict lookup at generation, drawing seeded shapes per TREE_UID. FIA helper emits the minimal list (DBH/HT per tree), keeping placement there | closed |
 | W2 | FIA helper placement controls | (a) implement expansion factor modifier; (b) minimum tree distance (generalize --allowed-overlap); (c) max tries and edge effects (spec Section 6.1). Replace the placeholder TPA rounding | closed |
 | W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it | closed |
-| W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings | open |
+| W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings | closed |
 | W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved | open |
 | W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) | open |
 | W7 | Random reflection | add mirror reflection to placement draws | open |
@@ -758,3 +761,8 @@ Registry of resolved decisions (for provenance):
   with base-origin TreeModels and module place() positioning; the rng is
   the sole entropy source (treesim's global generator bridged through one
   rng draw); both input contracts drive the same build path.
+- Fourth code-alignment round (2026-11): W4 closed — the None topography
+  is a flat plane at z = 0 (terrain always runs; ground sampled at the
+  default density with a spec warning when unconfigured); conflicts
+  resolve None > filepath > random with a warning; the terrain stage's
+  standalone gen-cell default aligned with DTM_CELL_SIZE 0.25.

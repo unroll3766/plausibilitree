@@ -43,6 +43,10 @@ CLASS_LOW_VEG = 3      # <= 0.5 m
 CLASS_MED_VEG = 4      # 0.5 - 2 m
 CLASS_HIGH_VEG = 5     # > 2 m
 
+# Default ground sampling density for the flat/None topography when the
+# user provides none (spec Sections 3.3 / 8.7: warn and use a default).
+DEFAULT_GROUND_DENSITY = 1.0
+
 
 # ---------------------------------------------------------------------------
 # DTM
@@ -83,6 +87,17 @@ class DTM:
         xll = h.get("xllcorner", h.get("xllcenter", 0.0))
         yll = h.get("yllcorner", h.get("yllcenter", 0.0))
         return cls(grid, xll, yll, cell, h.get("nodata_value", -9999.0))
+
+    @classmethod
+    def flat(cls, width, height, cell_size=0.25):
+        """A flat plane at z = 0 (spec Section 3.3, the None topography).
+
+        Same DTM interface as generated/provided grids -- sampling returns
+        0 everywhere -- so the whole terrain stage (tree draping, HAG,
+        classification, ground sampling) runs unchanged over the plane."""
+        grid = np.zeros((int(round(height / cell_size)),
+                         int(round(width / cell_size))), dtype=float)
+        return cls(grid, -width / 2.0, -height / 2.0, cell_size, -9999.0)
 
     @classmethod
     def generate(cls, width, height, cell_size, bumpiness, relief, seed=None):
@@ -203,15 +218,34 @@ def sample_ground(dtm, x_min, y_min, x_max, y_max, density, noise, rng):
 # main
 # ---------------------------------------------------------------------------
 
-def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=1, noise=0.0,
+def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=None,
+                  noise=0.0,
                   source="trimmed", seed=0, generate=False, gen_cell_size=1.0,
                   gen_bumpiness=0.5, gen_relief=10.0, verbose=True):
     plot_uid = os.path.splitext(os.path.basename(csv_path))[0]
     if plot_dir is None:
         plot_dir = os.path.join(os.path.dirname(os.path.abspath(csv_path)), plot_uid)
 
-    if not generate and not dtm_path:
-        raise ValueError(f"{plot_uid}: provide a --dtm file or use --generate-dtm.")
+    # --- topography resolution (spec Section 3.3) ---
+    # None wins if present, else filepath, else random parameters; a warning
+    # describes any choice that ignored an input. With neither a DTM path nor
+    # generation requested, the topography IS None: a uniform flat plane at
+    # z = 0.
+    flat = False
+    if dtm_path:
+        if generate:
+            print(f"  [terrain] {plot_uid}: warning - both a provided DTM and "
+                  f"--generate-dtm were requested; using the provided DTM "
+                  f"(filepath wins, generation ignored)")
+        generate = False
+    elif not generate:
+        flat = True
+    if flat and density is None:
+        print(f"  [terrain] {plot_uid}: warning - no ground sampling density "
+              f"provided for flat topography; using the default "
+              f"{DEFAULT_GROUND_DENSITY} points per cell")
+    if density is None:
+        density = DEFAULT_GROUND_DENSITY
 
     # source cloud (canonical layout; restructure must have run)
     src = layout.plot_path(plot_dir, plot_uid, f"{source}_las", create=False)
@@ -250,6 +284,14 @@ def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=1, noise=0.
         dtm_desc = (f"generated {dtm.width:.1f}x{dtm.height:.1f} m "
                     f"(cell {gen_cell_size}, bumpiness {gen_bumpiness}, "
                     f"relief {gen_relief})")
+    elif flat:
+        # the None topography: a uniform flat plane at z = 0, sized to the
+        # same auto-bounds so recentring/coverage checks behave identically
+        half_w = max(abs(x_min - cx), abs(x_max - cx)) + gen_cell_size
+        half_h = max(abs(y_min - cy), abs(y_max - cy)) + gen_cell_size
+        dtm = DTM.flat(2.0 * half_w, 2.0 * half_h, gen_cell_size)
+        dtm.recenter_to(cx, cy)
+        dtm_desc = "flat plane (topography = None, z = 0)"
     else:
         dtm = DTM.read_asc(dtm_path)
         dtm.recenter_to(cx, cy)
@@ -414,20 +456,22 @@ def _write_tree_terrain(plot_dir, plot_uid, all_pts, all_hag, all_sem, all_code,
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Drape a plot onto a DTM (provided or generated), add ground + HAG")
+    ap = argparse.ArgumentParser(
+        description="Drape a plot onto a DTM (provided, generated, or a "
+                    "flat plane when neither is given), add ground + HAG")
     ap.add_argument("csv", nargs="+", help="plot table csv(s)")
-    dtm_grp = ap.add_mutually_exclusive_group(required=True)
-    dtm_grp.add_argument("--dtm", help="provided DTM .asc (metres)")
-    dtm_grp.add_argument("--generate-dtm", action="store_true",
-                         help="synthesize a DTM sized to each plot's footprint")
-    ap.add_argument("--gen-cell-size", type=float, default=1.0,
-                    help="generated DTM cell size, m (with --generate-dtm)")
+    ap.add_argument("--dtm", help="provided DTM .asc (metres); wins over "
+                                   "--generate-dtm (spec Section 3.3)")
+    ap.add_argument("--generate-dtm", action="store_true",
+                    help="synthesize a DTM sized to each plot's footprint")
+    ap.add_argument("--gen-cell-size", type=float, default=0.25,
+                    help="generated/flat DTM cell size, m")
     ap.add_argument("--gen-bumpiness", type=float, default=0.5,
                     help="generated DTM bumpiness/roughness (with --generate-dtm)")
     ap.add_argument("--gen-relief", type=float, default=10.0,
                     help="generated DTM relief / vertical range, m (with --generate-dtm)")
     ap.add_argument("-d", "--plot-dir", default=None)
-    ap.add_argument("--density", type=float, default=1.0,
+    ap.add_argument("--density", type=float, default=None,
                     help="ground points per DTM cell (default 1)")
     ap.add_argument("--noise", type=float, default=0.0,
                     help="vertical noise half-range in metres (default 0)")
