@@ -21,13 +21,21 @@ verification round; keep entries copy-pasteable so any check can be re-run.
 
 ### Standing checks (run every round)
 
-1. `check.py` — static, whole-repo.
-2. Lint-for-mistakes greps used during review rounds:
-   - stale identifiers: `grep -rn "allowed_overlap\|allowed-overlap\|7\.32" *.py *.md`
-     (expect: no hits outside intentional provenance mentions)
-   - doc cross-references resolve:
-     `python3 -c "import re; t=open('Plausibilitree.md').read(); refs=set(re.findall(r'Section (\d+\.\d+)', t)); heads=set(re.findall(r'^### (\d+\.\d+)', t, re.M)); print([r for r in refs if r not in heads])"`
-     (expect: empty list)
+1. `check.py` — static, whole-repo: `conda run -n ssf python check.py`.
+   (The runtime blocks `python3` as a standalone command; run every check
+   through the conda wrapper.)
+2. Stale identifiers: `grep -rn "allowed_overlap\|allowed-overlap\|7\.32" *.py *.md`
+   (expect: no hits outside intentional provenance mentions); during the
+   W3/W1 rounds also grep for API names removed by refactors
+   (`load_rows`, `rows_from_tree_list`, ...).
+3. Doc cross-references resolve:
+   `conda run -n ssf python -c "import re; t=open('Plausibilitree.md').read(); refs=set(re.findall(r'Section (\d+\.\d+)', t)); heads=set(re.findall(r'^### (\d+\.\d+)', t, re.M)); print([r for r in refs if r not in heads])"`
+   (expect: empty list)
+4. Exit-code discipline: NEVER pipe a verification command through
+   `tail`/`grep` without checking its exit code — `cmd | tail -2` masks
+   a nonzero exit with tail's 0. Either run unfiltered, add
+   `echo "exit: $?"`, or use `set -o pipefail`. (Added after the W3
+   review caught a regression hidden this way; see the W3 review entry.)
 
 ### 2026-11-05 — W2 / W11 / W12 (commit e1868e6)
 
@@ -242,10 +250,49 @@ by the unit suite before any e2e run.
   contract/discovery/parity checks (rev_check2.py) still apply
   unchanged.
 
+### 2026-11-05 — W3 review pass (adversarial check on commit b0da89e)
+
+Found one real regression the W3 verification missed, plus one important
+coverage gap:
+
+1. **Masked test failure** (real regression in the test suite, not the
+   code): the W3 entry claimed "rev_check2.py still applies unchanged",
+   but its check 3 imported the removed `generate_trees.load_rows` —
+   it has been failing with AttributeError since the refactor. The
+   failure was masked because the rerun was piped through `tail -2`,
+   whose exit code is 0. Fixed: check 3 now uses `tree_requests` /
+   `get_generator` (X/Y/UID parity across contracts); suite green with
+   `exit: 0` verified explicitly. Standing check 4 (exit-code
+   discipline) was added so this cannot recur silently.
+2. **Collision trimming had never been exercised since W1**: every e2e
+   run used the sparse 6-tree subset where raw == trimmed volume (zero
+   collisions), so the W3 refactor's riskiest path — trimming against
+   the module-placed skeletons — was untested. Now verified on a dense
+   subset: 40 trees (r=20 plot), `-g sst`, 32 pts/m through generate +
+   assemble -> 40/40 generated, **376 collisions, 202 points trimmed
+   (2.6%)**, per-tree element trims recorded (e.g. tree 040: 5 elements,
+   2 points removed). Trimming works correctly on the placed module
+   skeletons.
+
+Also verified this round: no stale symbol references remain
+(param_editor's `stem_frac_from_row` is its own local copy, not an
+import); the manifest columns dropped by the refactor
+(fork/n_branches/n_stem_points) are consumed by nothing (restructure
+only moves manifest.csv); run_pipeline `-g sst` pass-through works —
+exercised through a complete 6-tree pipeline run after an earlier CLI
+probe (which mutated the shared /tmp e2e fixture; the fixture was
+regenerated and parity re-verified exit-0). Test-hygiene lesson: run
+ad-hoc CLI probes against scratch directories, never against fixture
+dirs other checks depend on.
+
+**Verification gaps updated**: dense-plot timing — 40 trees at 32 pts/m
+generate+assemble completed well within a 300 s budget; the earlier
+"6-tree e2e only" gap is now "full-pipeline e2e still sparse-subset".
+Trimming coverage exists; stem/canopy/normalize on a dense plot remain
+untested (derived stages, unchanged by W3).
+
 ### Verification gaps / notes (W1 round)
 
-- The JSON-tree-list e2e used 6 trees at 64 points/m (a 111-tree run is
-  minutes of generation even at that density).
 - scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was
   not exercised (no display).
 - FIA geo passthrough (per-tree LON/LAT/ELEV from a PLOT join) is not yet
