@@ -120,7 +120,7 @@ Result: 1 ok / 0 failed in 15 s; stem map "597x653 px @ 5 cm, band
   consider promoting them into `tests/` as work proceeds.
 - Pre-W2 seeds do not regenerate identical plots (see reproducibility entry).
 
-### 2026-11-05 — W1: minimal JSON tree list contract
+### 2026-11-05 — W1: minimal JSON tree list contract (commit f26e2d6)
 
 **Unit checks** (`conda run -n ssf python /tmp/test_w1a.py`, all pass):
 
@@ -155,7 +155,7 @@ Result: 1 ok / 0 failed in 15 s; stem map "597x653 px @ 5 cm, band
 statuses updated (W1 closed; 3.1/8.1 implemented-except-W13; 6.1 output
 line; Section 2 partial note).
 
-### 2026-11-05 — W1 review pass (post-commit adversarial check)
+### 2026-11-05 — W1 review pass (commit f4087c4; post-commit adversarial check)
 
 Found and fixed two real bugs the first round's tests missed (both in
 plot-table discovery, both caught by writing tests for what WASN'T
