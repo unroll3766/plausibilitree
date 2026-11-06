@@ -49,6 +49,7 @@ import pandas as pd
 from las import export_points_las, read_points_las, export_canonical_las, read_canonical_las
 import layout
 import schema
+import tree_list
 
 # Branch axes in the skeleton carry no radius. The simulator builds each branch
 # as a ribbon of half-width 0.2 * branch length, so this fraction is the
@@ -568,7 +569,7 @@ def trimmed_skeleton_dict(tree: TreeSkeleton, n_points_trimmed: int) -> dict:
 # Driver
 # ---------------------------------------------------------------------------
 
-def assemble_plot(csv_path: str, plot_dir: str | None = None,
+def assemble_plot(table_path: str, plot_dir: str | None = None,
                   seed: int = 0,
                   plot_radius_m: float | None = None,
                   branch_radius_frac: float = BRANCH_RADIUS_FRAC,
@@ -577,15 +578,17 @@ def assemble_plot(csv_path: str, plot_dir: str | None = None,
                   plot_length_m: float | None = None,
                   plot_width_m: float | None = None,
                   verbose: bool = True) -> dict:
-    """Rotate, place, collide and trim every tree of one plot."""
-    plot_uid = os.path.splitext(os.path.basename(csv_path))[0]
+    """Rotate, place, collide and trim every tree of one plot.
+
+    Accepts a canonical tree-list JSON or a legacy SST parameter CSV."""
+    plot_uid = os.path.splitext(os.path.basename(table_path))[0]
     if plot_dir is None:
-        plot_dir = os.path.join(os.path.dirname(os.path.abspath(csv_path)), plot_uid)
+        plot_dir = os.path.join(os.path.dirname(os.path.abspath(table_path)), plot_uid)
     trees_dir = os.path.join(plot_dir, "individual_trees")
     place_dir = os.path.join(plot_dir, "plot_placement")
     os.makedirs(place_dir, exist_ok=True)
 
-    df = pd.read_csv(csv_path, dtype={"TREE_UID": str})
+    df = tree_list.trees_frame(table_path)
     if "successful_placement" in df.columns:
         df = df[df["successful_placement"].astype(str).str.lower()
                 .isin(["true", "1", "yes", "t"])]

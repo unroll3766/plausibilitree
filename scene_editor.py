@@ -48,6 +48,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 
 import layout
+import tree_list
 from las import read_canonical_las
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -98,13 +99,14 @@ def find_plots(path):
     from the canonical layout, so unrestructured plots cannot be edited).
     """
     if os.path.isdir(path):
-        csvs = sorted(glob.glob(os.path.join(path, "plot_*.csv")))
+        csvs = tree_list.find_plots(path)
     elif os.path.isfile(path):
         csvs = [path]
     else:
         raise FileNotFoundError(path)
     if not csvs:
-        raise RuntimeError(f"no plot_*.csv tables found under {path}")
+        raise RuntimeError(f"no plot tables (plot_*.json / plot_*.csv) "
+                           f"found under {path}")
 
     out = []
     for csv in csvs:

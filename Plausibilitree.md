@@ -46,9 +46,9 @@ Section 11 lists every known code-to-design gap as actionable work items.
 
 ## 2. Inputs
 
-**[partial]** — all input kinds exist; the tree list contract below is the
-target design and the param-lookup at generation time is partially in place
-(see Section 7 and Section 11, items W1-W3).
+**[partial]** — the JSON tree list contract (Section 8.1) and generation-time
+param-dict lookup are implemented; the parameter dictionary's JSON
+serialization (W13) and the formal module interface (W3) are not.
 
 The core consumes:
 
@@ -71,22 +71,24 @@ is a first-class input.
 
 ## 3. Core process
 
-### 3.1 Tree generation and placement — **[partial]**
+### 3.1 Tree generation and placement — **[implemented]**
 
 For each tree in the tree list, in order:
 
 - The generator module builds a tree from the tree's (X, Y, DBH, HT,
   TREE_CODE) plus that code's parameter dictionary entry. Shape parameters are
-  drawn randomly (seeded; seed is a hash of plot seed + TREE_UID) from the
-  parameter dictionary's ranges. Realized DBH and HT may therefore differ
+  drawn randomly (seeded; seed is a stable hash of plot seed + TREE_UID) from
+  the parameter dictionary's ranges. Realized DBH and HT may therefore differ
   slightly from the input values (differences recorded in tree info JSON).
 - The tree is placed at (X, Y) with a random rotation about its base, drawn
   from [0, 360) degrees, and a random reflection.
 
-Implementation status: rotation is continuous and seeded [implemented];
-reflection is not implemented; SST consumes frozen per-tree parameter ranges
-in the plot CSV rather than looking up DBH/HT/TREE_CODE at generation time
-(item W1).
+Implementation status: canonical JSON tree lists are generated per the
+contract — the parameter dictionary lookup, allometric bounds and per-tree
+seeded draws all happen at generation time (legacy SST parameter CSVs remain
+accepted as input). Rotation is continuous and seeded. Reflection is not
+implemented (item W7); the parameter dictionary is still the functional-group
+CSV rather than JSON (item W13).
 
 ### 3.2 Collision trimming — **[implemented]**
 
@@ -292,10 +294,11 @@ join is a passthrough of pre-joined LAT/LON/ELEV columns, unit conversion,
 dead-tree removal, functional-group resolution, height-descending placement
 (DBH tiebreak), the expansion modifier with round-up, `min_distance`
 spacing, `max_tries` and `edge_effects` controls, and the per-plot report
-JSON. The output tree list is still the SST parameter CSV with pre-drawn
-tolerance ranges (items W1, W13); per-tree geo derivation from plot center
-plus local placement is not yet computed. A user-supplied inventory with
-positions replaces this helper entirely.
+JSON. The placed tree list is written as canonical JSON (Section 8.1,
+default) or the legacy SST parameter CSV (`--format sst-csv`);
+per-tree geo derivation from plot center plus local placement is not yet
+computed (item W5). A hand-authored tree list with positions replaces this
+helper entirely.
 
 ### 6.2 Tree parameter editor — **[partial]**
 
@@ -481,7 +484,7 @@ splits; there is no separate SOURCE/DESTINATION table.
 
 ## 8. Data structures
 
-### 8.1 Tree list (input; emitted by the FIA helper or authored by hand)
+### 8.1 Tree list (input; emitted by the FIA helper or authored by hand) — **[implemented]**
 
 Serialized as **JSON**: one object per plot (PLOT_UID, plot shape and
 dimensions, optional plot center geo) containing a `trees` array whose
@@ -507,10 +510,12 @@ Optional attributes:
 | LAT | float | centroid latitude, EPSG:4326 | [-90.0, 90.0] | plot center + local placement; absent without a known plot center |
 | ELEV | float | base elevation, metres (EPSG:5773) | [-500, 5000] | plot center + local placement; absent without a known plot center |
 
-**[partial]**: the current contract is the SST per-tree parameter CSV
-(TREE_UID, FUNC_GROUP, X, Y, HT_LO/HI, BASE_DIA_LO/HI, SPLIT_*, ...,
-PLOT_LAT/LON/ELEV); the minimal JSON contract above is the target
-(items W1, W13).
+**Status**: the canonical JSON contract is implemented — the FIA helper
+emits `plot_<UID>.json` by default (`--format sst-csv` emits the legacy SST
+parameter table) and every stage loads either contract through
+`tree_list.py`; DBH/HT carry full inventory precision. Legacy SST CSVs are
+accepted as input for generation. Parameter-dictionary serialization
+(CSV -> JSON) remains item W13.
 
 ### 8.2 Canonical output layout
 
@@ -676,7 +681,7 @@ matches the design).
 
 | # | Item | Gap | Status |
 |---|---|---|---|
-| W1 | Minimal tree list contract | generate_trees consumes per-tree frozen SST ranges; switch to (X, Y, DBH, HT, TREE_CODE) + param-dict lookup at generation, drawing seeded shapes per TREE_UID. FIA helper emits the minimal list (DBH/HT per tree), keeping placement there | open |
+| W1 | Minimal tree list contract | generate_trees consumes per-tree frozen SST ranges; switch to (X, Y, DBH, HT, TREE_CODE) + param-dict lookup at generation, drawing seeded shapes per TREE_UID. FIA helper emits the minimal list (DBH/HT per tree), keeping placement there | closed |
 | W2 | FIA helper placement controls | (a) implement expansion factor modifier; (b) minimum tree distance (generalize --allowed-overlap); (c) max tries and edge effects (spec Section 6.1). Replace the placeholder TPA rounding | closed |
 | W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it | open |
 | W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings | open |
@@ -727,3 +732,10 @@ Registry of resolved decisions (for provenance):
   effects, height-descending placement order, per-plot report JSON),
   design defaults in code (radius 7.315, DTM 0.25, CHM 0.05, stem cell
   0.05), and the LAS 1.4 canonical writer.
+- Second code-alignment round (2026-11): W1 closed — canonical JSON tree
+  list (Section 8.1) via tree_list.py; every stage accepts it or the
+  legacy CSV; FIA helper emits JSON by default; generation looks up the
+  parameter dictionary per TREE_CODE at generation time with allometric
+  bounds around the tree list's DBH/HT and stable hashed per-tree seeds;
+  contracts are pipeline-equivalent (identical plot clouds for the same
+  trees and seeds).

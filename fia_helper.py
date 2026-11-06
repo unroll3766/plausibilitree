@@ -647,6 +647,71 @@ def placement_report(params: dict, work: pd.DataFrame) -> dict:
     }
 
 
+def build_tree_list(work: pd.DataFrame) -> dict:
+    """Placed trees (working frame) -> canonical tree list dict (Section 8.1).
+
+    Inventory facts only: TREE_UID, X, Y, DBH, HT, TREE_CODE (+Z). The
+    plot-center passthrough columns become the tree list's plot_center.
+    Simulator parameters are NOT included -- generate_trees looks them up
+    per TREE_CODE at generation time.
+    """
+    p = work[work["successful_placement"] == True]  # noqa: E712
+    p = p.reset_index(drop=True)
+    trees = []
+    for i, row in p.iterrows():
+        # DBH/HT carry full inventory precision: generation-time allometry
+        # (crown width, taper) is computed FROM these values (Section 7.2),
+        # so rounding here would shift every derived parameter.
+        t = {"TREE_UID": f"{i + 1:03d}",
+             "X": round(float(row["X"]), 4),
+             "Y": round(float(row["Y"]), 4),
+             "DBH": float(row["DIA"]),
+             "HT": float(row["HT"]),
+             "TREE_CODE": str(row["FUNC_GROUP"]),
+             "Z": 0.0}
+        trees.append(t)
+    center = {}
+    for col, key in (("plot_lat", "lat"), ("plot_lon", "lon"),
+                     ("plot_elev", "elev")):
+        if col in work.columns:
+            vals = pd.to_numeric(work[col], errors="coerce").dropna()
+            center[key] = (float(vals.iloc[0]) if len(vals) else None)
+        else:
+            center[key] = None
+    return {
+        "plot_uid": str(work.attrs.get("plot_uid", "")),
+        "plot_shape": work.attrs.get("plot_shape", "circle"),
+        "plot_radius_m": work.attrs.get("plot_radius_m"),
+        "plot_length_m": work.attrs.get("plot_length_m"),
+        "plot_width_m": work.attrs.get("plot_width_m"),
+        "plot_side_m": work.attrs.get("plot_side_m"),
+        "plot_center": center,
+        "trees": trees,
+    }
+
+
+def fia_to_tree_list(fia_df: pd.DataFrame, *, return_intermediate: bool = False,
+                     **kwargs) -> dict:
+    """FIA TREE records -> one canonical tree list dict (Section 8.1).
+
+    Runs the same placement pipeline as fia_to_sst_plot (placement lives in
+    this helper, never the core), then emits the minimal inventory-fact
+    contract instead of frozen SST parameters. kwargs are the placement
+    controls of fia_to_sst_plot (expansion_modifier, min_distance,
+    edge_effects, max_tries, seed, plot shape, plot_uid ...). Returns
+    (tree_list, work_frame) if return_intermediate, else the tree list.
+    """
+    kw = dict(kwargs)
+    kw.pop("out_csv", None)
+    plot_uid = str(kw.pop("plot_uid", ""))
+    kw["return_intermediate"] = True
+    sst_unused, work = fia_to_sst_plot(fia_df, **kw)
+    work = work.copy()
+    work.attrs["plot_uid"] = plot_uid
+    plot = build_tree_list(work)
+    return (plot, work) if return_intermediate else plot
+
+
 def split_plots(fia_df: pd.DataFrame, plot_col: str = "PLT_CN"):
     """Yield (plot_id, subframe) for every plot in a multi-plot FIA table."""
     for pid, sub in fia_df.groupby(plot_col):
@@ -694,6 +759,11 @@ if __name__ == "__main__":
                     default=0.0,
                     help="allowed proportion of a tree's disc area outside "
                          "the plot, 0.0 (fully inside) to 1.0")
+    ap.add_argument("--format", choices=["tree-list-json", "sst-csv"],
+                    default="tree-list-json",
+                    help="output contract: the canonical JSON tree list "
+                         "(design Section 8.1, default) or the legacy SST "
+                         "parameter CSV")
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--limit", type=int, default=None, help="max plots to write")
     args = ap.parse_args()
@@ -731,6 +801,47 @@ if __name__ == "__main__":
     for i, (pid, sub) in enumerate(split_plots(df, args.plot_col)):
         if args.limit is not None and i >= args.limit:
             break
+        params = {"plot_uid": str(pid),
+                  "plot_shape": args.plot_shape,
+                  "plot_radius_m": radius if args.plot_shape == "circle" else None,
+                  "plot_length_m": args.length,
+                  "plot_width_m": args.width,
+                  "plot_side_m": args.side,
+                  "group_col": args.group_col,
+                  "overlap_basis": args.basis,
+                  "expansion_modifier": args.expansion_modifier,
+                  "min_distance_m": args.min_distance,
+                  "max_tries": args.max_tries,
+                  "edge_effects": args.edge_effects,
+                  "seed": args.seed,
+                  "format": args.format}
+        if args.format == "tree-list-json":
+            # canonical Section 8.1 tree list + report JSON
+            path = os.path.join(args.outdir, f"plot_{pid}.json")
+            plot, work = fia_to_tree_list(sub, plot_radius_m=radius,
+                                           group_col=args.group_col,
+                                           overlap_basis=args.basis,
+                                           expansion_modifier=args.expansion_modifier,
+                                           min_distance=args.min_distance,
+                                           edge_effects=args.edge_effects,
+                                           max_tries=args.max_tries,
+                                           seed=args.seed,
+                                           plot_shape=args.plot_shape,
+                                           plot_length_m=args.length,
+                                           plot_width_m=args.width,
+                                           plot_side_m=args.side,
+                                           plot_uid=f"plot_{pid}",
+                                           return_intermediate=True)
+            with open(path, "w") as fh:
+                json.dump(plot, fh, indent=2)
+            report = placement_report(params, work)
+            report_path = os.path.join(args.outdir, f"plot_{pid}_report.json")
+            with open(report_path, "w") as fh:
+                json.dump(report, fh, indent=2)
+            print(f"{path}: {report['trees_placed']} trees placed "
+                  f"({report['trees_not_placed']} not placed, "
+                  f"{report['proportion_placed']:.3f}); report: {report_path}")
+            continue
         path = os.path.join(args.outdir, f"plot_{pid}.csv")
         sst, work = fia_to_sst_plot(sub, plot_radius_m=radius,
                                     group_col=args.group_col,
@@ -745,19 +856,6 @@ if __name__ == "__main__":
                                     plot_width_m=args.width,
                                     plot_side_m=args.side,
                                     return_intermediate=True)
-        params = {"plot_uid": str(pid),
-                  "plot_shape": args.plot_shape,
-                  "plot_radius_m": radius if args.plot_shape == "circle" else None,
-                  "plot_length_m": args.length,
-                  "plot_width_m": args.width,
-                  "plot_side_m": args.side,
-                  "group_col": args.group_col,
-                  "overlap_basis": args.basis,
-                  "expansion_modifier": args.expansion_modifier,
-                  "min_distance_m": args.min_distance,
-                  "max_tries": args.max_tries,
-                  "edge_effects": args.edge_effects,
-                  "seed": args.seed}
         report = placement_report(params, work)
         report_path = os.path.join(args.outdir, f"plot_{pid}_report.json")
         with open(report_path, "w") as fh:

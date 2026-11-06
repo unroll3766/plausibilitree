@@ -48,6 +48,8 @@ import subprocess
 import sys
 import time
 
+import tree_list
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 PY = sys.executable
 
@@ -154,11 +156,12 @@ def run_pipeline(plotdir, *,
     # ---- discover already-produced plot tables -----------------------------
     # fia_helper.py is run separately beforehand to produce these; see the
     # module docstring for the two-step invocation.
-    plot_csvs = sorted(glob.glob(os.path.join(plotdir, "plot_*.csv")))
+    plot_csvs = tree_list.find_plots(plotdir)
     if limit is not None:
         plot_csvs = plot_csvs[:limit]
     if not plot_csvs:
-        print(f"no plot_*.csv found in {plotdir}/; run fia_helper.py first, e.g.\n"
+        print(f"no plot_*.json tree lists (or legacy plot_*.csv tables) "
+              f"found in {plotdir}/; run fia_helper.py first, e.g.\n"
               f"  python fia_helper.py <fia_csv> -o {plotdir} -r {radius}")
         return 1
     print(f"[plots] found {len(plot_csvs)} plot table(s) in {plotdir}/\n")

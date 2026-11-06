@@ -53,6 +53,8 @@ import time
 
 import numpy as np
 
+import tree_list
+
 # keys written into each env sidecar; run_pipeline.py reads exactly these
 ENV_KEYS = [
     "seed",
@@ -80,7 +82,7 @@ DEFAULT_RANGES = {
 
 # replicate tables written by an earlier run, excluded when a directory is
 # the input (so replicating a directory never re-replicates old replicates)
-_RE_REPLICATE = re.compile(r"plot_.+_r\d+\.csv$")
+_RE_REPLICATE = re.compile(r"plot_.+_r\d+\.(csv|json)$")
 
 
 def parse_range(text):
@@ -125,15 +127,19 @@ def draw_env(rng, ranges, dtm_files=None):
 
 
 def discover_tables(inputs):
-    """Resolve inputs (csvs and/or directories) into source table paths."""
+    """Resolve inputs (tree-list JSONs and/or CSVs, and/or directories) into
+    source table paths (canonical plot_*.json tree lists preferred, legacy
+    plot_*.csv tables still accepted; *_report.json and *_env.json sidecars
+    are never tables)."""
     csvs = []
     for p in inputs:
         if os.path.isdir(p):
-            found = sorted(glob.glob(os.path.join(p, "plot_*.csv")))
-            fresh = [f for f in found if not _RE_REPLICATE.match(os.path.basename(f))]
+            found = tree_list.find_plots(p)
+            fresh = [f for f in found
+                     if not _RE_REPLICATE.match(os.path.basename(f))]
             if not fresh and found:
                 raise RuntimeError(
-                    f"{p}: only replicate tables (plot_*_rNN.csv) found; pass the "
+                    f"{p}: only replicate tables (plot_*_rNN) found; pass the "
                     f"original tables or a directory holding them")
             csvs += fresh
         else:
@@ -175,17 +181,20 @@ def make_replicates(inputs, out_dir, n, *, seed=0, ranges=None, dtm_dir=None,
 
     for src in csvs:
         src = os.path.abspath(src)
-        uid = os.path.splitext(os.path.basename(src))[0]
-        # tables are copied byte-for-byte: the rows (trees) are the point of a
+        uid, ext = os.path.splitext(os.path.basename(src))
+        # tables are copied byte-for-byte: the trees are the point of a
         # replicate, and only the plot uid (the filename) changes
-        with open(src) as f:
-            header = f.readline()
-        if "TREE_UID" not in header:
-            raise RuntimeError(f"{src}: not a plot table (no TREE_UID column)")
+        if tree_list.is_tree_list_path(src):
+            tree_list.load_plot(src)     # validate the canonical contract
+        else:
+            with open(src) as f:
+                header = f.readline()
+            if "TREE_UID" not in header:
+                raise RuntimeError(f"{src}: not a plot table (no TREE_UID column)")
 
         for k in range(1, n + 1):
             new_uid = f"{uid}_r{k:0{pad}d}"
-            table = os.path.join(out_dir, f"{new_uid}.csv")
+            table = os.path.join(out_dir, f"{new_uid}{ext}")
             env_path = os.path.join(out_dir, f"{new_uid}.env.json")
             env = draw_env(rng, ranges, dtm_files)
             shutil.copyfile(src, table)

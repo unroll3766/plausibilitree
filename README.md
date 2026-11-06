@@ -19,7 +19,8 @@ tables); training lives in the companion project:
 ```bash
 pip install -r requirements.txt
 
-# 1. (optional) tree lists: raw FIA TREE table -> one plot_<UID>.csv per plot
+# 1. (optional) tree lists: raw FIA TREE table -> one canonical plot_<UID>.json
+#    tree list per plot (spec Section 8.1; --format sst-csv emits the legacy table)
 python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
 
 # 2. + 3. generate forests and their ML outputs:

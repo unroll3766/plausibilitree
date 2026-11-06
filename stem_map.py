@@ -43,6 +43,7 @@ import pandas as pd
 from las import read_points_las, read_canonical_las
 import layout
 import schema
+import tree_list
 
 
 def _taper_radius(base_radius, total_height, h):
@@ -439,10 +440,10 @@ def _load_skeletons(trees_dir, plot_uid):
     return out
 
 
-def _tree_uid(tree_id, csv_path):
+def _tree_uid(tree_id, table_path):
     """Best-effort zero-padded TREE_UID string for a numeric tree id."""
     try:
-        df = pd.read_csv(csv_path, dtype={"TREE_UID": str})
+        df = tree_list.trees_frame(table_path)
         hit = df[df["TREE_UID"].astype(int) == int(tree_id)]
         if len(hit):
             return str(hit.iloc[0]["TREE_UID"])

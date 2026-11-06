@@ -117,6 +117,50 @@ Result: 1 ok / 0 failed in 15 s; stem map "597x653 px @ 5 cm, band
 
 - The report JSON and CLI smoke were verified by inspection, not asserts.
 - No automated regression suite yet — the snippets above are the checks;
-  consider promoting them into `tests/` when W1 lands (they will be the
-  regression base for the tree-list contract change).
+  consider promoting them into `tests/` as work proceeds.
 - Pre-W2 seeds do not regenerate identical plots (see reproducibility entry).
+
+### 2026-11-05 — W1: minimal JSON tree list contract
+
+**Unit checks** (`conda run -n ssf python /tmp/test_w1a.py`, all pass):
+
+1. FIA CLI default format emits the canonical `plot_11839.json` (111 trees)
+   + report; `tree_list.load_plot` verifies plot_uid/shape/radius, null
+   plot_center, required attrs, DBH/HT plausibility, and that every
+   TREE_CODE resolves in the functional-group database.
+2. `load_rows` + `rows_from_tree_list` produce generator rows numerically
+   identical to the legacy SST table (`--format sst-csv`, same seed) on
+   HT/BASE_DIA bounds, MAX_CAN_W, SPLIT_*, SPR, TOP_DIST, X, Y
+   (atol 1e-4). Found+fixed during this check: round(4) on the tree
+   list's DBH/HT shifted allometry by ~1 mm; DBH/HT now carry full
+   precision.
+3. `resolve_func_group` resolution order: species code (202 -> DF) ->
+   functional group -> DEFAULT (unknown code).
+4. `validate_plot` rejects non-physical lists (negative DBH).
+5. `tree_list.trees_frame` parity: same TREE_UID/X/Y/geo columns from
+   both contracts; identical X/Y values across them.
+
+**End-to-end**:
+
+- JSON contract: 6-tree subset of plot_11839 through the full
+  `run_pipeline.py` -> 1 ok / 0 failed, plot cloud 8430 points (stem map
+  @5 cm band 1.12-1.62 m, CHM @5 cm).
+- Legacy CSV regression: the same 6 trees via the SST CSV -> 8430 points,
+  identical — the two contracts are pipeline-equivalent for the same
+  trees and seeds.
+- Replicate on JSON: `plot_11839_r01/r02.json` + env sidecars written;
+  `tree_list.find_plots` excludes `_report.json`/`_env.json` sidecars.
+
+**Check**: `check.py` passes (26 files, tree_list.py included). Design doc
+statuses updated (W1 closed; 3.1/8.1 implemented-except-W13; 6.1 output
+line; Section 2 partial note).
+
+### Verification gaps / notes (W1 round)
+
+- The JSON-tree-list e2e used 6 trees at 64 points/m (a 111-tree run is
+  minutes of generation even at that density).
+- scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was
+  not exercised (no display).
+- FIA geo passthrough (per-tree LON/LAT/ELEV from a PLOT join) is not yet
+  derived from plot center + placement (item W5); this sample has no PLOT
+  join (plot_center all-null).

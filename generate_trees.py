@@ -2,7 +2,8 @@
 generate_trees.py: generate one SimpleSynthTree point cloud per row of a
 PlausibiliTree plot table.
 
-    python generate_trees.py plot_11519.csv --seed 42
+    python generate_trees.py plot_11519.json --seed 42   # canonical tree list
+    python generate_trees.py plot_11519.csv  --seed 42   # legacy SST table
 
 For each successfully placed tree this writes, under
 <outdir>/individual_trees/:
@@ -35,6 +36,7 @@ import pandas as pd
 from treesim import gen_simtree
 from las import export_canonical_las
 import layout
+import tree_list
 
 POINTS_PER_METRE = 1024
 
@@ -94,6 +96,130 @@ def stem_frac_from_row(row: pd.Series):
     """Stem point ratio (lambda); a list is sampled uniformly by gen_simtree."""
     lo, hi = float(row["SPR_LO"]), float(row["SPR_HI"])
     return [lo, hi] if hi > lo else lo
+
+
+# ---------------------------------------------------------------------------
+# Minimal JSON tree list (design spec Section 8.1) -> generation rows
+# ---------------------------------------------------------------------------
+
+DEFAULT_SIZE_TOL = 0.01        # +/- 1% around the tree list's DBH/HT
+
+
+def _fg_param_series(fg_db, func_group: pd.Series, param: str, default=None):
+    """One functional-group parameter as a Series, DEFAULT-fallback."""
+    if param in fg_db.columns:
+        lut = fg_db[param]
+        out = func_group.map(lut)
+        return out.fillna(lut.loc["DEFAULT"]).astype(float)
+    if default is None:
+        raise KeyError(f"functional-group table has no {param} column")
+    return pd.Series(float(default), index=func_group.index)
+
+
+def resolve_func_group(codes: pd.Series, fg_db, spcd_map: dict | None = None
+                       ) -> pd.Series:
+    """TREE_CODE -> functional group (spec Section 8.1 resolution order:
+    species code -> functional group -> DEFAULT)."""
+    fg = pd.Series("DEFAULT", index=codes.index, dtype=object)
+    known = set(fg_db.index)
+    codes_s = codes.astype(str)
+    # direct functional-group label
+    fg[codes_s.isin(known)] = codes_s[codes_s.isin(known)]
+    # species code -> group lookup (codes may be numeric strings)
+    if spcd_map:
+        str_map = {str(k): v for k, v in spcd_map.items()}
+        mapped = codes_s.map(str_map)
+        hit = mapped.notna() & mapped.isin(known)
+        fg[hit] = mapped[hit]
+    # anything unknown falls back to DEFAULT
+    fg = fg.where(fg.isin(known), "DEFAULT")
+    return fg
+
+
+def rows_from_tree_list(plot: dict, fg_db=None, spcd_map: dict | None = None,
+                        dbh_tol: float | None = None,
+                        ht_tol: float | None = None) -> pd.DataFrame:
+    """Expand a minimal JSON tree list into generator rows.
+
+    For every tree, the code's parameter dictionary entry supplies the form:
+    crown width from the CW allometry, base diameter from the TAPER_B
+    extrapolation, shape parameters copied from the functional group. Sizes
+    (DBH, HT) come from the tree list; the tolerance bounds (DBH_TOL,
+    HT_TOL columns if present, DEFAULT_SIZE_TOL otherwise) put the SST
+    ranges around the list values [section 7.3]. The output rows are
+    column-compatible with the legacy SST parameter CSV, so the generation
+    loop below is shared by both contracts.
+    """
+    import fia_helper
+
+    trees = plot["trees"].copy()
+    if "TREE_UID" in trees.columns:
+        trees["TREE_UID"] = trees["TREE_UID"].astype(str)
+    if not len(trees):
+        return pd.DataFrame()
+
+    if fg_db is None:
+        fg_db = fia_helper.load_func_group_db()
+    if spcd_map is None:
+        spcd_map = fia_helper.load_spcd_map()
+
+    trees["FUNC_GROUP"] = resolve_func_group(trees["TREE_CODE"], fg_db,
+                                             spcd_map)
+    fg = trees["FUNC_GROUP"].astype(str)
+    if ht_tol is None:
+        ht_tol_series = _fg_param_series(fg_db, fg, "HT_TOL",
+                                         default=DEFAULT_SIZE_TOL)
+    else:
+        ht_tol_series = pd.Series(float(ht_tol), index=trees.index)
+    if dbh_tol is None:
+        dbh_tol_series = _fg_param_series(fg_db, fg, "DBH_TOL",
+                                         default=DEFAULT_SIZE_TOL)
+    else:
+        dbh_tol_series = pd.Series(float(dbh_tol), index=trees.index)
+
+    ht = pd.to_numeric(trees["HT"], errors="coerce")
+    # taper crown/base allometry reuse: fia_helper computes base diameter
+    # and crown width from DBH/HT per functional group
+    base_dia = fia_helper.dbh_to_base_diameter(trees["DBH"], ht, fg, fg_db)
+    crown_w = fia_helper.crown_width(trees["DBH"], fg, fg_db)
+
+    rows = pd.DataFrame(index=trees.index)
+    rows["TREE_UID"] = trees["TREE_UID"]
+    rows["FUNC_GROUP"] = fg
+    rows["X"] = pd.to_numeric(trees["X"], errors="coerce").round(4)
+    rows["Y"] = pd.to_numeric(trees["Y"], errors="coerce").round(4)
+    rows["HT_LO"] = (ht * (1 - ht_tol_series)).round(4)
+    rows["HT_HI"] = (ht * (1 + ht_tol_series)).round(4)
+    rows["BASE_DIA_LO"] = (base_dia * (1 - dbh_tol_series)).round(4)
+    rows["BASE_DIA_HI"] = (base_dia * (1 + dbh_tol_series)).round(4)
+    rows["MAX_CAN_W"] = crown_w.round(4)
+
+    for p in ["SPLIT_HT_LO", "SPLIT_HT_HI", "SPLIT_PROB",
+              "NUM_BRANCH_LO", "NUM_BRANCH_HI",
+              "MIN_CAN_HT_LO", "MIN_CAN_HT_HI",
+              "MAX_CAN_W_HT_LO", "MAX_CAN_W_HT_HI",
+              "TOP_DIST", "MID_DIST", "FP_RAND_HT", "SPR_LO", "SPR_HI"]:
+        rows[p] = _fg_param_series(fg_db, fg, p)
+
+    if "SPLIT_NUM_LO" in fg_db.columns and "SPLIT_NUM_HI" in fg_db.columns:
+        rows["SPLIT_NUM_LO"] = _fg_param_series(
+            fg_db, fg, "SPLIT_NUM_LO").astype(int)
+        rows["SPLIT_NUM_HI"] = _fg_param_series(
+            fg_db, fg, "SPLIT_NUM_HI").astype(int)
+    else:
+        rows["SPLIT_NUM_LO"] = 1
+        rows["SPLIT_NUM_HI"] = 1
+
+    rows["NUM_BRANCH_LO"] = rows["NUM_BRANCH_LO"].astype(int)
+    rows["NUM_BRANCH_HI"] = rows["NUM_BRANCH_HI"].astype(int)
+    rows["successful_placement"] = True
+
+    # provenance from the tree list (kept on the source_row the generator
+    # records): DBH/HT/TREE_CODE as given
+    rows["DBH"] = pd.to_numeric(trees["DBH"], errors="coerce").round(4)
+    rows["HT"] = ht.round(4)
+    rows["TREE_CODE"] = trees["TREE_CODE"].astype(str)
+    return rows.reset_index(drop=True)
 
 
 def target_points(ht_hi: float, points_per_metre: int = POINTS_PER_METRE,
@@ -292,25 +418,41 @@ def generate_tree(row: pd.Series, plot_uid: str, out_dir: str,
 # Whole plot
 # ---------------------------------------------------------------------------
 
-def generate_plot(csv_path: str, out_dir: str | None = None,
+def load_rows(table_path: str) -> tuple:
+    """Rows for either contract: (kind, DataFrame).
+
+    'tree-list-json' -> the minimal JSON contract (Section 8.1), expanded via
+    the tree-code parameter dictionary at generation time (per-tree bounds
+    from the tolerances; allometric crown width / base diameter from DBH/HT;
+    seeded shape draws happen per TREE_UID in generate_tree below).
+    'legacy-sst-csv' -> the frozen per-tree parameter CSV, consumed as-is.
+    """
+    if tree_list.is_tree_list_path(table_path):
+        plot = tree_list.load_plot(table_path)
+        return "tree-list-json", rows_from_tree_list(plot)
+    return "legacy-sst-csv", pd.read_csv(table_path, dtype={"TREE_UID": str})
+
+
+def generate_plot(table_path: str, out_dir: str | None = None,
                   seed: int = 0,
                   points_per_metre: int = POINTS_PER_METRE,
                   max_attempts: int = 5,
                   excursion_slack: float = 1.0,
                   overwrite: bool = True,
                   verbose: bool = True) -> pd.DataFrame:
-    """Generate every successfully placed tree in a plot table.
+    """Generate every tree in a plot table.
 
-    The output directory is derived from the csv name (plot_001.csv ->
-    plot_001/) unless out_dir is given.
+    Accepts a canonical JSON tree list (plot_*.json, Section 8.1) or a legacy
+    SST parameter CSV. The output directory is derived from the table name
+    (plot_001.json -> plot_001/) unless out_dir is given.
     """
     # TREE_UID must stay a string or "015" is read as 15 and the file names
     # stop matching the plot table.
-    df = pd.read_csv(csv_path, dtype={"TREE_UID": str})
+    kind, df = load_rows(table_path)
 
-    plot_uid = os.path.splitext(os.path.basename(csv_path))[0]
+    plot_uid = os.path.splitext(os.path.basename(table_path))[0]
     if out_dir is None:
-        out_dir = os.path.join(os.path.dirname(os.path.abspath(csv_path)), plot_uid)
+        out_dir = os.path.join(os.path.dirname(os.path.abspath(table_path)), plot_uid)
     trees_dir = os.path.join(out_dir, "individual_trees")
     os.makedirs(trees_dir, exist_ok=True)
 
@@ -347,16 +489,18 @@ def generate_plot(csv_path: str, out_dir: str | None = None,
 
 def main():
     ap = argparse.ArgumentParser(description="Generate SimpleSynthTree clouds for a plot table")
-    ap.add_argument("csv", nargs="+", help="plot table csv(s) from fia_helper")
+    ap.add_argument("table", nargs="+",
+                    help="plot tree-list JSON(s) (canonical contract) or "
+                         "legacy SST parameter csv(s)")
     ap.add_argument("-o", "--outdir", default=None,
-                    help="output root (default: alongside each csv, named after it)")
+                    help="output root (default: alongside each table, named after it)")
     ap.add_argument("-s", "--seed", type=int, default=0)
     ap.add_argument("-p", "--points-per-metre", type=int, default=POINTS_PER_METRE)
     ap.add_argument("--max-attempts", type=int, default=5)
     ap.add_argument("--no-overwrite", action="store_true")
     args = ap.parse_args()
 
-    for path in args.csv:
+    for path in args.table:
         out = (os.path.join(args.outdir, os.path.splitext(os.path.basename(path))[0])
                if args.outdir else None)
         generate_plot(path, out_dir=out, seed=args.seed,
