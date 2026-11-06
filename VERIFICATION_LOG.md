@@ -498,7 +498,7 @@ did not cover (all exit-0, /tmp/w13_review.py + /tmp/w13_review2.sh):
    contract variance (frozen ranges rounded to 4dp in the legacy CSV;
    the W3 review measured 1.996e-03 m) — expected, not a regression.
 
-### 2026-11-05 — W7: random mirror reflection in placement draws
+### 2026-11-05 — W7: random mirror reflection in placement draws (commit b3023b9)
 
 **Design** (spec 3.1): placement draws = uniform rotation on [0, 360)
 about the tree's own base PLUS a 50/50 mirror reflection across the
