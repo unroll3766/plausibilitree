@@ -8,7 +8,8 @@ under many different grounds.
 
 ```
 # 3 environment replicates of one plot (or pass a directory to replicate all)
-python replicate.py plots/plot_11574.csv -o plots_rep -n 3 --seed 7
+python replicate.py plots/plot_11574.json -o plots_rep -n 3 --seed 7
+# (legacy SST plot_*.csv tables work identically)
 
 # draw real DTMs from a directory instead of synthesizing terrain
 python replicate.py plots -o plots_rep -n 4 --dtm-dir dtms
@@ -19,11 +20,12 @@ python run_pipeline.py plots_rep --radius 15 --seed 42
 
 ## What it writes
 
-Per source table `plot_<UID>.csv` and replicate `k`:
+Per source table `plot_<UID>.<json|csv>` (canonical tree list or legacy SST
+table) and replicate `k`:
 
 | File | Contents |
 |---|---|
-| `plot_<UID>_r<NN>.csv` | the source table, copied byte-for-byte (rows unchanged) |
+| `plot_<UID>_r<NN>.<json|csv>` | the source table, copied byte-for-byte (same format; trees unchanged) |
 | `plot_<UID>_r<NN>.env.json` | this replicate's environment draw (see below) |
 | `replicates_manifest.json` | the sampler config + every draw, for provenance |
 

@@ -155,6 +155,39 @@ Result: 1 ok / 0 failed in 15 s; stem map "597x653 px @ 5 cm, band
 statuses updated (W1 closed; 3.1/8.1 implemented-except-W13; 6.1 output
 line; Section 2 partial note).
 
+### 2026-11-05 — W1 review pass (post-commit adversarial check)
+
+Found and fixed two real bugs the first round's tests missed (both in
+plot-table discovery, both caught by writing tests for what WASN'T
+covered):
+
+1. `tree_list.find_plots` had no `plot_` prefix check — any `*.csv` /
+   `*.json` in a plot directory qualified as a table. `replicates_manifest.json`
+   (written into replicate output dirs, which run_pipeline is documented
+   to consume) and stray `manifest.csv` files would be picked up as plots.
+   Fixed: only `plot_`-prefixed files qualify.
+2. `is_tree_list_path` excluded `_env.json` (underscore) but replicate's
+   sidecars are named `plot_<UID>_rNN.env.json` (DOT env) — they matched
+   the tree-list pattern and would enter the pipeline as plots. Found by
+   asserting the discovered-table list instead of eyeballing it (the
+   earlier e2e replicate run listed the dir by hand and missed this).
+   Fixed: exclude `.env.json`.
+
+Review suite (`conda run -n ssf python /tmp/rev_check2.py`, passes):
+(1) a dir containing manifest.csv, replicates_manifest.json, notes.txt and
+one real tree list discovers exactly the tree list; (2) a replicate dir
+discovers only `plot_*_rNN.json`; (3) both contracts load via load_rows
+with X-parity on shared trees.
+
+Also fixed this round: stale spec references (7.1's W1 -> W3; 7.2 step 7
+and 7.3 status paragraphs now describe the implemented generation-time
+path); README_fia_helper / README_generation / README_replicate document
+the JSON default and the `--format sst-csv` legacy path.
+
+Known gap (noted, unchanged): tree Z from the tree list is not yet
+consumed by generation (Z is 0 for all current sources; will matter for
+terrain work, track with W5).
+
 ### Verification gaps / notes (W1 round)
 
 - The JSON-tree-list e2e used 6 trees at 64 points/m (a 111-tree run is

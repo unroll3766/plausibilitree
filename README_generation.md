@@ -4,7 +4,8 @@ Stage 2: turn a PlausibiliTree plot table into one labelled point cloud per
 tree, with full provenance.
 
 ```
-python generate_trees.py plot_11519.csv --seed 42
+python generate_trees.py plot_11519.json --seed 42   # canonical tree list (default)
+python generate_trees.py plot_11519.csv  --seed 42   # legacy SST parameter table
 ```
 
 ```
@@ -17,7 +18,8 @@ plot_11519/
     ...
 ```
 
-The output directory is derived from the CSV name (`plot_001.csv` →
+The output directory is derived from the table name (`plot_001.json` or
+`plot_001.csv` →
 `plot_001/`) unless `-o` is given. Rows with `successful_placement=False` are
 dropped before generation.
 

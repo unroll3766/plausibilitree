@@ -125,11 +125,12 @@ def load_plot(path: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def is_tree_list_path(path: str) -> bool:
-    """True for canonical tree-list JSON files (excludes *_report.json and
-    *_env.json sidecars, which share the plot_*.json glob prefix)."""
+    """True for canonical tree-list JSON files (excludes *_report.json
+    reports and the replicate stage's *.env.json sidecars, which share the
+    plot_*.json glob prefix)."""
     return (path.endswith(".json")
             and not path.endswith("_report.json")
-            and not path.endswith("_env.json"))
+            and not path.endswith(".env.json"))
 
 
 def legacy_trees_frame(csv_path: str) -> pd.DataFrame:
@@ -163,12 +164,15 @@ def trees_frame(path: str) -> pd.DataFrame:
 
 
 def find_plots(plotdir: str) -> list:
-    """Canonical plot tables in a directory: plot_*.json (tree lists,
-    excluding report/env sidecars) plus legacy plot_*.csv. Sorted."""
+    """Canonical plot tables in a directory: plot_*.json tree lists
+    (excluding *_report.json and *_env.json sidecars) plus legacy
+    plot_*.csv tables. Only plot_-prefixed files qualify: directories can
+    hold other json/csv artifacts (manifests, reports, env sidecars) that
+    must never be treated as tables. Sorted."""
     tables = []
     for name in sorted(os.listdir(plotdir)):
         full = os.path.join(plotdir, name)
-        if not os.path.isfile(full):
+        if not os.path.isfile(full) or not name.startswith("plot_"):
             continue
         if is_tree_list_path(full) or name.endswith(".csv"):
             tables.append(full)

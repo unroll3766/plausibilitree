@@ -1,40 +1,52 @@
 # FIA helper for PlausibiliTree
 
-Converts raw FIA `TREE` records into one parameter table per plot, ready to
-drive a multi-tree version of SimpleSynthTree. For what each parameter column
-controls (the `CW_*` allometry, `TAPER_B`, crown shape ranges, etc.), see the
-parameter reference in [README_param_editor.md](README_param_editor.md).
+Converts raw FIA `TREE` records into one placed tree list per plot, ready to
+drive a multi-tree version of SimpleSynthTree. By default it writes the
+canonical JSON tree list (`plot_<UID>.json`, spec Section 8.1 — inventory
+facts only: TREE_UID, X, Y, DBH, HT, TREE_CODE); `--format sst-csv` emits the
+legacy per-tree SST parameter table instead (frozen HT/BASE_DIA ranges plus
+per-group shape parameters). For what each parameter controls (the `CW_*`
+allometry, `TAPER_B`, crown shape ranges, etc.), see the parameter reference
+in [README_param_editor.md](README_param_editor.md).
 
 ```
 fia_helper.py
 data/functional_groups.csv    per-group allometry + SST parameters
 data/spcd_func_group.csv      SPCD -> functional group lookup
+tree_list.py                  the canonical tree-list contract (Section 8.1)
 ```
 
 ## Usage
 
 ```python
-from fia_helper import fia_to_sst_plot, split_plots
+from fia_helper import fia_to_tree_list, split_plots
 import pandas as pd
 
 df = pd.read_csv("CA_TREE_SMALL.csv", low_memory=False)
 for plot_id, sub in split_plots(df, "PLT_CN"):
-    fia_to_sst_plot(sub, plot_radius_m=30.0, expansion_modifier=1.0,
-                    min_distance=1.0, edge_effects=0.25,
-                    seed=42, out_csv=f"plot_{plot_id}.csv")
+    plot = fia_to_tree_list(sub, plot_radius_m=30.0, expansion_modifier=1.0,
+                             min_distance=1.0, edge_effects=0.25,
+                             seed=42, plot_uid=f"plot_{plot_id}")
+    # plot: dict with plot shape/dims, plot_center, and a minimal trees array
 ```
 
 or from the shell:
 
 ```
 python fia_helper.py CA_TREE_SMALL.csv -o plots -r 20 --min-distance 1.0 --edge-effects 0.25
+#    -> plots/plot_<UID>.json (canonical tree list) + plot_<UID>_report.json
+python fia_helper.py CA_TREE_SMALL.csv -o plots -r 20 --format sst-csv
+#    -> plots/plot_<UID>.csv (legacy SST parameter table) + report
 ```
 
-This is a standalone step: run it first to produce `plots/plot_*.csv` (plus a
-`plot_*_report.json` per plot), then point `run_pipeline.py` at that directory
-to run the rest of the stages over those tables (see
-[README_run_pipeline.md](README_run_pipeline.md)). `run_pipeline.py` no longer
-runs the FIA helper itself.
+
+This is a standalone step: run it first to produce the tree lists (plus a
+`plot_*_report.json` per plot), then point `run_pipeline.py` at that
+directory to run the rest of the stages over those lists (see
+[README_run_pipeline.md](README_run_pipeline.md)). `run_pipeline.py` no
+longer runs the FIA helper itself. For per-row SST parameter access (the
+legacy table) the `fia_to_sst_plot` API remains available and takes the
+same placement controls.
 
 ### Placement controls
 
@@ -84,6 +96,14 @@ Programmatically, `plot_area_m2`/`plot_bbox`/`preprocess_fia`/`place_trees`/
 
 ## Pipeline
 
+Stages below run for both output formats; the postprocess stage diverges:
+`--format tree-list-json` (default) runs `build_tree_list` and emits the
+canonical minimal tree list (Section 8.1); `--format sst-csv` runs
+`build_sst_table` and emits the frozen-parameter columns below. In the JSON
+path, the tolerance/allometry values are computed at *generation* time by
+`generate_trees.py` from the tree list's DBH/HT, so the tree list carries
+only inventory facts.
+
 | stage | function | notes |
 |---|---|---|
 | preprocess | `preprocess_fia` | drop `DECAYCD >= 1`, drop rows missing `DIA/HT/TPA_UNADJ/CCLCD/<group col>`, convert units, add `X`, `Y`, `successful_placement` |
@@ -91,13 +111,14 @@ Programmatically, `plot_area_m2`/`plot_bbox`/`preprocess_fia`/`place_trees`/
 | allometry | `crown_width` | `CW = exp(a0 + a1 ln DBH)` per functional group |
 | placement | `place_trees` | height-descending placement (DBH tiebreak), disc spacing with `min_distance`, `edge_effects` quota, `max_tries` attempts |
 | taper | `dbh_to_base_diameter` | DBH extrapolated to ground line |
-| postprocess | `build_sst_table` | emits the columns below |
+| postprocess | `build_tree_list` / `build_sst_table` | canonical JSON tree list (default) / the legacy columns below |
 
-Output columns: `TREE_UID, FUNC_GROUP, X, Y, HT_LO, HT_HI, BASE_DIA_LO,
-BASE_DIA_HI, SPLIT_HT_LO, SPLIT_HT_HI, SPLIT_PROB, NUM_BRANCH_LO,
-NUM_BRANCH_HI, MIN_CAN_HT_LO, MIN_CAN_HT_HI, MAX_CAN_W, MAX_CAN_W_HT_LO,
-MAX_CAN_W_HT_HI, TOP_DIST, MID_DIST, FP_RAND_HT, SPR_LO, SPR_HI`, plus
-`plot_lat, plot_lon, plot_elev` when the input has them (see below).
+Legacy (sst-csv) output columns: `TREE_UID, FUNC_GROUP, X, Y, HT_LO, HT_HI,
+BASE_DIA_LO, BASE_DIA_HI, SPLIT_HT_LO, SPLIT_HT_HI, SPLIT_PROB,
+NUM_BRANCH_LO, NUM_BRANCH_HI, MIN_CAN_HT_LO, MIN_CAN_HT_HI, MAX_CAN_W,
+MAX_CAN_W_HT_LO, MAX_CAN_W_HT_HI, TOP_DIST, MID_DIST, FP_RAND_HT, SPR_LO,
+SPR_HI`, plus `plot_lat, plot_lon, plot_elev` when the input has them
+(see below).
 
 `X`/`Y` are metres relative to plot centre. `HT_*` and `BASE_DIA_*` are metres;
 `SPLIT_HT_*`, `MIN_CAN_HT_*` and `MAX_CAN_W_HT_*` are fractions of tree height,

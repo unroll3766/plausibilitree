@@ -339,7 +339,7 @@ A generator module must provide:
 
 The core calls the module through this contract only. **[partial]**: today
 the core (generate/assemble/build_info) calls SST conventions directly;
-formalizing the interface is item W1.
+formalizing the interface is item W3.
 
 ### 7.2 Conceptual model: from tree list entry to synthetic tree — **[implemented]**
 
@@ -411,9 +411,10 @@ Synthesis chain for one tree (H = HT, DBH in metres, DBH_HT = 1.37 m):
    softening the sharp geometric canopy surface.
 7. **Individual variation.** Every *_LO/*_HI pair above is drawn once per
    tree from a seeded RNG, so a dictionary entry describes a distribution
-   of forms, not a single tree. (The editor reseeds at seed + i * 7919
-   for sample i; the design moves these draws to pipeline generation time
-   keyed by plot seed + TREE_UID, item W1.)
+   of forms, not a single tree. The pipeline seeds each tree from a
+   stable hash of the plot seed + TREE_UID (crc32-based, so regeneration
+   is exact across runs and row orderings); the editor reseeds at
+   seed + i * 7919 for sample i.
 
 Because raw trunk volume is a frustum sum along this profile,
 V = pi/3 * L * (r0^2 + r0*r1 + r1^2) for each 3D segment between skeleton
@@ -451,11 +452,10 @@ SPLIT_PROB, high CW_A0/A1, a low crown base, and SPLIT_NUM_LO/HI above
 1:1 for cascading multi-leader crowns. TOP_DIST and MID_DIST only change
 stem geometry, so they add variety without changing the crown.
 
-**[partial]**: keyed-by-code consumption already exists in the editor and in
-the helper's derivations; the pipeline path still carries frozen per-tree
-tolerance ranges in the plot CSV rather than computing them at generation
-time from DBH_TOL/HT_TOL (item W1), and the dictionary is a CSV table
-today rather than JSON (item W13).
+**[partial]**: keyed-by-code consumption is implemented at generation time
+(rows are expanded from the tree list's DBH/HT with tolerance bounds from
+DBH_TOL/HT_TOL, allometry-derived crown width and base diameter); the
+dictionary is a CSV table today rather than JSON (item W13).
 
 ### 7.4 SST skeleton JSON — **[implemented]**
 
