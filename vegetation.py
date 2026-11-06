@@ -138,8 +138,15 @@ def gen_shrub_layer(plot_bounds, cell_size, shrub_cover, height_range,
         # on every run
         pts = mesh.sample(points_per_shrub,
                           seed=int(rng.integers(1, 2**31 - 1)))
-        base_z = float(dtm.sample(np.array([sx]), np.array([sy]))[0]) if dtm else 0.0
-        pts = pts + np.array([sx, sy, base_z])
+        # drape per point onto the DTM at each point's own xy (matching
+        # the grass layer): anchoring the whole shrub at its CENTER's
+        # elevation buries the flanks into upslope terrain and yields
+        # negative height-above-ground for spread-out shrubs
+        pts = pts + np.array([sx, sy, 0.0])
+        center_z = float(dtm.sample(np.array([sx]), np.array([sy]))[0]) \
+            if dtm is not None else 0.0
+        if dtm is not None:
+            pts[:, 2] += dtm.sample(pts[:, 0], pts[:, 1])
         all_pts.append(pts)
         all_ids.append(np.full(len(pts), sid, dtype=int))
         centers.append((sx, sy))
@@ -163,7 +170,8 @@ def gen_shrub_layer(plot_bounds, cell_size, shrub_cover, height_range,
         shrub_geom[sid] = {
             "shrub_id": int(sid),
             "center_xy": [float(sx), float(sy)],
-            "base_z_m": base_z,
+            "base_z_m": center_z,   # ground at the shrub centre; points
+                                    # drape per-point onto the DTM
             "height_m": float(h),
             "width_m": float(w),
             "primitive_volume_m3": float(ellipsoid_primitive_volume(h, w)),

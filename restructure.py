@@ -3,9 +3,10 @@ restructure.py: reorganise a plot's flat stage outputs into the canonical
 layout (see layout.py) and generate the derived artifacts the layout implies
 but the stages don't emit yet:
 
-  - per-tree volume JSON            (raw + trimmed convex-hull canopy volume)
   - per-tree canopy bbox / hull JSON (split out of the plot-level combined files)
-  - plot-level volume JSON          (summed raw + trimmed)
+  - volume JSONs are RETIRED (per-tree and plot-level, raw + trimmed):
+    superseded by build_info's per-tree _info.json; restructure only
+    prints the canopy totals now, and the scene JSON carries no link
   - plot-level stem mask  (features/labels pair with the stem map)
   - plot-level canopy mask (features/labels pair with the canopy height map)
 
@@ -350,21 +351,28 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
         "manifest": layout.plot_rel(plot_dir, plot_uid, "manifest"),
         "raw_las": layout.plot_rel(plot_dir, plot_uid, "raw_las"),
         "trimmed_las": layout.plot_rel(plot_dir, plot_uid, "trimmed_las"),
-        "volume": layout.plot_rel(plot_dir, plot_uid, "volume_label"),
+        # (no "volume" entry: the plot-level volume JSON is retired,
+        # superseded by build_info's per-tree _info.json; a link here
+        # would dangle, violating the scene's every-link-resolves role)
         "stem_map_feature": layout.plot_rel(plot_dir, plot_uid, "stem_feature_raw"),
         "stem_map_label": layout.plot_rel(plot_dir, plot_uid, "stem_label_raw"),
         "canopy_map_feature": layout.plot_rel(plot_dir, plot_uid, "canopy_feature_raw"),
         "canopy_map_label": layout.plot_rel(plot_dir, plot_uid, "canopy_label_raw"),
     }
+    # the stage records above point at the FLAT-layout clouds as they were
+    # when the stage ran; restructure has just MOVED those files, so rewrite
+    # the provenance to the canonical paths (same files, new location)
     if scene.get("stem_map") is not None and stem_bbox_doc is not None:
         scene["stem_map"]["bounding_boxes_inline"] = stem_bbox_doc.get("boxes", [])
         scene["stem_map"].pop("bounding_boxes", None)
         scene["stem_map"]["feature"] = scene["plot_files"]["stem_map_feature"]
         scene["stem_map"]["label"] = scene["plot_files"]["stem_map_label"]
+        scene["stem_map"]["source_cloud"] = scene["plot_files"]["raw_las"]
         scene["stem_map"].pop("raster", None)
     if scene.get("canopy_map") is not None:
         scene["canopy_map"]["feature"] = scene["plot_files"]["canopy_map_feature"]
         scene["canopy_map"]["label"] = scene["plot_files"]["canopy_map_label"]
+        scene["canopy_map"]["source_cloud"] = scene["plot_files"]["trimmed_las"]
         scene["canopy_map"].pop("raster", None)
         # per-tree geometry now lives beside each tree
         scene["canopy_map"].pop("bounding_box", None)

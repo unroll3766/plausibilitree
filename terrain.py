@@ -307,14 +307,26 @@ def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=None,
 
     rng = np.random.default_rng(seed)
 
-    # --- drape each tree: shift so its lowest point rests on the ground ---
+    # --- drape each tree per spec Section 3.3: drop it vertically so its
+    # lowest point sits on the DTM at the tree's (X, Y) -- the BASE
+    # position from the plot table, NOT whichever cloud point happens to
+    # be lowest (a downhill branch tip could otherwise anchor the tree to
+    # a gully elevation and bury the trunk into an upslope). ---
+    base_xy = {}
+    try:
+        import tree_list
+        fdf = tree_list.trees_frame(csv_path)
+        base_xy = {int(str(u)): (float(x), float(y))
+                   for u, x, y in zip(fdf["TREE_UID"], fdf["X"], fdf["Y"])}
+    except Exception:
+        base_xy = {}
     draped = xyz.copy()
     for t in np.unique(tid):
         m = tid == t
         sub = xyz[m]
         i_low = np.argmin(sub[:, 2])
-        gx, gy = sub[i_low, 0], sub[i_low, 1]
-        ground_z = float(dtm.sample(np.array([gx]), np.array([gy]))[0])
+        bx, by = base_xy.get(int(t), (sub[i_low, 0], sub[i_low, 1]))
+        ground_z = float(dtm.sample(np.array([bx]), np.array([by]))[0])
         shift = ground_z - sub[i_low, 2]
         draped[m, 2] += shift
 

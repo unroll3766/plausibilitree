@@ -656,6 +656,107 @@ never touched rng or the point cloud):
 future rounds: any collision/trim counts recorded before this fix are
 not reproducible on fixed code.
 
+### 2026-11-05 — whole-repo adversarial review (after the W7-review frame bug)
+
+Triggered by finding a pre-existing bug hidden across many rounds; scope =
+every module. Method: (a) static sweep for the same bug class
+(np.asarray-then-mutate copies, swallowed exceptions), (b) frame/contract
+audit of geometry-bearing writers/readers, (c) a NEW cross-artifact
+invariant suite recomputing each artifact from a DIFFERENT artifact
+(/tmp/wrev_invariants.py, 80 checks: skeleton-vs-cloud coax, info-JSON
+bbox/dbh/frustum-volume recomputation, CHM, branch-id encoding, DTM
+invariants, understory domains, generation records, scene records vs
+table), (d) a scene-JSON link audit, (e) re-runs of every workflow e2e
+never yet validated on post-frame-fix code.
+
+**Three REAL bugs found and fixed** (all in the draping/scene-link
+family — none exercised by the pre-W7 fixtures, which were flat or
+zero-noise):
+
+1. **`terrain.py` tree draping violated spec 3.3's anchor rule.** Spec:
+   "Each tree is dropped vertically so its lowest point sits on the DTM
+   at its (X, Y)." Code sampled the DTM at the LOWEST POINT'S OWN xy —
+   on rugged terrain a downhill branch tip anchored the whole tree to
+   a gully elevation, burying trunk bases below local ground (measured:
+   trunk points with HAG to -0.86 m) and floating them on slopes. All
+   prior terrain fixtures were flat (both samples identical), so the
+   deviation was invisible. Fix: anchor shift at the tree's (X, Y) read
+   from the plot table (tree_id == int(TREE_UID)), legacy fallback to
+   the old behavior if the table is unreadable.
+2. **`vegetation.py` shrubs were center-anchored, not draped.** The
+   whole shrub mesh was placed at its CENTER's DTM elevation, burying
+   upslope flanks (measured: 1019/10,800 shrub points with HAG to
+   -1.22 m) — while the grass layer already draped per point
+   correctly. Fix: per-point draping (sample the DTM at every point's
+   own xy), matching grass; `shrub_geom.base_z_m` records the center
+   ground elevation.
+3. **`restructure.py` wrote dangling scene-JSON links.** (a)
+   `plot_files.volume` pointed at the plot-level volume label JSON,
+   which this stage computes-and-prints but RETIRED from writing
+   ("superseded by build_info's _info.json") — a dead link in every
+   scene JSON, violating the spec's every-artifact-resolves role; the
+   link is now retired with the artifact (spec never listed it).
+   (b) `stem_map.source_cloud`/`canopy_map.source_cloud` recorded the
+   FLAT-layout cloud paths, which restructure itself then MOVED to
+   `las/` — stale since the canonical-layout refactor; now rewritten
+   to the canonical paths (same files). Module docstring updated.
+
+**Verified green after the fixes** (each with explicit exit codes):
+
+- Whole-repo invariant suite on a fresh full fixture (6-tree, r=20,
+  seed 42, generated DTM + understory): 80/80 PASS. New spec-exact
+  anchors asserted: every tree's lowest point == DTM at its (X, Y)
+  (1.5 mm); shrub+grass HAG >= -1 mm; per-tree trunk z-extent ==
+  height_m; trunk frustum volume == info JSON to 1e-3; scene records
+  cover the table.
+- Scene-link audit: every relative path in the scene JSON resolves
+  (62/62 after the fix; 3 dangled before).
+- **Flat-mode regression**: both draping fixes are provably no-ops on
+  flat terrain — flat full pipeline (with understory) byte-identical
+  (md5 terrain 26f7a95c..., understory cf62bf8e...) on both sides of
+  the fix (verified via a 9361d61 worktree run of the same input).
+- Rugged-regression behavior change: quantified on the fixture
+  terrain — all 6 trees re-anchored (largest shift 1.83 m on tree
+  002); shrub HAG min went from -0.866 m to 0.000 m.
+- Replicate workflow x2 with drawn rugged envs (bumpiness 0.67, relief
+  5.7, ground_noise 0.026): shrub/grass HAG >= 0, tree anchors exact,
+  ground HAG == drawn noise +/- 1 mm (the noise is by design per the
+  env sidecar; the "HAG == 0 exactly" invariant holds only for
+  zero-noise runs — documented here so it is not misread as a bug).
+- Legacy SST-CSV contract pipeline (6 trees, DTM + understory):
+  1 ok / 0 failed.
+- Dense 40-tree derived stages on the post-frame-fix assembly
+  (replacing the W3-era tainted validation): stem/canopy maps
+  (685x758 px — the phantom skeletons no longer inflate extents),
+  restructure, build_info, normalize all exit 0; normalized plot
+  cloud 7,315 pts (7,629 - 314 real trims).
+- CLI smokes of the not-yet-run tools: colorize_plot.py (103,297 pts
+  colored from the understory cloud), generate_example_tree.py (PLY +
+  LAS written in a scratch dir), scene_editor remains GUI-untestable
+  (no display) — static check only.
+- Standing checks: check.py PASS (it caught a dangling-name of my own
+  mid-round: my first vegetation.py edit left `base_z` referenced in
+  shrub_geom — fixed before any run), doc cross-refs clean, stale
+  identifier grep clean.
+
+**Test-side findings (documented, not bugs)**: foliage discs extend up
+to ~1.1 m above the trunk tip on DF forks (model behavior; the trunk
+z-extent == height_m check is the exact one); CHM datum is
+height-above-ground, not draped z; ground-on-DTM tolerance must be
+~2.5 mm (1 mm xy-quantization x slope + 0.5 mm z scale); per-tree
+`*_dtm.asc` files are CROPS (validating against them is only valid
+within each tree's bbox); np.asarray-copy traps found nowhere else in
+the repo (remaining `except` sites are legitimate best-effort
+fallbacks).
+
+**Process lesson reinforced**: every bug found lived in a code path
+exercised ONLY by configurations the fixtures never used (rugged DTM,
+negative-noise, post-restructure link consumers). Flat + zero-noise
+fixtures masked spec deviations for months of rounds; the W7-round
+skeleton-frame bug was the same shape (no fixture ever checked the
+invariant). Cross-artifact invariant checks (recompute from a
+different artifact than the writer) are the pattern that finds them.
+
 ### Verification gaps / notes (W1 round)
 
 - scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was
