@@ -362,7 +362,7 @@ display), tree Z consumption (W5), full 111-tree scale runs
 (performance, not correctness), and the /tmp suite ephemerality
 (promote to tests/). None of these blocked any workflow tested.
 
-### 2026-11-05 — W4: flat-plane topography (commit: pinned in the follow-up commit)
+### 2026-11-05 — W4: flat-plane topography (commit c456162)
 
 **Design** (spec 3.3): the None topography is a uniform flat plane at
 z = 0 implemented as `DTM.flat(...)` — a zero grid with the full DTM
