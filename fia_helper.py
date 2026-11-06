@@ -15,12 +15,14 @@ values, no offset) -- see preprocess_fia and PLOT_CENTER_COLUMNS.
 
 Requires: numpy, pandas
 Companion data files (same directory by default):
-    data/functional_groups.csv   parameters keyed by functional group
+    data/functional_groups.json  parameter dictionary keyed by functional
+                                 group (spec Section 8.6)
     data/spcd_func_group.csv     SPCD -> functional group lookup
 """
 
 from __future__ import annotations
 
+import json
 import os
 import numpy as np
 import pandas as pd
@@ -43,7 +45,7 @@ HT_TO_M = FT_TO_M
 REQUIRED_COLS = ["DIA", "HT", "TPA_UNADJ", "CCLCD"]
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_FG_DB = os.path.join(_HERE, "data", "functional_groups.csv")
+DEFAULT_FG_DB = os.path.join(_HERE, "data", "functional_groups.json")
 DEFAULT_SPCD_MAP = os.path.join(_HERE, "data", "spcd_func_group.csv")
 
 # Columns written to the PlausibiliTree plot file, in order.
@@ -69,7 +71,20 @@ PLOT_CENTER_COLUMNS = ["plot_lat", "plot_lon", "plot_elev"]
 # ---------------------------------------------------------------------------
 
 def load_func_group_db(path: str = DEFAULT_FG_DB) -> pd.DataFrame:
-    """Load the functional-group parameter table, indexed by FUNC_GROUP."""
+    """Load the functional-group parameter table, indexed by FUNC_GROUP.
+
+    Serialized as JSON per the spec (Section 8.6): one object keyed by
+    FUNC_GROUP whose values are that code's parameters. Legacy CSV tables
+    (one row per code) are still accepted."""
+    if str(path).endswith(".json"):
+        with open(path) as fh:
+            obj = json.load(fh)
+        if "DEFAULT" not in obj:
+            raise ValueError("functional group database must contain a DEFAULT key")
+        df = pd.DataFrame.from_dict({k: dict(v) for k, v in obj.items()},
+                                    orient="index")
+        df.index.name = "FUNC_GROUP"
+        return df
     db = pd.read_csv(path).set_index("FUNC_GROUP")
     if "DEFAULT" not in db.index:
         raise ValueError("functional group database must contain a DEFAULT row")

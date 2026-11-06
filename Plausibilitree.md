@@ -46,9 +46,9 @@ Section 11 lists every known code-to-design gap as actionable work items.
 
 ## 2. Inputs
 
-**[partial]** — the JSON tree list contract (Sections 8.1, 7.1) and
-generation-time param-dict lookup are implemented; the parameter
-dictionary's JSON serialization (W13) is not.
+**[implemented]** — the JSON tree list contract (Sections 8.1, 7.1),
+generation-time param-dict lookup, and the parameter dictionary's JSON
+serialization (8.6) are all implemented.
 
 The core consumes:
 
@@ -65,9 +65,9 @@ The core consumes:
 
 All interchange data between tools and stages — tree lists, parameter
 dictionaries, scene/info records — is JSON; CSV appears only as a legacy
-input form (item W13). A plot with its own measured positions does not run
-the FIA helper at all; a hand-authored tree list in the Section 8.1 format
-is a first-class input.
+input form. A plot with its own measured positions does not run the FIA
+helper at all; a hand-authored tree list in the Section 8.1 format is a
+first-class input.
 
 ## 3. Core process
 
@@ -87,8 +87,8 @@ Implementation status: canonical JSON tree lists are generated per the
 contract — the parameter dictionary lookup, allometric bounds and per-tree
 seeded draws all happen at generation time (legacy SST parameter CSVs remain
 accepted as input). Rotation is continuous and seeded. Reflection is not
-implemented (item W7); the parameter dictionary is still the functional-group
-CSV rather than JSON (item W13).
+implemented (item W7). The parameter dictionary is JSON
+(`data/functional_groups.json`, Section 8.6).
 
 ### 3.2 Collision trimming — **[implemented]**
 
@@ -308,9 +308,10 @@ helper entirely.
 A tool for establishing generator parameters that produce realistic trees for
 a given tree code: load a tree-code parameter dictionary (or a tree list to
 derive one), edit per code, sample trees from a row at chosen HT/DBH, inspect
-in a 3D viewer, save and export the dictionary as JSON. **[partial]**: today
-this is the SST functional-group editor (`param_editor.py`), which edits a
-per-code CSV; JSON import/export is item W13.
+in a 3D viewer, save and export the dictionary as JSON. **[partial]**: JSON
+import/export is implemented (`param_editor.py`, default
+`data/functional_groups.json`; legacy CSVs open/save too); deriving a
+dictionary from a tree list is not.
 
 ### 6.3 Environment / vegetation parameter editor — **[implemented]**
 
@@ -471,7 +472,8 @@ stem geometry, so they add variety without changing the crown.
 **[partial]**: keyed-by-code consumption is implemented at generation time
 (rows are expanded from the tree list's DBH/HT with tolerance bounds from
 DBH_TOL/HT_TOL, allometry-derived crown width and base diameter); the
-dictionary is a CSV table today rather than JSON (item W13).
+dictionary is serialized as JSON (`data/functional_groups.json`; legacy
+CSV tables still load).
 
 ### 7.4 SST skeleton JSON — **[implemented]**
 
@@ -505,7 +507,7 @@ splits; there is no separate SOURCE/DESTINATION table.
 Serialized as **JSON**: one object per plot (PLOT_UID, plot shape and
 dimensions, optional plot center geo) containing a `trees` array whose
 elements carry the attributes below. Every tool in the pipeline exchanges
-tree lists as JSON; CSV is the legacy form (item W13).
+tree lists as JSON; CSV is the legacy form.
 Required attributes:
 
 | Attribute | Type | Description | Range | Notes |
@@ -530,8 +532,8 @@ Optional attributes:
 emits `plot_<UID>.json` by default (`--format sst-csv` emits the legacy SST
 parameter table) and every stage loads either contract through
 `tree_list.py`; DBH/HT carry full inventory precision. Legacy SST CSVs are
-accepted as input for generation. Parameter-dictionary serialization
-(CSV -> JSON) remains item W13.
+accepted as input for generation. The parameter dictionary is JSON
+(Section 8.6).
 
 ### 8.2 Canonical output layout
 
@@ -593,12 +595,13 @@ dict + vegetation settings.
 ### 8.6 Tree parameter dictionary
 
 Module-specific mapping tree code -> parameters, serialized as **JSON**
-(the SST entry format is Section 7.3); edited with the Section 6.2 helper.
+— **[implemented]**: `data/functional_groups.json`, one object keyed by
+tree code whose values are that code's parameters (Section 7.3 columns);
+the Section 6.2 helper edits it (legacy CSV tables still accepted).
 Height and diameter originate from the tree list, never from this
 dictionary — the dictionary supplies only the proportional tolerances
 (DBH_TOL, HT_TOL) that bound each tree's realized size around its
-tree list values. **[partial]**: today the dictionary is the
-functional-group CSV (item W13).
+tree list values.
 
 ### 8.7 Topography dict
 
@@ -709,7 +712,7 @@ matches the design).
 | W10 | Downed woody debris | design and implement the DWD stage (logs, stumps) per Section 3.5 | open |
 | W11 | Design defaults | align code defaults with Section 9: PLOT_RADIUS 7.315, DTM_CELL_SIZE 0.25, CANOPY_CELL_SIZE 0.05, STEM_CELL_SIZE 0.05 | closed |
 | W12 | LAS 1.4 writer | switch the canonical writer to LAS version 1.4 (point format 0 + extra bytes unchanged; Section 7.5) | closed |
-| W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | open |
+| W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | closed |
 
 Registry of resolved decisions (for provenance):
 
@@ -766,3 +769,8 @@ Registry of resolved decisions (for provenance):
   default density with a spec warning when unconfigured); conflicts
   resolve None > filepath > random with a warning; the terrain stage's
   standalone gen-cell default aligned with DTM_CELL_SIZE 0.25.
+- Fifth code-alignment round (2026-11): W13 closed — the parameter
+  dictionary is JSON (data/functional_groups.json, one object keyed by
+  tree code; legacy CSV tables still load) and the parameter editor
+  imports/exports JSON; interchange is JSON end to end with CSV as a
+  legacy input form only.

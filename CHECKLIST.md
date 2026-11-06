@@ -30,7 +30,7 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
       preprocess -> TPA expansion (explicit placeholder) -> crown width from
       functional groups -> placement -> postprocess; each step usable alone.
 - [ ] Species -> functional-group lookups from companion CSVs
-      (`data/functional_groups.csv`, `data/spcd_func_group.csv`).
+      (`data/functional_groups.json`, `data/spcd_func_group.csv`).
 - [ ] Plot-center LAT/LON/ELEV passthrough columns; `--radius` and `--basis`
       options; seeded placement.
 - [ ] Any other source can write the same `plot_*.csv` column contract instead

@@ -1,7 +1,8 @@
 """
 param_editor.py: interactively tune tree parameters and preview sample trees.
 
-Load ``functional_groups.csv`` (or any CSV of treesim parameters), edit any
+Load the parameter dictionary ``functional_groups.json`` (spec Section 8.6;
+legacy CSVs still open), edit any
 cell directly, generate N sample trees from the selected row with
 SimpleSynthTree, and page through them in a 3D viewer. The table is shown
 transposed: one row per parameter, one column per group, with the parameter
@@ -12,9 +13,9 @@ the default camera. The viewer can show or hide each point class -- trunk,
 branch stems, foliage -- with the checkboxes or the 1/2/3 keys. The plot title
 carries the label of the row that generated the current samples, so they stay
 traceable after you move the selection elsewhere. Happy with the results? Save
-the edited table to a new CSV.
+the edited dictionary as JSON (or legacy CSV).
 
-    python param_editor.py data/functional_groups.csv
+    python param_editor.py data/functional_groups.json
     python param_editor.py                     # opens a file picker
 
 How a sample tree is drawn from a row:
@@ -43,6 +44,7 @@ Requires: numpy, pandas, matplotlib, tkinter (stdlib), trimesh (via treesim)
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import time
 
@@ -114,11 +116,37 @@ FOLIAGE_COLOR = "#3A8C4A"    # foliage
 # ---------------------------------------------------------------------------
 
 def load_table(path):
-    """Read a parameter CSV, preserving column order."""
-    df = pd.read_csv(path)
+    """Load a parameter dictionary (JSON, spec Section 8.6), or a legacy CSV.
+
+    JSON: one object keyed by FUNC_GROUP whose values are that code's
+    parameters (what the pipeline consumes). CSV: one row per code."""
+    if str(path).endswith(".json"):
+        with open(path) as fh:
+            obj = json.load(fh)
+        df = pd.DataFrame.from_dict({k: dict(v) for k, v in obj.items()},
+                                    orient="index")
+        df.index.name = "FUNC_GROUP"
+        df = df.reset_index()
+    else:
+        df = pd.read_csv(path)
     if df.empty:
         raise RuntimeError(f"{path}: table has no rows")
     return df
+
+
+def save_table(df, path):
+    """Write the parameter dictionary as JSON (.json) or legacy CSV."""
+    if str(path).endswith(".json"):
+        d = df.set_index("FUNC_GROUP")
+        obj = {code: {k: (None if pd.isna(v) else
+                          (v.item() if hasattr(v, "item") else v))
+                      for k, v in row.items()}
+               for code, row in d.iterrows()}
+        with open(path, "w") as fh:
+            json.dump(obj, fh, indent=2)
+            fh.write("\n")
+        return
+    df.to_csv(path, index=False)
 
 
 def _f(row, col, default=None):
@@ -340,8 +368,8 @@ class ParamEditor(tk.Tk):
 
         toolbar = ttk.Frame(self)
         toolbar.pack(side=tk.TOP, fill=tk.X, padx=6, pady=4)
-        ttk.Button(toolbar, text="Open CSV...", command=self._open).pack(side=tk.LEFT)
-        ttk.Button(toolbar, text="Save CSV As...",
+        ttk.Button(toolbar, text="Open...", command=self._open).pack(side=tk.LEFT)
+        ttk.Button(toolbar, text="Save As...",
                    command=self._save).pack(side=tk.LEFT, padx=(8, 0))
         self.status = ttk.Label(toolbar, text=f"{len(self.df)} row(s), "
                                               f"{len(self.df.columns)} column(s)")
@@ -355,7 +383,7 @@ class ParamEditor(tk.Tk):
                  "ranges)  ->  Generate  ->  page with Left/Right, R resets "
                  "the view, 1/2/3 toggle trunk / branch stems / foliage; "
                  "wheel scrolls the parameters, Shift+wheel the groups  ->  "
-                 "Save CSV As...")
+                 "Save As... (JSON)")
         hint.pack(side=tk.TOP, fill=tk.X, padx=8)
 
         body = ttk.Frame(self)
@@ -699,8 +727,9 @@ class ParamEditor(tk.Tk):
 
     def _open(self):
         path = filedialog.askopenfilename(
-            title="Open parameter CSV",
-            filetypes=[("CSV", "*.csv"), ("All files", "*.*")])
+            title="Open parameter dictionary",
+            filetypes=[("JSON dictionary", "*.json"),
+                       ("Legacy CSV", "*.csv"), ("All files", "*.*")])
         if not path:
             return
         self._read_table()          # don't silently lose current edits
@@ -712,13 +741,14 @@ class ParamEditor(tk.Tk):
 
     def _save(self):
         path = filedialog.asksaveasfilename(
-            title="Save edited table as",
-            defaultextension=".csv", initialfile=os.path.basename(self.path),
-            filetypes=[("CSV", "*.csv")])
+            title="Save edited dictionary as",
+            defaultextension=".json", initialfile=os.path.basename(self.path),
+            filetypes=[("JSON dictionary", "*.json"),
+                       ("Legacy CSV", "*.csv")])
         if not path:
             return
         self._read_table()
-        self.df.to_csv(path, index=False)
+        save_table(self.df, path)
         self.status.configure(text=f"saved {len(self.df)} row(s) -> {path}")
 
     def _show_empty(self):
@@ -743,19 +773,21 @@ class ParamEditor(tk.Tk):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(
-        description="Interactively edit tree parameter CSVs and preview "
+        description="Interactively edit the tree parameter dictionary "
+                    "(JSON, spec Section 8.6; legacy CSV) and preview "
                     "sample trees generated with SimpleSynthTree")
-    ap.add_argument("csv", nargs="?", default=None,
-                    help="parameter CSV (default: opens a file picker)")
+    ap.add_argument("dictionary", nargs="?", default=None,
+                    help="parameter dictionary JSON (default: opens a file picker)")
     args = ap.parse_args(argv)
 
-    path = args.csv
+    path = args.dictionary
     if path is None:
         root = tk.Tk()
         root.withdraw()
         path = filedialog.askopenfilename(
-            title="Open parameter CSV",
-            filetypes=[("CSV", "*.csv"), ("All files", "*.*")])
+            title="Open parameter dictionary",
+            filetypes=[("JSON dictionary", "*.json"),
+                       ("Legacy CSV", "*.csv"), ("All files", "*.*")])
         root.destroy()
         if not path:
             return 0

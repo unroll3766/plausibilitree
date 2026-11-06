@@ -1,12 +1,13 @@
 # Parameter editor (`param_editor.py`)
 
-An interactive tool for tuning the tree parameters in `functional_groups.csv`
+An interactive tool for tuning the tree parameters in `functional_groups.json`
+(the parameter dictionary, spec Section 8.6; legacy CSVs open too)
 (or any similar parameter CSV) with immediate visual feedback: edit any cell,
 generate N sample trees from a row with SimpleSynthTree, page through them in
 a 3D view, and save the edited table as a new CSV when you like the results.
 
 ```
-python param_editor.py data/functional_groups.csv
+python param_editor.py data/functional_groups.json
 python param_editor.py            # no argument: opens a file picker
 ```
 
@@ -44,8 +45,9 @@ python param_editor.py            # no argument: opens a file picker
     they stay traceable even after you move the selection elsewhere. The
     line under the view shows the drawn height, DBH, crown width and point
     count of the current tree.
-- **Toolbar:** Open CSV... (load another table), Save CSV As... (write the
-  edited table to a new file; nothing is written until you save).
+- **Toolbar:** Open... (load another dictionary; JSON or legacy CSV),
+  Save As... (write the edited dictionary as JSON — or legacy CSV; nothing
+  is written until you save).
 
 ## How a sample tree is drawn from a row
 

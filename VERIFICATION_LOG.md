@@ -440,6 +440,42 @@ said "enables the terrain step".
 
 Standing checks after fixes: check.py PASS, doc cross-references clean.
 
+### 2026-11-05 — W13: parameter dictionary JSON + editor import/export (commit: pinned in the follow-up commit)
+
+**Design** (spec 8.6): the parameter dictionary is a JSON object keyed by
+tree code (`data/functional_groups.json`), one entry per code with the
+Section 7.3 columns. Converted from the shipped CSV with a one-off script
+(preserving every field; NaN -> null); the CSV reader stays as the legacy
+input path (`load_func_group_db` auto-detects by extension, returning the
+same FUNC_GROUP-indexed frame either way — callers unchanged).
+param_editor.py: `load_table`/new `save_table` handle JSON (default) and
+legacy CSV; open/save pickers and CLI strings updated.
+`data/functional_groups.csv` removed (CSV is a legacy *input* form per
+spec, not a shipped artifact).
+
+**Unit checks** (`conda run -n ssf python /tmp/w13_unit.py`, exit 0):
+
+1. Default dictionary resolves to the JSON; 9 groups; DEFAULT present;
+   index named FUNC_GROUP.
+2. **Value parity**: every group x every column identical between the JSON
+   and the pre-conversion CSV (recovered via
+   `git show HEAD:data/functional_groups.csv`), NaN handling included.
+3. `entry_for` through the JSON returns DESCRIPTION (string path) and
+   numerics; unknown code resolves to DEFAULT's parameters.
+4. Legacy CSV dictionary still loads through the same loader.
+5. Editor round trip: load JSON -> save JSON -> load; frame-equal and
+   JSON-equal (9 groups); legacy CSV save path still writes/loads CSV.
+
+**E2E** (`/tmp/w13_e2e.sh`, exit 0): a fresh full 6-tree pipeline run
+reading the JSON dictionary produces a md5-identical plot terrain cloud
+(68c29645...) to the fixture run generated from the CSV dictionary — the
+conversion is value-exact end to end.
+
+**Found+fixed during this round (before any test run)**: my first
+JSON-loader draft reset the FUNC_GROUP index into a column, breaking
+`_fg_param`'s `lut.loc["DEFAULT"]` — caught while rereading the diff.
+No runtime bugs found after that.
+
 ### Verification gaps / notes (W1 round)
 
 - scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was

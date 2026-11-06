@@ -11,7 +11,8 @@ in [README_param_editor.md](README_param_editor.md).
 
 ```
 fia_helper.py
-data/functional_groups.csv    per-group allometry + SST parameters
+data/functional_groups.json   per-group allometry + SST parameters
+                              (the parameter dictionary, spec Section 8.6)
 data/spcd_func_group.csv      SPCD -> functional group lookup
 tree_list.py                  the canonical tree-list contract (Section 8.1)
 ```
@@ -145,9 +146,10 @@ textual/JSON output, not just the intermediate CSV.
 Resolution order is SPCD lookup → SPGRPCD coarse split (1–24 softwood,
 25–48 hardwood) → `DEFAULT`. Any unmatched key silently falls back to
 `DEFAULT`, so an incomplete table is never fatal. Add a row to
-`data/functional_groups.csv` and reference it from `data/spcd_func_group.csv`
-to add a group; both files are plain CSV and hot-swappable via
-`load_func_group_db(path)` / `load_spcd_map(path)`.
+`data/functional_groups.json` and reference it from `data/spcd_func_group.csv`
+to add a group; the dictionary is JSON and the lookup is CSV, both
+hot-swappable via
+`load_func_group_db(path)` (JSON or legacy CSV) / `load_spcd_map(path)`.
 
 The shipped coefficients are plausible starting values, not fitted ones —
 substitute published crown-width and taper coefficients for the species pool
