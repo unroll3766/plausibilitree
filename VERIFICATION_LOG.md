@@ -440,7 +440,7 @@ said "enables the terrain step".
 
 Standing checks after fixes: check.py PASS, doc cross-references clean.
 
-### 2026-11-05 — W13: parameter dictionary JSON + editor import/export (commit: pinned in the follow-up commit)
+### 2026-11-05 — W13: parameter dictionary JSON + editor import/export (commit 1939061)
 
 **Design** (spec 8.6): the parameter dictionary is a JSON object keyed by
 tree code (`data/functional_groups.json`), one entry per code with the
