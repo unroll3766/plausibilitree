@@ -291,9 +291,42 @@ generate+assemble completed well within a 300 s budget; the earlier
 Trimming coverage exists; stem/canopy/normalize on a dense plot remain
 untested (derived stages, unchanged by W3).
 
-### Verification gaps / notes (W1 round)
+### 2026-11-05 — final pre-push sweep (W1+W3 stack)
 
-- scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was
+The last adversarial pass before pushing, on the whole unpushed stack
+(b0da89e W3, 27711d2 hash pin, plus this round's fixes):
+
+**New coverage — geo passthrough** (`conda run -n ssf python
+/tmp/test_geo.py`, passes with exit 0): every earlier round used
+CA_TREE_SMALL.csv, which has NO PLOT join, so the LAT/LON/ELEV
+passthrough had never been exercised. A synthetic 60-tree FIA table
+with PLOT-join geo columns goes through `fia_to_tree_list` ->
+`plot_center` = {lat 44.1234, lon -121.5678, elev 950.0}; inventory-only
+tree arrays (no SST leakage); JSON round trip preserves the center;
+`trees_frame` exposes plot_lat/lon/elev (what assemble writes into the
+scene JSON); and the georeferenced list generates through the module
+interface. Found no bugs — the path was correct but unverified until
+now.
+
+**Found+fixed: README.md staleness** — four places still described the
+pre-W1/pre-W3 world: the quickstart held "plot_*.csv tables", the
+pipeline diagram showed `fia_helper -> plots/plot_<UID>.csv` and
+"one labelled cloud per tree (treesim.py)", module 1's description
+said CSV output, and the output-layout listing had no tree-list entry.
+All updated to the JSON default (with legacy mentions where relevant)
+and the generator-module call path.
+
+**Full-sweep results** (each with an explicit exit-code check,
+per standing check 4):
+check.py PASS, W3 unit suite PASS, W1 review suite PASS, cross-contract
+e2e parity PASS, geo passthrough PASS. Stale-symbol grep: only the
+intentional "legacy SST table" mention remains.
+
+**Still-open verification debts (unchanged, tracked)**: tree Z
+unconsumed (W5); scene_editor GUI untested; full-pipeline runs on dense
+plots (stem/canopy/normalize after trimming) untested; /tmp test
+scripts are ephemeral — promoting the standing suites into a repo
+`tests/` directory is the natural next hygiene step.
   not exercised (no display).
 - FIA geo passthrough (per-tree LON/LAT/ELEV from a PLOT join) is not yet
   derived from plot center + placement (item W5); this sample has no PLOT

@@ -35,17 +35,20 @@ python run_pipeline.py plots --radius 15 --seed 42
 ```
 
 `python run_pipeline.py plots` alone reproduces the documented defaults once
-`plots/` holds `plot_*.csv` tables. Pass `--seed` consistently across commands
-you run by hand; the orchestrator defaults to 42, the stage scripts to 0.
-`python check.py` sanity-checks the codebase after any edit.
+`plots/` holds `plot_*.json` tree lists (or legacy `plot_*.csv` tables).
+Pass `--seed` consistently across commands you run by hand; the orchestrator
+defaults to 42, the stage scripts to 0. `python check.py` sanity-checks the
+codebase after any edit.
 
 ## How it fits together
 
 ```
-FIA TREE csv ──fia_helper──▶ plots/plot_<UID>.csv        (module 1, optional)
-                                   │
-                 generate_trees    │  one labelled cloud per tree (treesim.py)
-                                   ▼
+FIA TREE csv ──fia_helper──▶ plots/plot_<UID>.json       (module 1, optional;
+                                   │                      canonical tree list,
+                                   │                      --format sst-csv = legacy)
+                 generate_trees    │  one labelled cloud per tree, through the
+                                   │  generator module contract (sst per -g;
+                                   ▼  SST internals in sst_generator.py)
                  assemble_plot     │  rotate + place + collision trimming
                                    ▼
                  stem_map          │  raster features + labels
@@ -67,8 +70,8 @@ FIA TREE csv ──fia_helper──▶ plots/plot_<UID>.csv        (module 1, op
 
 ### 1. Preparing tree lists (optional)
 
-`fia_helper.py` converts a raw FIA `TREE` table into one `plot_<UID>.csv` per
-plot, ready for generation. Everything downstream reads only those tables, so
+`fia_helper.py` converts a raw FIA `TREE` table into one canonical
+`plot_<UID>.json` tree list per plot, ready for generation. Everything downstream reads only those tables, so
 you can also write them yourself (see [README_fia_helper.md](README_fia_helper.md)
 for the column contract) — FIA data is not required.
 
@@ -129,7 +132,8 @@ what each file contains):
 
 ```
 plots/
-├── plot_<UID>.csv                  input tree table (one per plot)
+├── plot_<UID>.json                  input tree list (one per plot;
+│                                    plot_<UID>.csv = legacy SST table)
 └── plot_<UID>/
     ├── plot_placement/
     │   ├── las/                    plot-level clouds: raw, trimmed, terrain,
