@@ -188,7 +188,7 @@ Known gap (noted, unchanged): tree Z from the tree list is not yet
 consumed by generation (Z is 0 for all current sources; will matter for
 terrain work, track with W5).
 
-### 2026-11-05 — W3: generator module interface (commit 52db5c7)
+### 2026-11-05 — W3: generator module interface (commit b0da89e)
 
 **Unit checks** (`conda run -n ssf python /tmp/test_w3.py`, all pass):
 
