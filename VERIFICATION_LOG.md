@@ -695,7 +695,14 @@ zero-noise):
    which this stage computes-and-prints but RETIRED from writing
    ("superseded by build_info's _info.json") — a dead link in every
    scene JSON, violating the spec's every-artifact-resolves role; the
-   link is now retired with the artifact (spec never listed it).
+   link is now retired with the artifact. (Correction to this entry's
+   first draft, which claimed "spec never listed plot-level volumes":
+   the spec DOES list them — Section 8.4's Plot info JSON, which
+   build_info duly writes under
+   `vegetation_characteristics.trees.*_volume_m3` {raw, trimmed} — the
+   retired artifact is the spec-unlisted deep-learning volume LABEL,
+   a different thing entirely. Found while answering a user question
+   about this entry.)
    (b) `stem_map.source_cloud`/`canopy_map.source_cloud` recorded the
    FLAT-layout cloud paths, which restructure itself then MOVED to
    `las/` — stale since the canonical-layout refactor; now rewritten
@@ -748,6 +755,20 @@ height-above-ground, not draped z; ground-on-DTM tolerance must be
 within each tree's bbox); np.asarray-copy traps found nowhere else in
 the repo (remaining `except` sites are legitimate best-effort
 fallbacks).
+
+**Late find while answering a user question about the volume link
+(correction folded into item 3a above): Section 8.4's plot info field
+list overclaims its [implemented] status.** Present in
+`<PLOT_UID>_info.json` and spec-conformant: plot_uid, plot_shape,
+n_trees, n_shrubs, bounding box, the {trunk, branch, foliage, canopy}
+x {raw, trimmed} volume set, percent cover, and meta (plot center,
+coordinate system, units). MISSING: "heights (voxel counts /
+percentiles)" and "neighborhood statistics" — neither exists at plot
+level (per-tree info carries height_m and neighbor counts, but no
+plot aggregate). Decision needed: implement plot-level height/neighbor
+aggregates in build_info, or amend Section 8.4 to say what build_info
+actually writes. Until then this is a tracked doc-vs-code gap, not a
+validated claim.
 
 **Process lesson reinforced**: every bug found lived in a code path
 exercised ONLY by configurations the fixtures never used (rugged DTM,
