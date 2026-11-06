@@ -498,6 +498,78 @@ did not cover (all exit-0, /tmp/w13_review.py + /tmp/w13_review2.sh):
    contract variance (frozen ranges rounded to 4dp in the legacy CSV;
    the W3 review measured 1.996e-03 m) — expected, not a regression.
 
+### 2026-11-05 — W7: random mirror reflection in placement draws
+
+**Design** (spec 3.1): placement draws = uniform rotation on [0, 360)
+about the tree's own base PLUS a 50/50 mirror reflection across the
+vertical plane through the base. Implemented in `assemble_plot` (where
+rotation already lived): a new `mirror_x(xy, cx)` in-place mirror,
+`TreeSkeleton.reflect()` for element geometry (distances/radii/topology
+are reflection-invariant, so collision trimming is unchanged beyond the
+new geometry), the per-tree Bernoulli draw in the placement loop between
+the rotation draw and the collision-tiebreak stream, and a `reflections`
+dict in the scene JSON next to `rotations_deg` plus a `reflected` flag in
+each trimmed skeleton. The serialized skeleton geometry (polyline nodes,
+branch base/tip) mirrors exactly like the point cloud, so the skeleton
+JSON keeps matching the LAZ beside it.
+
+**Unit checks** (`conda run -n ssf python /tmp/w7_unit.py`, exit 0),
+fixture = 6-tree subset of plot_11839 (r=20, seed 42, 64 pts/m):
+
+1. Determinism: same seed twice -> bit-identical trimmed cloud +
+   identical reflections/rotations records.
+2. Scene JSON: reflections covers all 6 trees, values bool; both
+   states occur within the plot.
+3. **Cloud-vs-records parity**: for every tree, applying the recorded
+   rotation+mirror manually to the per-tree raw cloud reproduces the
+   merged `_raw.laz` points for that tree -- max |d| 5.0-5.1e-4 on every
+   tree, exactly half the 1 mm LAS scale (the merged cloud re-quantizes
+   at ITS offset); my first tolerances (1e-6 xy, 0 z) failed on this
+   re-quantization -- fixed by documenting it, not loosening blindly.
+   (The z diff, up to 4.5e-4, is the same effect: z is not transformed
+   but is re-quantized when merged.)
+4. **Skeleton-vs-records parity**: replaying the recorded 4dp
+   rotation + mirror on each raw skeleton reproduces the trimmed
+   skeleton's polylines and branch base/tip to 2e-5 m. The residual
+   (~1.2e-5 m at 18 m reach) is the 4dp angle record itself (5e-5 deg =
+   8.8e-7 rad); a real transform error would be metres. (First run had
+   this check pass on 5/6 trees and fail on 003 by 1.18e-5 -- np.allclose's
+   DEFAULT rtol=1e-5 was silently covering the others; now rtol=0 with an
+   explicit atol. Test bug, not code bug.)
+5. Draw distribution: seeds 1000..1007 -> both states occur, aggregate
+   rate ~50% (37/48 expected range).
+
+**Dense-plot collision coverage** (the riskiest untested path — trimming
+against mirrored skeletons; 40-tree subset, 32 pts/m, seed 42):
+319 collisions, **250 points trimmed (3.3%)**, 21/40 trees reflected;
+per-tree element trims recorded. Distances are mirror-invariant so the
+trim math is untouched, but the intra-plot collision GEOMETRY changes:
+the sparse 6-tree plot that had zero collisions pre-W7 now has 6
+collisions / 125 points trimmed at the same seed (the mirrored crowns
+genuinely overlap differently).
+
+**E2E** (fresh scratch dirs, never the unit fixture): full pipeline on
+the 6-tree list -- 1 ok / 0 failed in 15 s; scene JSON carries the
+reflections; two independent full runs -> **byte-identical trimmed
+cloud** (md5 7c6dffd85d145b0dab36db4a6051f463) and identical
+reflections. Derived stages (stem map from mirrored skeleton discs,
+CHM, restructure, flat terrain, build_info, normalize) all ran green
+through the pipeline.
+
+**RNG-stream caution (expected behavior change)**: the reflection
+Bernoulli draw precedes every subsequent draw, so same-seed outputs
+differ vs pre-W7 code (tree 001's rotation is unchanged — it is still
+the first draw — but no other draw reproduces). Pre-W7 seeds do NOT
+regenerate identical clouds.
+
+**Process notes (own bugs, caught before/at first run)**: my first edit
+line made `rotations` a list in the tuple-unpack (`[], [], [], {}`),
+crashing at the first placement — caught by the determinism check before
+any e2e; another edit dropped the `if not trees:` guard in
+assemble_plot's placement loop while adding the reflections record,
+restored immediately after re-reading the hunk. Both reinforce the
+diff-reread-before-run discipline.
+
 ### Verification gaps / notes (W1 round)
 
 - scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was

@@ -110,15 +110,19 @@ class-aware assignment makes effectively impossible) fall back to 0.
 If you later want a fork to count as order 0 again (part of the trunk rather
 than a 1st-order structure), the rule lives entirely in `TreeSkeleton.order`.
 
-## Rotation and placement
+## Rotation, reflection and placement
 
 Each tree gets a uniform random rotation on [0, 360) about **its own base**,
 not about the plot origin — the stems were already generated at their `X`/`Y`,
 so rotating about the origin would move them off their placement. The rotation
 is applied to both the cloud and the skeleton, then the base is re-anchored on
 the table `X`/`Y` (a no-op unless the table changed since generation).
-Rotations in degrees are recorded per tree in `_scene.json` and in each trimmed
-skeleton.
+On top of the rotation, each tree is mirrored with probability 0.5 across the
+vertical plane through its base (spec Section 3.1's random reflection) — the
+mirror changes the tree's handedness while preserving all distances, radii and
+skeleton topology, so collision trimming is unaffected beyond the new geometry.
+Rotations in degrees and the reflection flag are recorded per tree in
+`_scene.json` and in each trimmed skeleton.
 
 ## Intersection test
 
@@ -206,7 +210,7 @@ divergence.
 
 ## Scene metadata
 
-`_scene.json` records bounds, plot radius, per-tree rotations, the parameters
+`_scene.json` records bounds, plot radius, per-tree rotations and reflections, the parameters
 used, point counts, and every collision with the rule that decided it — enough
 to audit any individual trim without rerunning. It also carries `plot_lat`,
 `plot_lon`, `plot_elev` — the plot-center values passed straight through from

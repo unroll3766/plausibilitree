@@ -5,14 +5,15 @@ resolve inter-tree collisions by trimming.
     python assemble_plot.py plot_11519.csv --seed 42
 
 Reads the plot table and the per-tree outputs of generate_trees.py, applies a
-random z-rotation to each tree about its own base, writes the merged scene,
-then uses the skeletons to find intersections between trees and trims the
-losing branch/stem according to the rules below.
+random z-rotation to each tree about its own base plus a 50/50 random mirror
+reflection, writes the merged scene, then uses the skeletons to find
+intersections between trees and trims the losing branch/stem according to
+the rules below.
 
 Outputs, under the plot directory:
 
     plot_placement/<PLOT_UID>_raw.las        merged scene, rotated + placed
-    plot_placement/<PLOT_UID>_scene.json     bounds, rotations, collision log
+    plot_placement/<PLOT_UID>_scene.json     bounds, rotations, reflections,
     plot_placement/<PLOT_UID>_trimmed.las    merged scene, surviving points,
                                              with branch_id + branch_order
     individual_trees/<TREE_UID>_trimmed.las  per-tree, surviving points, with
@@ -117,6 +118,12 @@ def rotate_z(xy: np.ndarray, angle_rad: float, cx: float, cy: float) -> np.ndarr
     return out
 
 
+def mirror_x(xy: np.ndarray, cx: float) -> np.ndarray:
+    """Mirror (...,2) coordinates in place across the vertical plane x = cx."""
+    xy[..., 0] = 2.0 * cx - xy[..., 0]
+    return xy
+
+
 def segment_segment_distance(p0, p1, q0, q1):
     """Pairwise minimum distance between two sets of 3D segments.
 
@@ -181,6 +188,7 @@ class TreeSkeleton:
         self.height = float(skel["height_m"])
         self.base_radius = float(skel["base_radius_m"])
         self.rotation_rad = 0.0
+        self.reflected = False
 
         self.kind = []          # 'trunk' | 'branch'
         self.poly = []          # polyline index (trunk) or -1
@@ -282,6 +290,15 @@ class TreeSkeleton:
         self.p0[:, :2] = rotate_z(self.p0[:, :2], angle_rad, cx, cy)
         self.p1[:, :2] = rotate_z(self.p1[:, :2], angle_rad, cx, cy)
         self.rotation_rad = angle_rad
+
+    def reflect(self):
+        """Mirror across the vertical plane x = base_x, through the base.
+
+        Distances, radii and topology are all reflection-invariant, so only
+        the element geometry changes."""
+        mirror_x(self.p0[:, :2], float(self.base_xy[0]))
+        mirror_x(self.p1[:, :2], float(self.base_xy[0]))
+        self.reflected = True
 
     # -- metrics -----------------------------------------------------------
 
@@ -513,6 +530,7 @@ def trimmed_skeleton_dict(tree: TreeSkeleton, n_points_trimmed: int) -> dict:
     """Copy of the raw skeleton with per-element trimmed flags added."""
     out = json.loads(json.dumps(tree.raw))
     out["rotation_deg"] = round(math.degrees(tree.rotation_rad), 4)
+    out["reflected"] = bool(tree.reflected)
     out["trim_summary"] = {
         "elements_total": int(len(tree.trimmed)),
         "elements_trimmed": int(tree.trimmed.sum()),
@@ -521,11 +539,14 @@ def trimmed_skeleton_dict(tree: TreeSkeleton, n_points_trimmed: int) -> dict:
     }
     plot_uid = tree.raw.get("plot_uid", "plot")
 
-    # rotated geometry, so the file still matches the point cloud beside it
+    # rotated (+ mirrored) geometry, so the file still matches the point
+    # cloud beside it
     polys = out["trunk"]["polylines"]
     for si, pl in enumerate(polys):
         arr = np.asarray(pl, dtype=float)
         arr[:, :2] = rotate_z(arr[:, :2], tree.rotation_rad, *tree.base_xy)
+        if tree.reflected:
+            mirror_x(arr[:, :2], float(tree.base_xy[0]))
         polys[si] = arr.tolist()
         node_trimmed = [False] * len(arr)
         # one skeleton element per vertex pair; store its branch id against the
@@ -556,6 +577,9 @@ def trimmed_skeleton_dict(tree: TreeSkeleton, n_points_trimmed: int) -> dict:
                         tree.rotation_rad, *tree.base_xy)[0]
         tip = rotate_z(np.asarray(br["tip"], dtype=float)[None, :2],
                        tree.rotation_rad, *tree.base_xy)[0]
+        if tree.reflected:
+            base[0] = 2.0 * tree.base_xy[0] - base[0]
+            tip[0] = 2.0 * tree.base_xy[0] - tip[0]
         br["base"] = [float(base[0]), float(base[1]), float(br["base"][2])]
         br["tip"] = [float(tip[0]), float(tip[1]), float(br["tip"][2])]
         br["trimmed"] = bool(tree.trimmed[k])
@@ -596,7 +620,7 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
 
     rng = np.random.default_rng(seed)
 
-    trees, clouds, rotations = [], [], {}
+    trees, clouds, rotations, reflections = [], [], {}, {}
     for _, row in df.iterrows():
         uid = str(row["TREE_UID"])
         las_path = layout.cloud_file(trees_dir, f"{uid}_raw")
@@ -614,11 +638,16 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
         tree = TreeSkeleton(skel, uid, int(skel.get("tree_id", 0)),
                             branch_radius_frac=branch_radius_frac)
 
-        # rotate about the tree's own base, then re-anchor on the table X/Y
+        # rotate about the tree's own base, 50/50 mirror reflection (W7),
+        # then re-anchor on the table X/Y
         angle = float(rng.uniform(0.0, 2 * math.pi))
+        reflected = bool(rng.random() < 0.5)
         cx, cy = float(skel["base_xy"][0]), float(skel["base_xy"][1])
         pts[:, :2] = rotate_z(pts[:, :2], angle, cx, cy)
         tree.rotate(angle)
+        if reflected:
+            mirror_x(pts[:, :2], cx)
+            tree.reflect()
         dx, dy = float(row["X"]) - cx, float(row["Y"]) - cy
         if abs(dx) > 1e-9 or abs(dy) > 1e-9:
             pts[:, 0] += dx
@@ -630,6 +659,7 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
         trees.append(tree)
         clouds.append(pts)
         rotations[uid] = round(math.degrees(angle), 3)
+        reflections[uid] = reflected
 
     if not trees:
         raise RuntimeError(f"no generated trees found under {trees_dir}")
@@ -750,6 +780,7 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
         "branch_radius_frac": float(branch_radius_frac),
         "contact_tolerance_m": float(tolerance),
         "rotations_deg": rotations,
+        "reflections": reflections,
         "points_raw": int(len(raw)),
         "points_flagged_trimmed": int(total_trimmed),
         "branch_id_encoding": {

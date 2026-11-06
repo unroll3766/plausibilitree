@@ -86,9 +86,10 @@ For each tree in the tree list, in order:
 Implementation status: canonical JSON tree lists are generated per the
 contract — the parameter dictionary lookup, allometric bounds and per-tree
 seeded draws all happen at generation time (legacy SST parameter CSVs remain
-accepted as input). Rotation is continuous and seeded. Reflection is not
-implemented (item W7). The parameter dictionary is JSON
-(`data/functional_groups.json`, Section 8.6).
+accepted as input). Rotation is continuous and seeded; reflection is a
+seeded 50/50 mirror draw across the vertical plane through the tree's
+base, applied with the rotation at plot assembly. The parameter dictionary
+is JSON (`data/functional_groups.json`, Section 8.6).
 
 ### 3.2 Collision trimming — **[implemented]**
 
@@ -187,7 +188,7 @@ clouds at every stage instead (Section 11, item W6).
 All point clouds are LAZ (compressed LAS, lazrs backend). All artifacts are
 written into the canonical per-plot layout (Section 8.2), and one
 `<PLOT_UID>_scene.json` links every artifact with a relative path, plus
-bounds, rotations, and the collision log.
+bounds, rotations and reflections, and the collision log.
 
 - **Plot cloud** (raw, trimmed, terrain, understory variants) with the
   canonical extra dimensions (Section 8.3). The `tree_id` and `shrub_id`
@@ -588,7 +589,7 @@ volume at OCCUPIED_VOXEL_SIZE; canopy = convex-hull volume of foliage.
 ### 8.5 Scene JSON — **[implemented]**
 
 One per plot; relative links to every artifact; plot bounds; per-tree
-rotations; collision log with removed-point counts; terrain record (DTM
+rotations and reflections; collision log with removed-point counts; terrain record (DTM
 source, cell size, generated-ness) sufficient to reproduce the DTM; topo
 dict + vegetation settings.
 
@@ -706,7 +707,7 @@ matches the design).
 | W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings | closed |
 | W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved | open |
 | W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) | open |
-| W7 | Random reflection | add mirror reflection to placement draws | open |
+| W7 | Random reflection | add mirror reflection to placement draws | closed |
 | W8 | HELIOS++ stage | planned; needs scanner parameter design and voxel export | open |
 | W9 | Polygon mesh export | planned; per-element semantics/ids; feeds HELIOS++ polygon pathway | open |
 | W10 | Downed woody debris | design and implement the DWD stage (logs, stumps) per Section 3.5 | open |
