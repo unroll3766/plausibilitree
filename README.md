@@ -27,7 +27,8 @@ python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
 #    per-tree clouds -> assembled plot -> stem/canopy maps -> canonical
 #    layout -> (optional terrain + understory) -> info JSONs -> normalize
 python run_pipeline.py plots --radius 15 --seed 42
-#    add e.g. --generate-dtm --understory for terrain, shrubs and grass
+#    terrain always runs (flat plane by default; --generate-dtm or --dtm
+#    for relief), add --understory for shrubs and grass
 #    add e.g. --max-density 5000 --spatial for DL-oriented normalization
 
 # 3.+4. cache and train: see the companion project

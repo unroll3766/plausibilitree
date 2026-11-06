@@ -3,11 +3,17 @@ run_pipeline.py: run the PlausibiliTree pipeline over a directory of
 already-generated per-plot tables.
 
 fia_helper.py is now a separate, standalone step -- run it first to turn a raw
-FIA TREE table into <plotdir>/plot_*.csv. This orchestrator only consumes
-those tables and runs the six processing stages, in order, for every one:
+FIA TREE table into <plotdir>/ tree lists. This orchestrator only consumes
+those tables and runs the processing stages, in order, for every one:
 
     generate_trees -> assemble_plot -> stem_map -> canopy_map
-                    -> restructure -> normalize
+                    -> restructure -> terrain (always; flat plane when no
+                      DTM is configured) -> understory (opt.)
+                    -> build_info -> normalize (dataset-wide)
+
+Terrain always runs per spec Section 3.3: a --dtm file or --generate-dtm
+selects the relief, and neither means the None topography (a flat plane at
+z = 0; a warning applies if no ground density was configured).
 
 Each stage is invoked as its own subprocess (same as running it by hand), so
 each stage's own arguments, logging and error handling apply unchanged. All
@@ -361,9 +367,10 @@ def main():
     ap.add_argument("--canopy-cell-size", type=float, default=0.05)
     ap.add_argument("--canopy-buffer", type=int, default=2)
     ap.add_argument("--canopy-source", default="trimmed", choices=["raw", "trimmed"])
-    # terrain (optional)
+    # terrain (always runs; the None topography is a flat plane)
     ap.add_argument("--dtm", default=None,
-                    help="DTM .asc (metres) to drape onto; enables the terrain step")
+                    help="DTM .asc (metres) to drape onto (wins over "
+                         "--generate-dtm)")
     ap.add_argument("--generate-dtm", action="store_true",
                     help="synthesize a per-plot DTM instead of providing one; "
                          "enables the terrain step")

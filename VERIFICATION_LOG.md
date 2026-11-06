@@ -408,6 +408,38 @@ semantics. (Process lesson, related to the log-edit mistakes of earlier
 rounds: insert new entries by targeting a UNIQUE anchor string, never
 a heading used as a section boundary for content to be preserved.)
 
+### 2026-11-05 — W4 review pass (adversarial check on commit c456162+40cf20d)
+
+**No notable bugs found this round.** Checked the surfaces the W4 round
+did not cover:
+
+1. **scene_editor compatibility**: its terrain invocation always passes
+   --dtm or --generate-dtm (never relied on the old skip), so
+   always-on terrain in the orchestrator does not affect it.
+2. **Flat run WITHOUT --understory** (untested in the main round): full
+   pipeline exit 0; normalize consumed the TERRAIN cloud directly
+   (semantic codes [1,2,3,6] including ground; plot cloud 29,943 =
+   terrain count, no fallback warning). Behavior note now explicit:
+   a plain run (no flags) previously normalized the trimmed cloud
+   (8,430 pts); with always-on terrain every default run's products
+   include flat-plane ground points — spec-conformant (terrain always
+   runs) but a visible default-output change.
+3. **Mixed replicate dirs**: a sidecar-free plot in a replicate run now
+   gets flat terrain instead of being skipped — intended Section 3.3
+   behavior; the sidecar plots still use their drawn DTMs.
+4. Absent-DTM handling: a --dtm path that doesn't exist still fails at
+   read (same as before, now after the conflict warning — user asked
+   for the file).
+
+**Found+fixed: README/doc staleness**: the main README quickstart still
+said terrain needs "--generate-dtm --understory" (changed to "terrain
+always runs, flat by default"); the run_pipeline docstring still showed
+the pre-W4 six-stage list without terrain (updated with the always-on
+terrain stage and the None topography note) and the --dtm help still
+said "enables the terrain step".
+
+Standing checks after fixes: check.py PASS, doc cross-references clean.
+
 ### Verification gaps / notes (W1 round)
 
 - scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was
