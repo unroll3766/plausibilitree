@@ -293,10 +293,17 @@ class SSTGenerator(GeneratorModule):
         sk = model.skeleton
         sk["base_xy"] = [sk["base_xy"][0] + float(x),
                          sk["base_xy"][1] + float(y)]
-        for poly in sk["trunk"]["polylines"]:
+        polys = sk["trunk"]["polylines"]
+        for i, poly in enumerate(polys):
+            # polylines are plain lists (gen_simtree emits .tolist()): the
+            # shift must be written back -- np.asarray on a list COPIES, so
+            # mutating the array alone silently drops the shift (the trunk
+            # polylines would stay base-local while points, base_xy and the
+            # branches move to plot coords)
             arr = np.asarray(poly, dtype=float)
             arr[:, 0] += float(x)
             arr[:, 1] += float(y)
+            polys[i] = arr.tolist()
         for br in sk.get("branches", []):
             br["base"][0] += float(x)
             br["base"][1] += float(y)

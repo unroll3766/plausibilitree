@@ -270,7 +270,10 @@ coverage gap:
    the module-placed skeletons — was untested. Now verified on a dense
    subset: 40 trees (r=20 plot), `-g sst`, 32 pts/m through generate +
    assemble -> 40/40 generated, **376 collisions, 202 points trimmed
-   (2.6%)**, per-tree element trims recorded (e.g. tree 040: 5 elements,
+   (2.6%)** [numbers computed against the place() frame bug later found
+   by the W7 review; collision counts from the W3 era onward are
+   phantom-trunk-tainted until that fix — see the W7 review entry],
+   per-tree element trims recorded (e.g. tree 040: 5 elements,
    2 points removed). Trimming works correctly on the placed module
    skeletons.
 
@@ -541,20 +544,23 @@ fixture = 6-tree subset of plot_11839 (r=20, seed 42, 64 pts/m):
 
 **Dense-plot collision coverage** (the riskiest untested path — trimming
 against mirrored skeletons; 40-tree subset, 32 pts/m, seed 42):
-319 collisions, **250 points trimmed (3.3%)**, 21/40 trees reflected;
-per-tree element trims recorded. Distances are mirror-invariant so the
-trim math is untouched, but the intra-plot collision GEOMETRY changes:
-the sparse 6-tree plot that had zero collisions pre-W7 now has 6
-collisions / 125 points trimmed at the same seed (the mirrored crowns
-genuinely overlap differently).
+originally recorded as 319 collisions / 250 points trimmed (21/40
+reflected). [SUPERSEDED — those runs, and the "sparse 6-tree plot now
+has 6 collisions / 125 points trimmed" observation below, were measured
+against the frame bug this round's review uncovered in
+`sst_generator.place`; with the bug fixed the 6-tree plot is back to
+0 collisions / 0 trimmed and the dense plot trims 337 collisions /
+314 points (4.1%). See the W7 review entry.]
 
 **E2E** (fresh scratch dirs, never the unit fixture): full pipeline on
 the 6-tree list -- 1 ok / 0 failed in 15 s; scene JSON carries the
 reflections; two independent full runs -> **byte-identical trimmed
-cloud** (md5 7c6dffd85d145b0dab36db4a6051f463) and identical
-reflections. Derived stages (stem map from mirrored skeleton discs,
-CHM, restructure, flat terrain, build_info, normalize) all ran green
-through the pipeline.
+cloud** (recorded md5 7c6dffd85d145b0dab36db4a6051f463 on the
+frame-bugged code; post-fix fixture md5
+891ad001acbd45b38d5ea38c6ccf398e, still byte-identical across runs) and
+identical reflections. Derived stages (stem map from mirrored skeleton
+discs, CHM, restructure, flat terrain, build_info, normalize) all ran
+green through the pipeline.
 
 **RNG-stream caution (expected behavior change)**: the reflection
 Bernoulli draw precedes every subsequent draw, so same-seed outputs
@@ -569,6 +575,86 @@ any e2e; another edit dropped the `if not trees:` guard in
 assemble_plot's placement loop while adding the reflections record,
 restored immediately after re-reading the hunk. Both reinforce the
 diff-reread-before-run discipline.
+
+### 2026-11-05 — W7 review pass (adversarial check on commit b3023b9+91d959d)
+
+**Found one REAL, significant bug — pre-existing since W3, not a W7
+regression.** The W7 code is innocent: the review's same-seed
+collision-change observation (sparse plot 0 -> 6 collisions) was the
+thread that unraveled it, and the frame consistency invariant now
+guards it.
+
+1. **`SSTGenerator.place()` silently dropped the trunk-polyline shift**
+   (`sst_generator.py`). `gen_simtree` emits polylines as plain lists
+   (`.tolist()`), and place() did `arr = np.asarray(poly); arr[:, 0] += x`
+   — np.asarray COPIES a list, so the shift landed on a discarded array.
+   Points, `base_xy` and every branch base/tip used in-place list
+   mutation and shifted correctly. Consequence: since commit b0da89e
+   (W3), every module-generated raw skeleton declared
+   `coordinate_frame: "plot metres"` (spec Section 7.4) but carried
+   trunk polylines in the LOCAL base-origin frame while everything else
+   was global. `assemble_plot.TreeSkeleton` built MIXED-frame collision
+   geometry: trunk elements (local) were then rotated about the global
+   base and drifted ~|base_xy| (4-14 m on these plots) from the true
+   stems — phantom trunks. Impact: all collision counts and
+   trunk-element trims since W3 were computed against phantom geometry
+   (branch-vs-branch collisions were always real; trunk-involving ones
+   were not); the sparse-plot "6 collisions / 125 points trimmed" that
+   the W7 round attributed to mirror-induced crown overlap was ENTIRELY
+   phantom. The W3-review equivalence check (place vs generating
+   positioned, 3.6e-15) compared model.points only — the points shift
+   was always correct, which is why dozens of cloud-level parity checks
+   passed while the skeleton frame was wrong. **Fix**: write the shifted
+   array back (`polys[i] = arr.tolist()`), with a comment explaining
+   the list/ndarray trap.
+2. **How it was caught**: a review check the W7 round didn't have — the
+   per-tree trimmed skeleton's centerline vs the per-tree trimmed
+   cloud's stem points. Reflected tree 001's stem points were 9.57 m
+   off-axis from "its own" serialized centerline; the raw skeleton then
+   showed polyline0 node0 = (0,0,0) with base_xy = (-3.10, 8.45) and
+   branch bases already global. (Lesson, again: check the INVARIANT,
+   not just stage exit codes — every stage "ran green" on phantom
+   geometry because both sides were consistently wrong together.)
+
+**Re-verification after the fix** (fixture regenerated; point counts,
+rotations and reflection draws are identical pre/post fix — the bug
+never touched rng or the point cloud):
+
+- Frame consistency: every raw polyline node0 == base_xy; all trunk
+  nodes within crown reach of the base (new permanent checks 0.x of
+  /tmp/w7_unit.py, exit 0).
+- W7 unit suite: ALL PASS (determinism, records replay, chirality,
+  draw distribution).
+- Sparse 6-tree plot: **0 collisions / 0 trimmed** — the phantom
+  collisions gone; pre-W7 behavior for THIS fixture restored, so the
+  reflection does not create real collisions at sparse spacing.
+- Dense 40-tree @32 pts/m: **337 collisions / 314 points trimmed
+  (4.1%)**, 21/40 mirrored — real trimming against real (mirrored)
+  skeleton geometry, including trunk-involving collisions.
+- Full pipeline e2e x2 (fresh scratch dirs): 1 ok / 0 failed; trimmed
+  cloud **byte-identical across runs, md5 891ad001acbd45b...** (differs
+  from the pre-fix fixture, as expected with real skeleton geometry);
+  all derived stages green.
+- Stem-vs-skeleton coax check (the one that caught the bug): max
+  off-axis 0.18-0.58 m = trunk radius, on reflected and unreflected
+  trees alike. The stem MASK stage now genuinely sees its tree.
+- W7-specific claims re-verified post-fix: **RNG-stream comparison**
+  vs the febb5ae worktree at the same seed: tree 001's rotation is
+  identical (it is the first draw), all others differ, pre-W7 scene has
+  no `reflections` key — the W7 entry's caution is exactly right.
+  **Chirality**: signed-area over ordered branch bases flips sign
+  exactly on reflected trees (001, 005: |S_out + S_raw| ~ 1e-15) and is
+  preserved on the others — the mirror is a true handedness flip, not a
+  substitute rotation.
+- Invariants on a mirrored plot with generated DTM + understory:
+  ground HAG == 0 exactly, no NaN (spec 3.3); scene_editor has no
+  skeleton/rotation consumers (cloud display only).
+
+**Also superseded**: the W7 entry's dense numbers (319/250) and sparse
+"now trims" claim are annotated in place; W3-review collision counts
+(376/202) likewise annotated as phantom-tainted. Historical request to
+future rounds: any collision/trim counts recorded before this fix are
+not reproducible on fixed code.
 
 ### Verification gaps / notes (W1 round)
 
