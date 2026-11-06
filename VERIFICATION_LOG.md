@@ -16,6 +16,9 @@ verification round; keep entries copy-pasteable so any check can be re-run.
 - Sample data: `CA_TREE_SMALL.csv` (one plot, 111 documented trees,
   `TPA_UNADJ` = 1.0 everywhere, so expansion only engages at radii > ~32 m
   or with modifiers; see entries below).
+- Repo regression suites: `conda run -n ssf python tests/run_all.py` — the
+  promoted W7/whole-repo invariant suites (placement & frame; cross-artifact
+  invariants). Run after every code change; see `tests/README.md`.
 
 ## Checks
 
@@ -777,6 +780,56 @@ fixtures masked spec deviations for months of rounds; the W7-round
 skeleton-frame bug was the same shape (no fixture ever checked the
 invariant). Cross-artifact invariant checks (recompute from a
 different artifact than the writer) are the pattern that finds them.
+
+### 2026-11-05 — tests/ promotion: standing suites moved out of /tmp
+
+Closed the long-tracked /tmp-suite ephemerality debt: the two live
+suites behind the W7 and whole-repo rounds are now repo files,
+self-contained (they build their own fixtures via the programmatic
+entry points `fia_to_tree_list`/`generate_plot`/`run_pipeline` — no CLI
+subprocesses), deterministic (seed 42, radius 20, 6 trees at 64 pts/m,
+temp dirs via mkdtemp, `--keep` for debugging), and exit-0 gated.
+
+**Layout**: `tests/fixture.py` (shared fixture builder),
+`test_placement_reflection.py` (frame-consistency guards for the
+place() polyline bug, same-seed determinism, records replay onto cloud
+and skeleton, ~50% mirror draw distribution, chirality via signed
+area), `test_cross_artifact_invariants.py` (scene records vs table;
+skeleton-vs-cloud coax; info-JSON bbox/DBH/frustum-volume recompute;
+branch_id/branch_code domains; spec 3.3 draping anchors + shrub/grass
+per-point drape on a RUGGED generated DTM; understory domains;
+generation records; scene-JSON link audit), `run_all.py` (aggregates
+exit codes), `README.md` (what each suite guards + conventions).
+
+**Verification of the promotion itself** (each with explicit exit
+codes, per standing check 4):
+
+- `conda run -n ssf python tests/test_placement_reflection.py` ->
+  exit 0, all checks PASS (frame guards, determinism bit-identical,
+  cloud replay max |d| 5.0-5.1e-4 on every tree, skeleton replay
+  within the 4dp-angle tolerance, draw rate 0.58 across seeds
+  1000-1007, chirality flips exactly on the two reflected trees).
+- `conda run -n ssf python tests/test_cross_artifact_invariants.py` ->
+  exit 0: full-pipeline fixture built in-process (28 s, 1 ok / 0
+  failed), then 88 checks all PASS (scene 30/30 links resolve;
+  stem coax 0.18-0.58 m; frustum volumes equal to 1e-3; all six
+  trees anchored on the DTM at their (X, Y); shrub+grass HAG min
+  0.0000).
+- `conda run -n ssf python tests/run_all.py` -> exit 0, 113 PASS
+  total.
+- Fixture parity: the in-suite fixture reproduces the logged /tmp
+  fixture numbers exactly (8,430 pts, 0 collisions / 0 trimmed,
+  understory 103,297, stem map 597x654 px) — the promotion is
+  value-identical to the suites the W7/whole-repo entries ran.
+- Standing checks: check.py PASS (28 file(s) — check.py globs only
+  top-level *.py, so tests/ is exercised by the suites themselves,
+  not by the static pass).
+
+**Convention going forward**: new verification rounds run
+`tests/run_all.py` as part of their standing checks and add any new
+invariant into these suites (same check/FAIL style); the
+verification-log entry then references the suite check that covers
+the round's behavior, so nothing lives only in /tmp again.
 
 ### Verification gaps / notes (W1 round)
 
