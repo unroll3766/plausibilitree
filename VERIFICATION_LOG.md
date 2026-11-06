@@ -327,6 +327,10 @@ unconsumed (W5); scene_editor GUI untested; full-pipeline runs on dense
 plots (stem/canopy/normalize after trimming) untested; /tmp test
 scripts are ephemeral — promoting the standing suites into a repo
 `tests/` directory is the natural next hygiene step.
+
+### Verification gaps / notes (W1 round)
+
+- scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was
   not exercised (no display).
 - FIA geo passthrough (per-tree LON/LAT/ELEV from a PLOT join) is not yet
   derived from plot center + placement (item W5); this sample has no PLOT
