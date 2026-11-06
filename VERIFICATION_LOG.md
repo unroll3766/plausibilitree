@@ -576,7 +576,7 @@ assemble_plot's placement loop while adding the reflections record,
 restored immediately after re-reading the hunk. Both reinforce the
 diff-reread-before-run discipline.
 
-### 2026-11-05 — W7 review pass (adversarial check on commit b3023b9+91d959d)
+### 2026-11-05 — W7 review pass (adversarial check on commit b3023b9+91d959d; fix in 82aabe6)
 
 **Found one REAL, significant bug — pre-existing since W3, not a W7
 regression.** The W7 code is innocent: the review's same-seed
