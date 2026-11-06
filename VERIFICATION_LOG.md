@@ -656,7 +656,7 @@ never touched rng or the point cloud):
 future rounds: any collision/trim counts recorded before this fix are
 not reproducible on fixed code.
 
-### 2026-11-05 — whole-repo adversarial review (after the W7-review frame bug)
+### 2026-11-05 — whole-repo adversarial review (fixes in 16e3998)
 
 Triggered by finding a pre-existing bug hidden across many rounds; scope =
 every module. Method: (a) static sweep for the same bug class
