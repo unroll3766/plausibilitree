@@ -26,8 +26,10 @@ def export_canonical_las(filename, xyz, extra, level="plot", scale=0.001):
     cols = schema.build_extra(fields, n, **{k: v for k, v in (extra or {}).items()})
 
     # point format 0: no RGB (nothing in the pipeline writes colour; the
-    # unused 6 RGB bytes of format 2 were pure overhead)
-    header = laspy.LasHeader(point_format=0, version="1.2")
+    # unused 6 RGB bytes of format 2 were pure overhead). LAS 1.4 is the
+    # target version per the design spec (Section 7.5): point formats 0-5
+    # remain valid in 1.4, so only the version tag changes.
+    header = laspy.LasHeader(point_format=0, version="1.4")
     header.scales = [scale, scale, scale]
     header.offsets = xyz[:, :3].min(axis=0) if n else [0.0, 0.0, 0.0]
     dims = [laspy.ExtraBytesParams(name=name, type=schema.dtype_of(name))

@@ -7,8 +7,7 @@ Pipeline (see fia_to_sst_plot):
     preprocess -> expand by TPA -> crown width -> placement -> postprocess
 
 Each stage is also usable on its own so that individual steps can be swapped
-out (in particular the TPA expansion, which is a placeholder -- see
-expand_by_tpa).
+out.
 
 If the input carries FIA PLOT fields LAT/LON/ELEV, they are passed through
 unchanged as plot_lat/plot_lon/plot_elev columns on the output (plot-center
@@ -133,7 +132,7 @@ def _fg_param(fg: pd.Series, fg_db: pd.DataFrame, param: str) -> pd.Series:
 # 1. Preprocessing
 # ---------------------------------------------------------------------------
 
-def plot_area_m2(shape="circle", *, radius_m=7.32, length_m=None, width_m=None,
+def plot_area_m2(shape="circle", *, radius_m=7.315, length_m=None, width_m=None,
                  side_m=None):
     """Plot area for the FIA per-acre -> count scaling."""
     if shape == "square":
@@ -143,7 +142,7 @@ def plot_area_m2(shape="circle", *, radius_m=7.32, length_m=None, width_m=None,
     return float(np.pi * radius_m ** 2)
 
 
-def plot_bbox(shape="circle", *, radius_m=7.32, length_m=None, width_m=None,
+def plot_bbox(shape="circle", *, radius_m=7.315, length_m=None, width_m=None,
              side_m=None):
     """Axis-aligned bounding box (x_min, x_max, y_min, y_max), origin-centred."""
     if shape == "square":
@@ -167,7 +166,7 @@ def _shape_attrs(shape, radius_m, length_m, width_m, side_m=None):
 
 
 def preprocess_fia(df: pd.DataFrame,
-                   plot_radius_m: float = 7.32,
+                   plot_radius_m: float = 7.315,
                    group_col: str = "SPCD",
                    ht_factor: float = HT_TO_M,
                    fg_db: pd.DataFrame | None = None,
@@ -241,28 +240,31 @@ def preprocess_fia(df: pd.DataFrame,
 
 
 # ---------------------------------------------------------------------------
-# 2. Variable plot sampling  (PLACEHOLDER)
+# 2. Variable plot sampling
 # ---------------------------------------------------------------------------
 
 def expand_by_tpa(df: pd.DataFrame, count_col: str = "TREES_IN_PLOT",
-                  rng: np.random.Generator | None = None) -> pd.DataFrame:
+                  modifier: float = 1.0) -> pd.DataFrame:
     """Replicate each record to match its expansion factor.
 
-    Each FIA record is a tree that was physically tallied on the plot, so every
-    record places AT LEAST ONE tree regardless of its expansion factor: the
-    count is rounded to the nearest integer but floored at 1, never 0. (An
-    expansion factor below 1 scales the per-area estimate down, but it can never
-    mean fewer trees than were actually observed in the field.) When the count
-    rounds above 1 the record is duplicated to add the extra stems.
+    Per the design spec (Plausibilitree.md Section 6.1, step 5): for each tree
+    the expected count is
 
-    Rounding is unbiased only in aggregate; with subplot-level TPA values near
-    1.0 it collapses most of the between-tree variation, but the one observed
-    tree is always placed. See Bechtold & Patterson (2005), GTR SRS-80, for the
-    full FIA variable-radius / macroplot estimation design.
+        N = ceil(TPA [trees/m^2] * plot area [m^2] * modifier)
+
+    with a floor of 1. Every FIA record is a tree that was physically
+    tallied on the plot, so it places at least one tree regardless of its
+    expansion factor; a modifier of 0 therefore generates exactly the
+    documented trees (no expansion), values in (0, 1) thin globally, and
+    values > 1 multiply the recorded stocking. When N > 1 the record is
+    duplicated so the extra stems become independent trees.
+
+    See Bechtold & Patterson (2005), GTR SRS-80, for the full FIA
+    variable-radius / macroplot estimation design.
     """
     out = df.copy()
-    raw = pd.to_numeric(out[count_col], errors="coerce").fillna(0)
-    n = np.rint(raw).astype(int)
+    raw = pd.to_numeric(out[count_col], errors="coerce").fillna(0.0) * modifier
+    n = np.where(raw <= 0.0, 1, np.ceil(raw)).astype(int)
     n = np.maximum(n, 1)                    # every tallied tree is placed at least once
     out["N_REPS"] = n
     out = out.loc[out.index.repeat(n)].reset_index(drop=True)
@@ -296,34 +298,98 @@ def crown_width(dbh_m: pd.Series, func_group: pd.Series,
 # 4. Tree placement
 # ---------------------------------------------------------------------------
 
+def _circle_intersection_area(d: float, r1: float, r2: float) -> float:
+    """Area of intersection of two circles (radii r1, r2, centers d apart)."""
+    if d >= r1 + r2:
+        return 0.0
+    if d <= abs(r1 - r2):
+        return float(np.pi * min(r1, r2) ** 2)
+    f1 = (d * d + r1 * r1 - r2 * r2) / (2.0 * d * r1)
+    f2 = (d * d + r2 * r2 - r1 * r1) / (2.0 * d * r2)
+    a1 = r1 * r1 * np.arccos(np.clip(f1, -1.0, 1.0))
+    a2 = r2 * r2 * np.arccos(np.clip(f2, -1.0, 1.0))
+    tri = 0.5 * np.sqrt(max((-d + r1 + r2) * (d + r1 - r2)
+                            * (d - r1 + r2) * (d + r1 + r2), 0.0))
+    return float(a1 + a2 - tri)
+
+
+def _disc_outside_proportion(x: float, y: float, r: float, plot) -> float:
+    """Proportion of a disc's area that lies outside the plot.
+
+    plot is a shape dict from _shape_attrs (circle, rectangle or square).
+    Analytic for circular plots; deterministic midpoint-grid quadrature
+    (64 x 64) for rectangular/square plots.
+    """
+    if r <= 0.0:
+        return 0.0
+    if plot["plot_shape"] == "circle":
+        R = plot["plot_radius_m"]
+        d = float(np.hypot(x, y))
+        if d + r <= R:
+            return 0.0
+        if d - r >= R:
+            return 1.0
+        disc = np.pi * r * r
+        inter = _circle_intersection_area(d, R, r)
+        return float(min(max((disc - inter) / disc, 0.0), 1.0))
+    # rectangle / square
+    if plot["plot_shape"] == "square":
+        half = plot["plot_side_m"] / 2.0
+        x_min, x_max, y_min, y_max = -half, half, -half, half
+    else:
+        hx, hy = plot["plot_length_m"] / 2.0, plot["plot_width_m"] / 2.0
+        x_min, x_max, y_min, y_max = -hx, hx, -hy, hy
+    n = 64
+    step = 2.0 * r / n
+    gx = x - r + (np.arange(n) + 0.5) * step
+    gy = y - r + (np.arange(n) + 0.5) * step
+    inside_disc = (gx[None, :] - x) ** 2 + (gy[:, None] - y) ** 2 <= r * r
+    inside_plot = ((gx[None, :] >= x_min) & (gx[None, :] <= x_max)
+                   & (gy[:, None] >= y_min) & (gy[:, None] <= y_max))
+    total = int(inside_disc.sum())
+    if total == 0:
+        return 0.0
+    return float((inside_disc & ~inside_plot).sum() / total)
+
+
 def place_trees(df: pd.DataFrame,
                 plot_radius_m: float | None = None,
                 radius_col: str = "CROWN_W",
-                overlap_basis: str = "crown",
-                allowed_overlap: float = 0.0,
+                overlap_basis: str = "stem",
+                min_distance: float = 0.0,
+                edge_effects: float = 0.0,
                 max_tries: int = 100,
                 seed: int | None = None,
                 plot_shape: str | None = None,
                 plot_length_m: float | None = None,
                 plot_width_m: float | None = None,
                 plot_side_m: float | None = None) -> pd.DataFrame:
-    """Place non-overlapping circles inside the plot, largest/most dominant first.
+    """Place trees inside the plot per the design spec (Section 6.1, step 7).
 
-    Ordering: CCLCD ascending (1 = open grown / dominant first), then DBH
-    descending, then HT descending.
+    Ordering: height descending, DBH as tiebreaker; exact ties broken by a
+    seeded random draw.
 
     overlap_basis:
-        'crown' -- circle radius is half the crown width (crown-cover packing)
-        'stem'  -- circle radius is half the stem diameter (stems only)
-    allowed_overlap is the fraction of the circle radius that neighbouring
-    circles are permitted to interpenetrate (0 = strictly tangent or apart).
+        'stem'  -- disc radius is half the stem diameter (the spec's trunk
+                   disc; the default)
+        'crown' -- disc radius is half the crown width (crown-cover packing)
+    min_distance: required surface-to-surface separation between two trees'
+    discs. Negative = discs may interpenetrate by up to |min_distance|;
+    0 = discs cannot touch; positive = a buffer of at least min_distance.
+    The protected disc of tree i therefore has radius r_i + min_distance / 2
+    (for 'stem', diameter DBH + min_distance, exactly the spec's disc).
 
-    A tree that fails max_tries attempts gets successful_placement = False and
-    X/Y left as NaN.  The per-tree counter resets after every tree, as
-    specified.
+    edge_effects: 0.0-1.0, the allowed proportion of a tree's disc area
+    outside the plot. 0.0 = the disc must fall entirely inside (the
+    pre-existing behaviour); 1.0 = any position goes, except one that is
+    100% outside, which cannot be drawn because positions are sampled
+    inside the plot.
+
+    A tree that fails max_tries attempts gets successful_placement = False
+    and X/Y left as NaN. The per-tree counter resets after every tree.
     """
     if plot_radius_m is None:
-        plot_radius_m = df.attrs.get("plot_radius_m", 7.32)
+        plot_radius_m = df.attrs.get("plot_radius_m", 7.315)
     if plot_shape is None:
         plot_shape = df.attrs.get("plot_shape", "circle")
     if plot_length_m is None:
@@ -333,15 +399,23 @@ def place_trees(df: pd.DataFrame,
     if plot_side_m is None:
         plot_side_m = df.attrs.get("plot_side_m")
     rng = np.random.default_rng(seed)
+    plot = _shape_attrs(plot_shape, plot_radius_m,
+                        plot_length_m, plot_width_m, side_m=plot_side_m)
 
-    out = df.sort_values(["CCLCD", "DIA", "HT"],
-                         ascending=[True, False, False]).reset_index(drop=True)
+    # Height descending, DBH tiebreaker, seeded random third key (spec)
+    out = df.copy()
+    out["_tiebreak"] = rng.random(len(out))
+    out = (out.sort_values(["HT", "DIA", "_tiebreak"],
+                           ascending=[False, False, True])
+           .drop(columns="_tiebreak").reset_index(drop=True))
 
     if overlap_basis == "stem":
         radii = pd.to_numeric(out["DIA"], errors="coerce").fillna(0.0) / 2.0
     else:
         radii = pd.to_numeric(out[radius_col], errors="coerce").fillna(0.0) / 2.0
-    radii = radii.to_numpy() * (1.0 - allowed_overlap)
+
+    # protected discs: surface-to-surface separation of min_distance
+    disc_r = radii.to_numpy() + min_distance / 2.0
 
     placed_x, placed_y, placed_r = [], [], []
     xs = np.full(len(out), np.nan)
@@ -353,34 +427,35 @@ def place_trees(df: pd.DataFrame,
         hx = hy = float(plot_side_m) / 2.0
     elif is_rect:
         hx, hy = float(plot_length_m) / 2.0, float(plot_width_m) / 2.0
+    else:
+        plot_r = float(plot_radius_m)
 
     for i in range(len(out)):
-        r_i = radii[i]
-        # stem must fall inside the boundary, so the centre is inset by r_i
-        if is_rect:
-            fx = max(hx - r_i, 0.0)
-            fy = max(hy - r_i, 0.0)
-        else:
-            r_free = max(plot_radius_m - r_i, 0.0)
-        overlap_counter = 0
-        while overlap_counter <= max_tries:
+        r_i = disc_r[i]
+        quota_r = max(r_i, 0.0)       # disc whose area the edge quota applies to
+        for _attempt in range(max(1, int(max_tries))):
             if is_rect:
-                # uniform over the inset rectangle (or inset square, same math)
-                x = rng.uniform(-fx, fx)
-                y = rng.uniform(-fy, fy)
+                x = rng.uniform(-hx, hx)
+                y = rng.uniform(-hy, hy)
             else:
-                # uniform over the disc
-                rad = r_free * np.sqrt(rng.random())
+                # uniform over the full plot disc (positions are always
+                # inside the plot; the edge quota decides how far out)
+                rad = plot_r * np.sqrt(rng.random())
                 th = 2 * np.pi * rng.random()
                 x, y = rad * np.cos(th), rad * np.sin(th)
+            # edge quota: allowed proportion of the disc outside the plot
+            if _disc_outside_proportion(x, y, quota_r, plot) > edge_effects + 1e-9:
+                continue
+            # disc/disc separation against every previously placed tree
             if placed_x:
                 dx = np.asarray(placed_x) - x
                 dy = np.asarray(placed_y) - y
-                clash = np.any(np.hypot(dx, dy) < (np.asarray(placed_r) + r_i))
+                clash = np.any(np.hypot(dx, dy)
+                               < (np.maximum(np.asarray(placed_r), 0.0)
+                                  + max(r_i, 0.0)))
             else:
                 clash = False
             if clash:
-                overlap_counter += 1
                 continue
             xs[i], ys[i], ok[i] = x, y, True
             placed_x.append(x)
@@ -391,9 +466,7 @@ def place_trees(df: pd.DataFrame,
     out["X"] = xs
     out["Y"] = ys
     out["successful_placement"] = ok
-    for k, v in _shape_attrs(plot_shape, plot_radius_m,
-                             plot_length_m, plot_width_m,
-                             side_m=plot_side_m).items():
+    for k, v in plot.items():
         out.attrs[k] = v
     return out
 
@@ -502,10 +575,12 @@ def build_sst_table(df: pd.DataFrame,
 # ---------------------------------------------------------------------------
 
 def fia_to_sst_plot(fia_df: pd.DataFrame,
-                    plot_radius_m: float = 7.32,
+                    plot_radius_m: float = 7.315,
                     group_col: str = "SPCD",
-                    overlap_basis: str = "crown",
-                    allowed_overlap: float = 0.0,
+                    overlap_basis: str = "stem",
+                    expansion_modifier: float = 1.0,
+                    min_distance: float = 0.0,
+                    edge_effects: float = 0.0,
                     max_tries: int = 100,
                     ht_factor: float = HT_TO_M,
                     dia_tol: float = 0.01,
@@ -516,13 +591,21 @@ def fia_to_sst_plot(fia_df: pd.DataFrame,
                     plot_length_m: float | None = None,
                     plot_width_m: float | None = None,
                     plot_side_m: float | None = None,
+                    drop_failed: bool = True,
                     return_intermediate: bool = False):
     """Run the full FIA -> PlausibiliTree conversion for one plot.
 
     plot_shape selects 'circle' (plot_radius_m), 'rectangle' (plot_length_m x
-    plot_width_m), or 'square' (plot_side_m, a single side length). Returns
-    the SST table, or (sst_table, working_frame) if return_intermediate is
-    True.
+    plot_width_m), or 'square' (plot_side_m, a single side length).
+
+    By default only successfully placed trees are kept in the output table
+    and TREE_UIDs are reassigned sequentially over the placed list (design
+    Section 6.1, step 7); set drop_failed=False to keep unplaced trees with
+    successful_placement = False (their UIDs are then the expansion-order
+    ones).
+
+    Returns the SST table, or (sst_table, working_frame) if
+    return_intermediate is True.
     """
     fg_db = load_func_group_db()
 
@@ -530,19 +613,38 @@ def fia_to_sst_plot(fia_df: pd.DataFrame,
                           group_col=group_col, ht_factor=ht_factor, fg_db=fg_db,
                           plot_shape=plot_shape, plot_length_m=plot_length_m,
                           plot_width_m=plot_width_m, plot_side_m=plot_side_m)
-    work = expand_by_tpa(work)
+    work = expand_by_tpa(work, modifier=expansion_modifier)
     work["CROWN_W"] = crown_width(work["DIA"], work["FUNC_GROUP"], fg_db)
     work = place_trees(work, plot_radius_m=plot_radius_m,
                        overlap_basis=overlap_basis,
-                       allowed_overlap=allowed_overlap,
+                       min_distance=min_distance,
+                       edge_effects=edge_effects,
                        max_tries=max_tries, seed=seed,
                        plot_shape=plot_shape, plot_length_m=plot_length_m,
                        plot_width_m=plot_width_m, plot_side_m=plot_side_m)
-    sst = build_sst_table(work, fg_db=fg_db, dia_tol=dia_tol, ht_tol=ht_tol)
+    sst = build_sst_table(work, fg_db=fg_db, dia_tol=dia_tol, ht_tol=ht_tol,
+                          drop_failed=drop_failed)
+    if drop_failed:
+        sst = sst.reset_index(drop=True)
+        sst["TREE_UID"] = [f"{i + 1:03d}" for i in range(len(sst))]
 
     if out_csv:
         sst.to_csv(out_csv, index=False)
     return (sst, work) if return_intermediate else sst
+
+
+def placement_report(params: dict, work: pd.DataFrame) -> dict:
+    """Report dict for one processed plot (design Section 6.1, step 8)."""
+    placed = pd.Series(work["successful_placement"], dtype="boolean")
+    n_placed = int(placed.fillna(False).sum())
+    n_total = int(len(work))
+    return {
+        "parameters": params,
+        "trees_expanded": n_total,
+        "trees_placed": n_placed,
+        "trees_not_placed": n_total - n_placed,
+        "proportion_placed": (n_placed / n_total) if n_total else 1.0,
+    }
 
 
 def split_plots(fia_df: pd.DataFrame, plot_col: str = "PLT_CN"):
@@ -559,7 +661,7 @@ if __name__ == "__main__":
     ap.add_argument("-o", "--outdir", default=".")
     ap.add_argument("-r", "--radius", type=float, default=None,
                     help="plot radius in metres, for --plot-shape circle "
-                         "(default 7.32 = FIA subplot; mutually exclusive "
+                         "(default 7.315 = FIA subplot; mutually exclusive "
                          "with --plot-shape rectangle/square)")
     ap.add_argument("--plot-shape", choices=["circle", "rectangle", "square"],
                     default="circle",
@@ -572,8 +674,26 @@ if __name__ == "__main__":
                     help="side length in metres, for --plot-shape square")
     ap.add_argument("--plot-col", default="PLT_CN")
     ap.add_argument("--group-col", default="SPCD")
-    ap.add_argument("--basis", default="crown", choices=["crown", "stem"])
-    ap.add_argument("--allowed-overlap", type=float, default=0.0)
+    ap.add_argument("--basis", default="stem", choices=["stem", "crown"],
+                    help="disc used for spacing: trunk diameter (spec default) "
+                         "or crown width")
+    ap.add_argument("--expansion-modifier", type=float,
+                    dest="expansion_modifier", default=1.0,
+                    help="multiplied into FIA-recorded TPA before rounding up. "
+                         "0 = only the documented trees; (0,1) = global "
+                         "reduction; >1 = more trees than the recorded TPA")
+    ap.add_argument("--min-distance", type=float, dest="min_distance",
+                    default=0.0,
+                    help="required surface-to-surface separation between "
+                         "trees' discs, metres. Negative = discs may overlap "
+                         "by up to |d|; 0 = trees cannot touch; positive = "
+                         "required buffer")
+    ap.add_argument("--max-tries", type=int, dest="max_tries", default=100,
+                    help="placement attempts per tree before it is dropped")
+    ap.add_argument("--edge-effects", type=float, dest="edge_effects",
+                    default=0.0,
+                    help="allowed proportion of a tree's disc area outside "
+                         "the plot, 0.0 (fully inside) to 1.0")
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--limit", type=int, default=None, help="max plots to write")
     args = ap.parse_args()
@@ -586,14 +706,14 @@ if __name__ == "__main__":
         if args.length is not None or args.width is not None or args.side is not None:
             ap.error("--length/--width/--side are not allowed with "
                      "--plot-shape circle")
-        radius = 7.32 if args.radius is None else args.radius
+        radius = 7.315 if args.radius is None else args.radius
     else:
         if args.radius is not None:
             ap.error(f"--radius is not allowed with --plot-shape "
                      f"{args.plot_shape} (mutually exclusive; use "
                      f"{'--length/--width' if args.plot_shape == 'rectangle' else '--side'} "
                      f"instead)")
-        radius = 7.32  # unused for rectangle/square, kept only as a fallback
+        radius = 7.315  # unused for rectangle/square, kept only as a fallback
         if args.plot_shape == "rectangle":
             if args.length is None or args.width is None:
                 ap.error("--plot-shape rectangle requires --length and --width")
@@ -607,17 +727,41 @@ if __name__ == "__main__":
 
     df = pd.read_csv(args.csv, low_memory=False)
     os.makedirs(args.outdir, exist_ok=True)
+    import json
     for i, (pid, sub) in enumerate(split_plots(df, args.plot_col)):
         if args.limit is not None and i >= args.limit:
             break
         path = os.path.join(args.outdir, f"plot_{pid}.csv")
-        sst = fia_to_sst_plot(sub, plot_radius_m=radius,
-                              group_col=args.group_col,
-                              overlap_basis=args.basis,
-                              allowed_overlap=args.allowed_overlap,
-                              seed=args.seed, out_csv=path,
-                              plot_shape=args.plot_shape,
-                              plot_length_m=args.length,
-                              plot_width_m=args.width,
-                              plot_side_m=args.side)
-        print(f"{path}: {len(sst)} trees")
+        sst, work = fia_to_sst_plot(sub, plot_radius_m=radius,
+                                    group_col=args.group_col,
+                                    overlap_basis=args.basis,
+                                    expansion_modifier=args.expansion_modifier,
+                                    min_distance=args.min_distance,
+                                    edge_effects=args.edge_effects,
+                                    max_tries=args.max_tries,
+                                    seed=args.seed, out_csv=path,
+                                    plot_shape=args.plot_shape,
+                                    plot_length_m=args.length,
+                                    plot_width_m=args.width,
+                                    plot_side_m=args.side,
+                                    return_intermediate=True)
+        params = {"plot_uid": str(pid),
+                  "plot_shape": args.plot_shape,
+                  "plot_radius_m": radius if args.plot_shape == "circle" else None,
+                  "plot_length_m": args.length,
+                  "plot_width_m": args.width,
+                  "plot_side_m": args.side,
+                  "group_col": args.group_col,
+                  "overlap_basis": args.basis,
+                  "expansion_modifier": args.expansion_modifier,
+                  "min_distance_m": args.min_distance,
+                  "max_tries": args.max_tries,
+                  "edge_effects": args.edge_effects,
+                  "seed": args.seed}
+        report = placement_report(params, work)
+        report_path = os.path.join(args.outdir, f"plot_{pid}_report.json")
+        with open(report_path, "w") as fh:
+            json.dump(report, fh, indent=2)
+        print(f"{path}: {report['trees_placed']} trees placed "
+              f"({report['trees_not_placed']} not placed, "
+              f"{report['proportion_placed']:.3f}); report: {report_path}")

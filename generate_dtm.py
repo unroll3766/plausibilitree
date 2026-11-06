@@ -309,7 +309,7 @@ def main():
                     help="width of the DTM in meters (x extent)")
     p.add_argument("--height", type=float, default=200.0,
                     help="height of the DTM in meters (y extent)")
-    p.add_argument("--cell-size", type=float, default=1.0, help="cell size in meters")
+    p.add_argument("--cell-size", type=float, default=0.25, help="cell size in meters")
     p.add_argument("--bumpiness", type=float, default=0.5,
                     help="terrain roughness, 0 (smooth) to 1 (very bumpy)")
     p.add_argument("--relief", type=float, default=10.0,

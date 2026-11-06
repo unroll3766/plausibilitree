@@ -19,26 +19,58 @@ import pandas as pd
 
 df = pd.read_csv("CA_TREE_SMALL.csv", low_memory=False)
 for plot_id, sub in split_plots(df, "PLT_CN"):
-    fia_to_sst_plot(sub, plot_radius_m=30.0, allowed_overlap=0.3,
+    fia_to_sst_plot(sub, plot_radius_m=30.0, expansion_modifier=1.0,
+                    min_distance=1.0, edge_effects=0.25,
                     seed=42, out_csv=f"plot_{plot_id}.csv")
 ```
 
 or from the shell:
 
 ```
-python fia_helper.py CA_TREE_SMALL.csv -o plots -r 20 --allowed-overlap 0.3
+python fia_helper.py CA_TREE_SMALL.csv -o plots -r 20 --min-distance 1.0 --edge-effects 0.25
 ```
 
-This is a standalone step: run it first to produce `plots/plot_*.csv`, then
-point `run_pipeline.py` at that directory to run the rest of the stages over
-those tables (see README_run_pipeline.md). `run_pipeline.py` no longer runs
-the FIA helper itself.
+This is a standalone step: run it first to produce `plots/plot_*.csv` (plus a
+`plot_*_report.json` per plot), then point `run_pipeline.py` at that directory
+to run the rest of the stages over those tables (see
+[README_run_pipeline.md](README_run_pipeline.md)). `run_pipeline.py` no longer
+runs the FIA helper itself.
+
+### Placement controls
+
+- `--expansion-modifier` (default 1.0): multiplied into FIA-recorded TPA
+  before rounding **up** to the expected per-plot count. 0 = only the
+  documented trees; values in (0, 1) = global reduction; > 1 = more trees
+  than the recorded TPA. (Every tallied record always places at least one
+  tree.)
+- `--min-distance` (default 0.0): required surface-to-surface separation
+  between two trees' discs, in metres. Negative = discs may interpenetrate
+  by up to `|d|`; 0 = trees cannot touch; positive = a required buffer.
+  The disc diameter is `DBH + min_distance` for the default `--basis stem`
+  (the design spec's trunk disc). This generalizes and replaces the old
+  fractional `--allowed-overlap`.
+- `--basis` (default `stem`): `stem` packs trunk discs (spec default);
+  `crown` packs crown-width discs instead.
+- `--max-tries` (default 100): placement attempts per tree before it is
+  dropped from the output.
+- `--edge-effects` (default 0.0, range 0-1): allowed proportion of a tree's
+  disc area outside the plot. 0.0 = the disc must fall entirely inside the
+  plot; 1.0 = any sampled position (positions are always sampled inside the
+  plot, so a disc is never fully outside).
+- `--seed`: seeds the random placement draws and the ordering tiebreak.
+
+Trees are placed tallest-first (DBH tiebreak, seeded random for exact
+ties). Only successfully placed trees are written (with fresh sequential
+`TREE_UID`s); each plot's `plot_*_report.json` records the parameters used
+and the placed / not-placed / proportion counts. Unplaced trees in dense
+plots are normal: raise `--min-distance`'s negative range, `--max-tries`,
+`--edge-effects`, or the plot size if you need more tries to succeed.
 
 ### Plot shapes
 
 `--plot-shape` is `circle` (default), `rectangle`, or `square`:
 
-- `circle` uses `-r/--radius` (defaults to 7.32 m, the FIA subplot radius).
+- `circle` uses `-r/--radius` (defaults to 7.315 m, the FIA subplot radius).
 - `rectangle` uses `--length` (x) and `--width` (y); both are required.
 - `square` uses `--side`, a single side length; required.
 
@@ -55,9 +87,9 @@ Programmatically, `plot_area_m2`/`plot_bbox`/`preprocess_fia`/`place_trees`/
 | stage | function | notes |
 |---|---|---|
 | preprocess | `preprocess_fia` | drop `DECAYCD >= 1`, drop rows missing `DIA/HT/TPA_UNADJ/CCLCD/<group col>`, convert units, add `X`, `Y`, `successful_placement` |
-| expansion | `expand_by_tpa` | **placeholder** — round to nearest int and duplicate |
+| expansion | `expand_by_tpa` | `N = ceil(TPA * plot area * expansion modifier)`, floored at 1; duplicates rows to match |
 | allometry | `crown_width` | `CW = exp(a0 + a1 ln DBH)` per functional group |
-| placement | `place_trees` | random non-overlapping circles inside the plot |
+| placement | `place_trees` | height-descending placement (DBH tiebreak), disc spacing with `min_distance`, `edge_effects` quota, `max_tries` attempts |
 | taper | `dbh_to_base_diameter` | DBH extrapolated to ground line |
 | postprocess | `build_sst_table` | emits the columns below |
 
@@ -106,11 +138,11 @@ you care about before using results quantitatively.
    feet, so the factor is `0.3048`; `3.6576` is 12× too large and produces
    150 m trees. `HT_TO_M` defaults to `0.3048`; pass `ht_factor=3.6576` to
    restore the specified behaviour.
-2. **Crown width before placement.** The spec places trees first, then
-   computes crown width, but the placement step is described as crown-cover
-   based. Crown width is computed first so the packing primitive can be either
-   the crown (`overlap_basis="crown"`, default) or the stem
-   (`overlap_basis="stem"`).
+2. **Crown width before placement.** The spec description computes crown
+   width after placement, but the placement primitive is one of the two
+   `overlap_basis` discs, so crown width is computed first. `overlap_basis
+   ="stem"` (trunk discs, the design default) is now the default;
+   `"crown"` packs crown-width discs instead.
 3. **`MAX_CAN_W_HT_HT`** in the example output is read as a typo for
    `MAX_CAN_W_HT_HI`.
 4. **TPA expansion** ignores the variable-radius/macroplot design; see
@@ -118,14 +150,15 @@ you care about before using results quantitatively.
 
 ## Known behaviour worth watching
 
-Standard FIA subplot `TPA_UNADJ` is 23.6576 trees/acre, which over a 7.32 m
-subplot is 0.983 trees — every such record rounds to exactly one stem, and
-smaller expansion factors round to zero and disappear. The rounding rule is
-therefore close to a no-op at subplot scale and only starts behaving like an
-expansion at larger simulated plot radii. This is the main thing to replace
-when the real estimation procedure goes in.
+Standard FIA subplot `TPA_UNADJ` is 23.6576 trees/acre, which over a 7.315 m
+subplot is ~1.0 tree — records land at the floor of one stem each, and the
+expansion modifier only starts adding stems at larger simulated plot radii
+(or with per-acre TPA above the subplot constant). Use `--expansion-modifier
+> 1` or a bigger plot to exercise duplication.
 
-Strict crown non-overlap is unsatisfiable in closed-canopy stands: with
-`allowed_overlap=0.0` some trees will exhaust `max_tries` and be dropped
-(`successful_placement=False`). Real canopies interpenetrate, so
-`allowed_overlap` around 0.3–0.5 is usually the more realistic setting.
+Strict disc non-overlap is unsatisfiable in closed-canopy stands: with
+`min_distance >= 0` some trees will exhaust `max_tries` and be dropped
+(they are omitted from the output and counted in the report JSON). Real
+stems and canopies interpenetrate, so a small negative `--min-distance`
+(or `--basis crown` with a negative `--min-distance`) is usually the more
+realistic setting.

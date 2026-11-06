@@ -18,10 +18,10 @@ Example (mirrors the documented per-stage commands):
     python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
 
     python run_pipeline.py plots \\
-        --radius 15 --seed 42 \\
+        --radius 7.315 --seed 42 \\
         --points-per-metre 4096 --max-attempts 10 \\
-        --stem-cell-size 0.1 --stem-threshold 0.25 \\
-        --canopy-cell-size 0.1 \\
+        --stem-cell-size 0.05 --stem-threshold 0.25 \\
+        --canopy-cell-size 0.05 \\
         --max-density 5000 --spatial --density cube --plot-l 30 --tree-l 30
 
 Parameters not given fall back to the defaults below, which match that example.
@@ -111,14 +111,14 @@ def _load_env(csv):
 
 
 def run_pipeline(plotdir, *,
-                 radius=15.0, seed=42,
+                 radius=7.315, seed=42,
                  plot_shape="circle", plot_length=None, plot_width=None,
                  limit=None,
                  points_per_metre=4096, max_attempts=10,
                  branch_radius_frac=0.10, tolerance=0.0,
-                 stem_cell_size=0.1, stem_threshold=0.25, bbox_padding=1,
-                 canopy_cell_size=0.1, canopy_buffer=2, canopy_source="trimmed",
-                 dtm=None, generate_dtm=False, gen_cell_size=1.0,
+                 stem_cell_size=0.05, stem_threshold=0.25, bbox_padding=1,
+                 canopy_cell_size=0.05, canopy_buffer=2, canopy_source="trimmed",
+                 dtm=None, generate_dtm=False, gen_cell_size=0.25,
                  gen_bumpiness=0.5, gen_relief=10.0,
                  ground_density=1.0, ground_noise=0.0,
                  terrain_source="trimmed",
@@ -329,7 +329,7 @@ def main():
                     help="directory of plot_*.csv tables (run fia_helper.py "
                          "first to produce them)")
     # shared / assemble_plot geometry
-    ap.add_argument("-r", "--radius", type=float, default=15.0)
+    ap.add_argument("-r", "--radius", type=float, default=7.315)
     ap.add_argument("--plot-shape", choices=["circle", "rectangle"],
                     default="circle", help="plot geometry (default circle)")
     ap.add_argument("--length", type=float, default=None,
@@ -346,11 +346,11 @@ def main():
     ap.add_argument("--branch-radius-frac", type=float, default=0.10)
     ap.add_argument("--tolerance", type=float, default=0.0)
     # stem_map
-    ap.add_argument("--stem-cell-size", type=float, default=0.1)
+    ap.add_argument("--stem-cell-size", type=float, default=0.05)
     ap.add_argument("--stem-threshold", type=float, default=0.25)
     ap.add_argument("--bbox-padding", type=int, default=1)
     # canopy_map
-    ap.add_argument("--canopy-cell-size", type=float, default=0.1)
+    ap.add_argument("--canopy-cell-size", type=float, default=0.05)
     ap.add_argument("--canopy-buffer", type=int, default=2)
     ap.add_argument("--canopy-source", default="trimmed", choices=["raw", "trimmed"])
     # terrain (optional)
@@ -359,7 +359,7 @@ def main():
     ap.add_argument("--generate-dtm", action="store_true",
                     help="synthesize a per-plot DTM instead of providing one; "
                          "enables the terrain step")
-    ap.add_argument("--gen-cell-size", type=float, default=1.0)
+    ap.add_argument("--gen-cell-size", type=float, default=0.25)
     ap.add_argument("--gen-bumpiness", type=float, default=0.5)
     ap.add_argument("--gen-relief", type=float, default=10.0)
     ap.add_argument("--ground-density", type=float, default=1.0,

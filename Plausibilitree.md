@@ -287,12 +287,14 @@ Process:
 8. Write the placed tree list (Section 8.1) as JSON and a JSON report of
    parameters used, trees placed, trees not placed, and the proportion.
 
-Implementation status: unit conversion, dead-tree removal, functional-group
-resolution, `--allowed-overlap` spacing and the report outputs are
-implemented (as CSV/JSON today; JSON-based tree list output is item W13).
-TPA expansion is a placeholder (rounds to nearest, not up); the
-expansion factor modifier, minimum distance, max tries and edge-effects
-controls are not implemented (items W2a-W2c). A user-supplied inventory with
+Implementation status: process steps 1-7 are implemented — the plot-center
+join is a passthrough of pre-joined LAT/LON/ELEV columns, unit conversion,
+dead-tree removal, functional-group resolution, height-descending placement
+(DBH tiebreak), the expansion modifier with round-up, `min_distance`
+spacing, `max_tries` and `edge_effects` controls, and the per-plot report
+JSON. The output tree list is still the SST parameter CSV with pre-drawn
+tolerance ranges (items W1, W13); per-tree geo derivation from plot center
+plus local placement is not yet computed. A user-supplied inventory with
 positions replaces this helper entirely.
 
 ### 6.2 Tree parameter editor — **[partial]**
@@ -473,10 +475,9 @@ splits; there is no separate SOURCE/DESTINATION table.
   so tree tops can grow towards any point.
 - `las.py`: canonical LAZ writer writing x/y/z plus the extra dims of
   Section 8.3 at their schema dtypes via extra-bytes records (LAZ
-  compression via lazrs). **LAS 1.4 is the target format** (current spec
-  generation, no uint32 point-count ceiling on merged files; point
-  formats 0-5 remain valid so no data migration); today the writer emits
-  LAS 1.2, point format 0 (item W12).
+  compression via lazrs) as **LAS 1.4**, point format 0 — **[implemented]**
+  (formats 0-5 remain valid in 1.4, so only the version tag changed;
+  merged-file point counts are no longer uint32-capped).
 
 ## 8. Data structures
 
@@ -604,7 +605,7 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
 |---|---|---|---|
 | PLOT_SHAPE | string | CIRCLE | plot geometry, CIRCLE or RECTANGLE |
 | PLOT_LENGTH, PLOT_WIDTH | (float, float) | (30.0, 30.0) | rectangle sides, m; only if RECTANGLE |
-| PLOT_RADIUS | float | 7.315 | circle radius, m; only if CIRCLE. Default is the FIA subplot radius; code currently defaults to 15.0 (item W11) |
+| PLOT_RADIUS | float | 7.315 | circle radius, m; only if CIRCLE (the FIA subplot radius) |
 | MIN_DBH | float | 0.127 | minimum DBH for a tree to be placed, m |
 | DBH_HT | float | 1.37 | breast height, m |
 | POINTS_PER_METRE | int | 4096 | points per 1 m height slice, scaled by base diameter: Np = POINTS_PER_METRE x ceil(HT) x BASE_DIA |
@@ -612,13 +613,13 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
 | BRANCH_RADIUS_FRAC | float | 0.10 | branch collision radius as a fraction of branch length |
 | MIN_BRANCH_RADIUS | float | 0.02 | floor for the above, m |
 | COLLISION_TOLERANCE | float | 0.0 | trim radius relaxation, m |
-| STEM_CELL_SIZE | float | 0.05 | stem map cell size, m (was STEM_RESOLUTION; code default 0.1, item W11) |
+| STEM_CELL_SIZE | float | 0.05 | stem map cell size, m (was STEM_RESOLUTION) |
 | STEM_THRESHOLD | float | 0.25 | half-height of the breast-height stem slab, m (was STEM_SECTION buffer) |
-| CANOPY_CELL_SIZE | float | 0.05 | canopy map cell size, m (was CHM_RESOLUTION; code default 0.1, item W11) |
+| CANOPY_CELL_SIZE | float | 0.05 | canopy map cell size, m (was CHM_RESOLUTION) |
 | CANOPY_BUFFER | int | 2 | canopy raster growth padding, cells |
 | OCCUPIED_VOXEL_SIZE | float | 0.1 | voxel size for foliage/grass/shrub volume, m (was FOLIAGE_VOXEL / GRASS_VOXEL) |
 | OCCUPIED_VOXEL_THRESHOLD | int | 1 | points needed to count a voxel occupied |
-| DTM_CELL_SIZE | float | 0.25 | generated DTM cell size, m (was DTM_RESOLUTION; code default 1.0, item W11) |
+| DTM_CELL_SIZE | float | 0.25 | generated DTM cell size, m (was DTM_RESOLUTION) |
 | DTM_BUMPINESS | float | 0.5 | generated terrain micro-relief scale |
 | DTM_RELIEF | float | 10.0 | generated terrain total relief, m |
 | GROUND_DENSITY | float | 1.0 | ground points per DTM cell |
@@ -670,23 +671,24 @@ UTM processing and EPSG:4326 exports are item W5.
 ## 11. Code-to-design gap register
 
 Work items to bring code into agreement with this document, in rough
-dependency order:
+dependency order. Status: **open** (not yet started), **closed** (code
+matches the design).
 
-| # | Item | Gap |
-|---|---|---|
-| W1 | Minimal tree list contract | generate_trees consumes per-tree frozen SST ranges; switch to (X, Y, DBH, HT, TREE_CODE) + param-dict lookup at generation, drawing seeded shapes per TREE_UID. FIA helper emits the minimal list (DBH/HT per tree), keeping placement there |
-| W2 | FIA helper placement controls | (a) implement expansion factor modifier; (b) minimum tree distance (generalize --allowed-overlap); (c) max tries and edge effects (spec Section 6.1). Replace the placeholder TPA rounding |
-| W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it |
-| W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings |
-| W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved |
-| W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) |
-| W7 | Random reflection | add mirror reflection to placement draws |
-| W8 | HELIOS++ stage | planned; needs scanner parameter design and voxel export |
-| W9 | Polygon mesh export | planned; per-element semantics/ids; feeds HELIOS++ polygon pathway |
-| W10 | Downed woody debris | design and implement the DWD stage (logs, stumps) per Section 3.5 |
-| W11 | Design defaults | align code defaults with Section 9: PLOT_RADIUS 7.315 (code 15.0), DTM_CELL_SIZE 0.25 (code 1.0), CANOPY_CELL_SIZE 0.05 (code 0.1), STEM_CELL_SIZE 0.05 (code 0.1) |
-| W12 | LAS 1.4 writer | switch the canonical writer to LAS version 1.4 (point format 0 + extra bytes unchanged; Section 7.5) |
-| W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export |
+| # | Item | Gap | Status |
+|---|---|---|---|
+| W1 | Minimal tree list contract | generate_trees consumes per-tree frozen SST ranges; switch to (X, Y, DBH, HT, TREE_CODE) + param-dict lookup at generation, drawing seeded shapes per TREE_UID. FIA helper emits the minimal list (DBH/HT per tree), keeping placement there | open |
+| W2 | FIA helper placement controls | (a) implement expansion factor modifier; (b) minimum tree distance (generalize --allowed-overlap); (c) max tries and edge effects (spec Section 6.1). Replace the placeholder TPA rounding | closed |
+| W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it | open |
+| W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings | open |
+| W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved | open |
+| W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) | open |
+| W7 | Random reflection | add mirror reflection to placement draws | open |
+| W8 | HELIOS++ stage | planned; needs scanner parameter design and voxel export | open |
+| W9 | Polygon mesh export | planned; per-element semantics/ids; feeds HELIOS++ polygon pathway | open |
+| W10 | Downed woody debris | design and implement the DWD stage (logs, stumps) per Section 3.5 | open |
+| W11 | Design defaults | align code defaults with Section 9: PLOT_RADIUS 7.315, DTM_CELL_SIZE 0.25, CANOPY_CELL_SIZE 0.05, STEM_CELL_SIZE 0.05 | closed |
+| W12 | LAS 1.4 writer | switch the canonical writer to LAS version 1.4 (point format 0 + extra bytes unchanged; Section 7.5) | closed |
+| W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | open |
 
 Registry of resolved decisions (for provenance):
 
@@ -719,3 +721,9 @@ Registry of resolved decisions (for provenance):
   sizes themselves never come from the dictionary (Section 8.6).
 - All interchange data (tree lists, parameter dictionaries, reports) is
   JSON; CSV is legacy (W13).
+- First code-alignment round (2026-11): W2, W11 and W12 closed — FIA
+  placement controls (expansion modifier with round-up, signed
+  min-distance replacing the fractional allowed-overlap, max tries, edge
+  effects, height-descending placement order, per-plot report JSON),
+  design defaults in code (radius 7.315, DTM 0.25, CHM 0.05, stem cell
+  0.05), and the LAS 1.4 canonical writer.

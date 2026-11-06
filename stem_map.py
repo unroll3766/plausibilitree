@@ -91,8 +91,8 @@ def stem_discs_in_band(skel, z_lo, z_hi, n_samples=9):
     return discs
 
 BREAST_HEIGHT_M = 1.37       # DBH reference height (matches generate_trees.py)
-DEFAULT_CELL_SIZE = 0.01     # metres per pixel
-DEFAULT_THRESHOLD = 0.10     # half-thickness of the z-band, metres
+DEFAULT_CELL_SIZE = 0.05     # metres per pixel
+DEFAULT_THRESHOLD = 0.25     # half-thickness of the z-band, metres
 STEM_CLASS = schema.SEM_TREE       # trunk; stem map also includes SEM_BRANCH (2)
 STEM_CLASSES = (schema.SEM_TREE, schema.SEM_BRANCH)   # all woody stem
 
