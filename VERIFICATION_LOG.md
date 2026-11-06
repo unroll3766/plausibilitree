@@ -188,6 +188,60 @@ Known gap (noted, unchanged): tree Z from the tree list is not yet
 consumed by generation (Z is 0 for all current sources; will matter for
 terrain work, track with W5).
 
+### 2026-11-05 — W3: generator module interface (commit 52db5c7)
+
+**Unit checks** (`conda run -n ssf python /tmp/test_w3.py`, all pass):
+
+1. Registry: `get_generator("sst")` instantiates; unknown names raise
+   KeyError; `register` used by the SST module.
+2. `resolve_tree_code` single-tree form: RW -> RW, SPCD 202 -> DF,
+   unknown -> DEFAULT.
+3. Canonical `_expand_entry` vs `legacy_row_params`: model_params
+   equivalent (atol 5e-4; the residual is the legacy CSV's 4dp rounding).
+4. build determinism: identical rng -> bit-identical TreeModel.points;
+   base at origin (base_xy [0,0], crown within its reach of the base).
+5. `place()` vs generating at (x, y): replaying the module's rng bridge
+   and calling gen_simtree with tx,ty directly matches the
+   place()-shifted model to 3.6e-15 — placement via shift is exactly
+   equivalent to generating positioned.
+
+   (An earlier draft of check 5 compared against the WRONG global seed
+   and reported an 8.96 m "mismatch" — the module bridges the rng
+   through one draw, so the comparison must replay that bridge. Test
+   bug, not code bug; noted here so the 8.96 number is not misread
+   later.)
+
+**Found+fixed during first run**: SSTGenerator.load_param_dict/_spcd
+passed `None` paths into load_func_group_db/load_spcd_map (crash);
+`entry_for` called np.isnan on the DESCRIPTION text column. Both caught
+by the unit suite before any e2e run.
+
+**End-to-end** (`/tmp/test_w3e2e.py` + `/tmp/w3_repro.sh`):
+
+- JSON contract, 6 trees, full pipeline: 1 ok / 0 failed, 8430-point
+  trimmed cloud; legacy CSV contract, same 6 trees: 8430 points.
+- Cross-contract parity: identical point count and ALL extra dims;
+  sorted-coordinate max diff 1.996e-03 m (the legacy table rounds
+  HT/BASE_DIA ranges to 4dp, which propagates through the stem spline).
+- Reproducibility: same table + seed, two runs -> byte-identical
+  trimmed cloud (md5 match).
+
+**Behavior notes**:
+- Seeding bridge: treesim draws from numpy's GLOBAL generator; the
+  module now bridges the core rng with one rng.integers draw. Point
+  counts are unchanged for these plots, but clouds generated pre-W3
+  will NOT regenerate byte-identically from the same seed (the global
+  stream changed). Within-version reproducibility is exact (md5 check).
+- The rng bridges per attempt: the core rehashes the seed per retry
+  (base + attempt*7919, spec MAX_ATTEMPTS), so retry paths stay
+  deterministic.
+- Test-suite supersession: the W1 unit suite (`test_w1a.py`) imported
+  `load_rows` / `rows_from_tree_list`, which the W3 refactor replaced
+  with `tree_requests` / `SSTGenerator._expand_entry`+`legacy_row_params`.
+  Checks 3-5 of the W1 suite are covered by this round's checks;
+  contract/discovery/parity checks (rev_check2.py) still apply
+  unchanged.
+
 ### Verification gaps / notes (W1 round)
 
 - The JSON-tree-list e2e used 6 trees at 64 points/m (a 111-tree run is

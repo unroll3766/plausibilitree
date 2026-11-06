@@ -115,7 +115,7 @@ def _load_env(csv):
 def run_pipeline(plotdir, *,
                  radius=7.315, seed=42,
                  plot_shape="circle", plot_length=None, plot_width=None,
-                 limit=None,
+                 limit=None, generator="sst",
                  points_per_metre=4096, max_attempts=10,
                  branch_radius_frac=0.10, tolerance=0.0,
                  stem_cell_size=0.05, stem_threshold=0.25, bbox_padding=1,
@@ -183,6 +183,7 @@ def run_pipeline(plotdir, *,
     stages = []
     stages.append(("generate_trees.py", lambda c: [
         c, "--seed", seed, "--points-per-metre", points_per_metre,
+        "--generator", generator,
         "--max-attempts", max_attempts]))
     _assemble_shape = (["--plot-shape", plot_shape]
                        + (["--length", plot_length, "--width", plot_width]
@@ -345,6 +346,9 @@ def main():
     # generate_trees
     ap.add_argument("--points-per-metre", type=int, default=4096)
     ap.add_argument("--max-attempts", type=int, default=10)
+    ap.add_argument("-g", "--generator", default="sst",
+                    help="generator module (spec Section 7.1; registry in "
+                         "generator_module.py)")
     # assemble_plot
     ap.add_argument("--branch-radius-frac", type=float, default=0.10)
     ap.add_argument("--tolerance", type=float, default=0.0)
@@ -423,7 +427,7 @@ def main():
         radius=args.radius,
         plot_shape=args.plot_shape, plot_length=args.length,
         plot_width=args.width,
-        seed=args.seed, limit=args.limit,
+        seed=args.seed, limit=args.limit, generator=args.generator,
         points_per_metre=args.points_per_metre, max_attempts=args.max_attempts,
         branch_radius_frac=args.branch_radius_frac, tolerance=args.tolerance,
         stem_cell_size=args.stem_cell_size, stem_threshold=args.stem_threshold,

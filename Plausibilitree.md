@@ -46,9 +46,9 @@ Section 11 lists every known code-to-design gap as actionable work items.
 
 ## 2. Inputs
 
-**[partial]** — the JSON tree list contract (Section 8.1) and generation-time
-param-dict lookup are implemented; the parameter dictionary's JSON
-serialization (W13) and the formal module interface (W3) are not.
+**[partial]** — the JSON tree list contract (Sections 8.1, 7.1) and
+generation-time param-dict lookup are implemented; the parameter
+dictionary's JSON serialization (W13) is not.
 
 The core consumes:
 
@@ -323,23 +323,36 @@ grass sidecar JSON that the pipeline applies per plot (`replicate.py`).
 
 ## 7. Generator module contract (with Simple Synth Tree)
 
-### 7.1 Module contract — **[planned as a formal interface]**
+### 7.1 Module contract — **[implemented]**
 
-A generator module must provide:
+A generator module must provide (implemented in `generator_module.py`; SST
+in `sst_generator.py`, selectable by name from the registry —
+`generate_trees.py -g` and `run_pipeline.py -g`):
 
 - `build(rng, DBH, HT, tree_code, params) -> TreeModel` where `TreeModel`
   holds:
-  - points (N x 3, metres, origin at tree base) with a trunk / branch / foliage
-    label per point;
-  - a skeleton with trunk and branch centerlines carrying radii (or a
-    documented proxy) and joint structure sufficient for collision trimming;
-  - realized dimensions (realized DBH, realized height);
-- a parameter dictionary format (Section 8.6) mapping tree code ->
-  parameters.
+  - points (N x 4: x, y, z in metres plus one semantic label per point),
+    **origin at the tree base** (z = 0 at the base);
+  - a placement helper `place(model, x, y)` that positions the base-origin
+    model in plot coordinates (points plus every positional field of the
+    skeleton);
+  - a skeleton (the module's documented format; SST: Section 7.4) with
+    trunk and branch centerlines carrying radii (or a documented proxy)
+    and joint structure sufficient for collision trimming;
+  - realized dimensions and provenance (model params, stem fraction,
+    point budget) so the build can be recorded and reproduced.
+- `load_param_dict(path)`: the parameter dictionary format (Section 8.6)
+  mapping tree code -> parameters.
+- `resolve_tree_code(code)`: a tree code -> dictionary key.
 
-The core calls the module through this contract only. **[partial]**: today
-the core (generate/assemble/build_info) calls SST conventions directly;
-formalizing the interface is item W3.
+The core calls the module through this contract only: it seeds each tree
+from a stable hash of the plot seed + TREE_UID, hands the module a fresh
+numpy Generator, and retries a degenerate build with a rehashed seed
+(MAX_ATTEMPTS). The module must draw ALL randomness from that rng (SST's
+treesim uses numpy's global generator, so its adapter bridges the rng
+with one deterministic draw). The trimming and volume stages consume the
+configured module's documented skeleton format, which is therefore part
+of each module's documentation (SST: Section 7.4).
 
 ### 7.2 Conceptual model: from tree list entry to synthetic tree — **[implemented]**
 
@@ -683,7 +696,7 @@ matches the design).
 |---|---|---|---|
 | W1 | Minimal tree list contract | generate_trees consumes per-tree frozen SST ranges; switch to (X, Y, DBH, HT, TREE_CODE) + param-dict lookup at generation, drawing seeded shapes per TREE_UID. FIA helper emits the minimal list (DBH/HT per tree), keeping placement there | closed |
 | W2 | FIA helper placement controls | (a) implement expansion factor modifier; (b) minimum tree distance (generalize --allowed-overlap); (c) max tries and edge effects (spec Section 6.1). Replace the placeholder TPA rounding | closed |
-| W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it | open |
+| W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it | closed |
 | W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings | open |
 | W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved | open |
 | W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) | open |
@@ -739,3 +752,9 @@ Registry of resolved decisions (for provenance):
   bounds around the tree list's DBH/HT and stable hashed per-tree seeds;
   contracts are pipeline-equivalent (identical plot clouds for the same
   trees and seeds).
+- Third code-alignment round (2026-11): W3 closed — the Section 7.1 module
+  contract is formalized in generator_module.py with an SST implementation
+  (sst_generator.py) behind it; the core builds through build(rng, ...)
+  with base-origin TreeModels and module place() positioning; the rng is
+  the sole entropy source (treesim's global generator bridged through one
+  rng draw); both input contracts drive the same build path.

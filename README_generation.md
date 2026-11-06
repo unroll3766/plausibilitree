@@ -1,7 +1,12 @@
 # Individual tree generation
 
 Stage 2: turn a PlausibiliTree plot table into one labelled point cloud per
-tree, with full provenance.
+tree, with full provenance, through the generator module contract (spec
+Section 7.1; `-g/--generator`, default `sst` — registry in
+`generator_module.py`, SST implementation in `sst_generator.py`). The core
+seeds each tree from a stable hash of the plot seed + TREE_UID and hands
+the module a fresh rng; the module returns a base-origin TreeModel that
+the core places at the tree's (X, Y).
 
 ```
 python generate_trees.py plot_11519.json --seed 42   # canonical tree list (default)
