@@ -476,6 +476,28 @@ JSON-loader draft reset the FUNC_GROUP index into a column, breaking
 `_fg_param`'s `lut.loc["DEFAULT"]` — caught while rereading the diff.
 No runtime bugs found after that.
 
+### 2026-11-05 — W13 review pass (adversarial check on commit 1939061+e72fafa)
+
+**No notable bugs found this round.** Checked the surfaces the W13 round
+did not cover (all exit-0, /tmp/w13_review.py + /tmp/w13_review2.sh):
+
+1. **The FIA helper core path** (crown-width allometry, taper, group
+   resolution — all `_fg_param` consumers) never ran through the JSON
+   dictionary in the W13 round (only generation did). FIA helper via JSON
+   dict: 111 trees placed, canonical JSON output valid.
+2. **User-added groups**: a custom dictionary with a grafted "ZZ" group
+   (CW_A0 modified) loads via the module, resolves, and BUILDS — the
+   hot-swap path (load_param_dict(path)) works through JSON.
+3. Unknown-code DEFAULT fallback through the JSON dictionary.
+4. **Stale-reference grep**: no `functional_groups.csv` mentions remain
+   in .py/.md outside legacy-captioned contexts and this log.
+5. **Legacy FIA output + legacy pipeline contract through the JSON
+   dictionary**: `fia_helper --format sst-csv` and a full legacy-CSV
+   pipeline run both pass. The legacy-contract trimmed/terrain cloud
+   differs from the JSON-contract one only by the documented cross-
+   contract variance (frozen ranges rounded to 4dp in the legacy CSV;
+   the W3 review measured 1.996e-03 m) — expected, not a regression.
+
 ### Verification gaps / notes (W1 round)
 
 - scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was
