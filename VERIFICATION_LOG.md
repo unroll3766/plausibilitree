@@ -328,6 +328,40 @@ plots (stem/canopy/normalize after trimming) untested; /tmp test
 scripts are ephemeral — promoting the standing suites into a repo
 `tests/` directory is the natural next hygiene step.
 
+### 2026-11-05 — coverage-debt round 2 (dense derived stages, terrain, replicates)
+
+Round goal: close the three open coverage debts from the prior sweeps.
+**No notable bugs found this round** — all three previously untested
+workflows pass.
+
+1. **Dense-plot derived stages** (the /tmp/w3_dense 40-tree plot, 376
+   collisions / 202 points trimmed, left at generate+assemble): ran
+   stem_map, canopy_map, restructure, build_info, normalize -- each
+   with an explicit exit check. ALL PASS; normalized plot cloud 7427
+   points (7629 raw - 202 trimmed). Post-trim per-tree artifacts
+   (stem bboxes, crown hulls, info JSONs for trimmed trees) compute
+   without errors.
+2. **Terrain + understory on the JSON contract** (never run since W1's
+   refactor; all prior e2e skipped the terrain stage):
+   `run_pipeline.py <6-tree JSON list> --generate-dtm --understory` ->
+   1 ok in 28 s; 29,943-point terrain cloud, 21,513 ground points;
+   asserted the spec Section 3.3 invariant — ground-point HAG exactly
+   0.0, no NaN anywhere; three per-shrub dirs written. Understory's
+   DTM reproduction from the scene record works through the JSON path.
+3. **Replicate + env-sidecar workflow E2E** (the documented consumer of
+   replicate directories): replicate x2 of a 6-tree JSON list ->
+   /tmp/w3_reps/{plot_11839_r01,r02}.json + .env.json sidecars ->
+   `run_pipeline.py /tmp/w3_reps --generate-dtm --understory` -> 2 ok /
+   0 failed in 48 s. Matched each plot's scene-JSON terrain record
+   against its sidecar draw: r01 bumpiness 0.5619 / relief 12.3304 and
+   r02 0.79 / 12.4153 — exact per-plot env application confirmed, and
+   the two plots' generated DTMs differ accordingly.
+
+Coverage debts remaining after this round: scene_editor GUI (no
+display), tree Z consumption (W5), full 111-tree scale runs
+(performance, not correctness), and the /tmp suite ephemerality
+(promote to tests/). None of these blocked any workflow tested.
+
 ### Verification gaps / notes (W1 round)
 
 - scene_editor's JSON acceptance is path-level (`find_plots`); its GUI was
