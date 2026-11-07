@@ -884,7 +884,7 @@ Known notes: report sidecar for CSV lists now carries `plot_center`
 scene_editor's GUI was not exercised (no display). Column order in the CSV
 form is canonical (Z before DBH), but every consumer reads by name.
 
-### 2026-11-07 — W19: rotation stepping + variable renames (commit <pin>)
+### 2026-11-07 — W19: rotation stepping + variable renames (commit 2ad83a9)
 
 Owner rulings applied: placement rotation quantized "in steps of N" with
 ROTATION_STEP default 30 degrees (12 orientations); shrub volume from the
