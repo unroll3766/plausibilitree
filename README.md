@@ -19,8 +19,9 @@ tables); training lives in the companion project:
 ```bash
 pip install -r requirements.txt
 
-# 1. (optional) tree lists: raw FIA TREE table -> one canonical plot_<UID>.json
-#    tree list per plot (spec Section 8.1; --format sst-csv emits the legacy table)
+# 1. (optional) tree lists: raw FIA TREE table -> one canonical plot_<UID>.csv
+#    tree list per plot (spec Section 8.1; --format tree-list-json for the
+#    JSON form, --format sst-csv for the legacy table)
 python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
 
 # 2. + 3. generate forests and their ML outputs:
@@ -36,7 +37,8 @@ python run_pipeline.py plots --radius 15 --seed 42
 ```
 
 `python run_pipeline.py plots` alone reproduces the documented defaults once
-`plots/` holds `plot_*.json` tree lists (or legacy `plot_*.csv` tables).
+`plots/` holds `plot_*` tree lists (minimal CSV per plot, or the JSON form;
+legacy SST tables still work).
 Pass `--seed` consistently across commands you run by hand; the orchestrator
 defaults to 42, the stage scripts to 0. `python check.py` sanity-checks the
 codebase after any edit.
@@ -72,8 +74,9 @@ FIA TREE csv ──fia_helper──▶ plots/plot_<UID>.json       (module 1, op
 ### 1. Preparing tree lists (optional)
 
 `fia_helper.py` converts a raw FIA `TREE` table into one canonical
-`plot_<UID>.json` tree list per plot, ready for generation. Everything downstream reads only those tables, so
-you can also write them yourself (see [README_fia_helper.md](README_fia_helper.md)
+`plot_<UID>.csv` tree list per plot (JSON form via `--format tree-list-json`),
+ready for generation. Everything downstream reads only those tables, so
+you can also write them yourself (see [README_fia_helper.md](README_fia_helper.md))
 for the column contract) — FIA data is not required.
 
 - Entry point: `fia_helper.py` — details in [README_fia_helper.md](README_fia_helper.md)
@@ -133,8 +136,10 @@ what each file contains):
 
 ```
 plots/
-├── plot_<UID>.json                  input tree list (one per plot;
-│                                    plot_<UID>.csv = legacy SST table)
+├── plot_<UID>.csv                   input tree list, one row per tree
+│                                    (plot_<UID>.json = alternate JSON form;
+│                                    plot_<UID>_report.json = placement
+│                                    parameters, incl. plot geometry)
 └── plot_<UID>/
     ├── plot_placement/
     │   ├── las/                    plot-level clouds: raw, trimmed, terrain,

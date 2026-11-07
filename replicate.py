@@ -184,7 +184,7 @@ def make_replicates(inputs, out_dir, n, *, seed=0, ranges=None, dtm_dir=None,
         uid, ext = os.path.splitext(os.path.basename(src))
         # tables are copied byte-for-byte: the trees are the point of a
         # replicate, and only the plot uid (the filename) changes
-        if tree_list.is_tree_list_path(src):
+        if tree_list.is_tree_list_path(src) or tree_list.is_tree_list_csv(src):
             tree_list.load_plot(src)     # validate the canonical contract
         else:
             with open(src) as f:

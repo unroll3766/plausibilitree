@@ -2,10 +2,12 @@
 
 Converts raw FIA `TREE` records into one placed tree list per plot, ready to
 drive a multi-tree version of SimpleSynthTree. By default it writes the
-canonical JSON tree list (`plot_<UID>.json`, spec Section 8.1 — inventory
-facts only: TREE_UID, X, Y, DBH, HT, TREE_CODE); `--format sst-csv` emits the
-legacy per-tree SST parameter table instead (frozen HT/BASE_DIA ranges plus
-per-group shape parameters). For what each parameter controls (the `CW_*`
+minimal tree-list CSV (`plot_<UID>.csv`, spec Section 8.1 — tree rows only:
+TREE_UID, X, Y, Z, DBH, HT, TREE_CODE); plot geometry lives in the sibling
+`plot_<UID>_report.json`, which also records the placement parameters and
+counts. `--format tree-list-json` emits the alternate canonical JSON object;
+`--format sst-csv` emits the legacy per-tree SST parameter table instead
+(frozen HT/BASE_DIA ranges plus per-group shape parameters). For what each parameter controls (the `CW_*`
 allometry, `TAPER_B`, crown shape ranges, etc.), see the parameter reference
 in [README_param_editor.md](README_param_editor.md).
 
@@ -35,7 +37,9 @@ or from the shell:
 
 ```
 python fia_helper.py CA_TREE_SMALL.csv -o plots -r 20 --min-distance 1.0 --edge-effects 0.25
-#    -> plots/plot_<UID>.json (canonical tree list) + plot_<UID>_report.json
+#    -> plots/plot_<UID>.csv (minimal tree list) + plot_<UID>_report.json
+python fia_helper.py CA_TREE_SMALL.csv -o plots -r 20 --format tree-list-json
+#    -> plots/plot_<UID>.json (canonical JSON tree list) + report
 python fia_helper.py CA_TREE_SMALL.csv -o plots -r 20 --format sst-csv
 #    -> plots/plot_<UID>.csv (legacy SST parameter table) + report
 ```
@@ -97,11 +101,13 @@ Programmatically, `plot_area_m2`/`plot_bbox`/`preprocess_fia`/`place_trees`/
 
 ## Pipeline
 
-Stages below run for both output formats; the postprocess stage diverges:
-`--format tree-list-json` (default) runs `build_tree_list` and emits the
-canonical minimal tree list (Section 8.1); `--format sst-csv` runs
-`build_sst_table` and emits the frozen-parameter columns below. In the JSON
-path, the tolerance/allometry values are computed at *generation* time by
+Stages below run for all output formats; the postprocess stage diverges:
+`--format tree-list-csv` (default) and `--format tree-list-json` both run
+`build_tree_list` and emit the minimal tree list (Section 8.1 — one CSV row
+per tree, or the JSON object); `--format sst-csv` runs
+`build_sst_table` and emits the frozen-parameter columns below. In the
+tree-list paths, the tolerance/allometry values are computed at *generation*
+time by
 `generate_trees.py` from the tree list's DBH/HT, so the tree list carries
 only inventory facts.
 
@@ -112,7 +118,7 @@ only inventory facts.
 | allometry | `crown_width` | `CW = exp(a0 + a1 ln DBH)` per functional group |
 | placement | `place_trees` | height-descending placement (DBH tiebreak), disc spacing with `min_distance`, `edge_effects` quota, `max_tries` attempts |
 | taper | `dbh_to_base_diameter` | DBH extrapolated to ground line |
-| postprocess | `build_tree_list` / `build_sst_table` | canonical JSON tree list (default) / the legacy columns below |
+| postprocess | `build_tree_list` / `build_sst_table` | minimal tree list (CSV default, JSON alternate) / the legacy columns below |
 
 Legacy (sst-csv) output columns: `TREE_UID, FUNC_GROUP, X, Y, HT_LO, HT_HI,
 BASE_DIA_LO, BASE_DIA_HI, SPLIT_HT_LO, SPLIT_HT_HI, SPLIT_PROB,

@@ -72,7 +72,7 @@ def tree_requests(table_path: str, module, points_per_metre: int) -> tuple:
     explicit frozen-range dict for legacy SST rows -- both feed the same
     module.build path).
     """
-    if tree_list.is_tree_list_path(table_path):
+    if tree_list.is_tree_list_path(table_path) or tree_list.is_tree_list_csv(table_path):
         plot = tree_list.load_plot(table_path)
         trees = plot["trees"]
         reqs = []
@@ -84,7 +84,7 @@ def tree_requests(table_path: str, module, points_per_metre: int) -> tuple:
                          "TREE_CODE": code,
                          "params": dict(module.entry_for(code),
                                         points_per_metre=points_per_metre)})
-        return "tree-list-json", reqs
+        return "tree-list", reqs
     df = pd.read_csv(table_path, dtype={"TREE_UID": str})
     if "successful_placement" in df.columns:
         df = df[df["successful_placement"].astype(str).str.lower()

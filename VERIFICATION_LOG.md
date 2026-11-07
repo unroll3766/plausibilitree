@@ -838,3 +838,48 @@ the round's behavior, so nothing lives only in /tmp again.
 - FIA geo passthrough (per-tree LON/LAT/ELEV from a PLOT join) is not yet
   derived from plot center + placement (item W5); this sample has no PLOT
   join (plot_center all-null).
+
+### 2026-11-07 — W17: CSV-canonical tree lists (commit <pin>)
+
+notes.md design applied (it wins): the FIA helper's placed tree list is a
+minimal CSV — tree rows only (TREE_UID, X, Y, Z, DBH, HT, TREE_CODE;
+optional LON/LAT/ELEV never written until per-tree geo exists, item W5) —
+and plot geometry lives in the report JSON the helper writes with it.
+
+**Code**: `tree_list.py` gained `save_plot_csv`, `is_tree_list_csv` (header
+sniff: required attrs present; legacy SST tables carry FUNC_GROUP/HT_LO and
+never match), `_load_plot_csv` (plot fields from the sibling
+`plot_<UID>_report.json` — parameters + a new top-level `plot_center`;
+hand-authored CSVs without the sidecar default to circle/unknown and
+callers override), with `load_plot`/`trees_frame` dispatching both
+serializations. `fia_helper.py --format tree-list-csv` is the new default
+(`tree-list-json` alternate, `sst-csv` legacy). `generate_trees.tree_requests`
+and `replicate` accept CSV lists (kind label now `tree-list`).
+
+**Bug found and fixed (root cause)**: first round-trip failed on DBH —
+pandas' default fast float parser returns a value 1 ULP off for
+17-significant-digit decimals in CSV text (46 in tree -> 1.1684 parsed
+from "1.1683999999999999", vs 1.1683999999999999 in the JSON path), which
+would break bit-exact regeneration (design principle 6). Fix:
+`float_precision="round_trip"` in the CSV loader.
+
+**Checks** (each exit-0 gated):
+
+- `conda run -n ssf python check.py` -> exit 0 (28 files, no undefined
+  names).
+- FIA run x2 (CA_TREE_SMALL.csv, seed 42, radius 20) in both formats ->
+  111 placed each; `load_plot` on both: trees frames `assert_frame_equal`,
+  plot fields identical via the report sidecar (circle, 20.0);
+  `trees_frame` passthrough identical; format sniff true for the minimal
+  CSV, false for JSON -> exit 0.
+- `tree_requests` CSV vs JSON with an SSTGenerator: kind `tree-list` both,
+  111 requests, exact `==` on every field including the resolved `params`
+  dict (only correct with the round_trip parser) -> exit 0.
+- `conda run -n ssf python tests/run_all.py` -> exit 0 (all suites pass,
+  standing run of the W7/placement+frame and cross-artifact invariants on
+  the JSON-form fixture).
+
+Known notes: report sidecar for CSV lists now carries `plot_center`
+(extension to the notes.md report: parameters + counts + proportion);
+scene_editor's GUI was not exercised (no display). Column order in the CSV
+form is canonical (Z before DBH), but every consumer reads by name.

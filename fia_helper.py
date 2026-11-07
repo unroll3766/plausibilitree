@@ -774,11 +774,14 @@ if __name__ == "__main__":
                     default=0.0,
                     help="allowed proportion of a tree's disc area outside "
                          "the plot, 0.0 (fully inside) to 1.0")
-    ap.add_argument("--format", choices=["tree-list-json", "sst-csv"],
-                    default="tree-list-json",
-                    help="output contract: the canonical JSON tree list "
-                         "(design Section 8.1, default) or the legacy SST "
-                         "parameter CSV")
+    ap.add_argument("--format", choices=["tree-list-csv", "tree-list-json",
+                                        "sst-csv"],
+                    default="tree-list-csv",
+                    help="output contract: the minimal tree-list CSV "
+                         "(design Section 8.1, notes.md default -- one row "
+                         "per tree; plot geometry lives in the report JSON) "
+                         "or the alternate canonical JSON; sst-csv emits the "
+                         "legacy SST parameter table")
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--limit", type=int, default=None, help="max plots to write")
     args = ap.parse_args()
@@ -830,9 +833,14 @@ if __name__ == "__main__":
                   "edge_effects": args.edge_effects,
                   "seed": args.seed,
                   "format": args.format}
-        if args.format == "tree-list-json":
-            # canonical Section 8.1 tree list + report JSON
-            path = os.path.join(args.outdir, f"plot_{pid}.json")
+        if args.format in ("tree-list-csv", "tree-list-json"):
+            # canonical Section 8.1 tree list + report JSON; the CSV form
+            # carries tree rows only, so the report doubles as the
+            # plot-geometry sidecar (tree_list reads it back)
+            if args.format == "tree-list-csv":
+                path = os.path.join(args.outdir, f"plot_{pid}.csv")
+            else:
+                path = os.path.join(args.outdir, f"plot_{pid}.json")
             plot, work = fia_to_tree_list(sub, plot_radius_m=radius,
                                            group_col=args.group_col,
                                            overlap_basis=args.basis,
@@ -847,9 +855,14 @@ if __name__ == "__main__":
                                            plot_side_m=args.side,
                                            plot_uid=f"plot_{pid}",
                                            return_intermediate=True)
-            with open(path, "w") as fh:
-                json.dump(plot, fh, indent=2)
+            if args.format == "tree-list-csv":
+                import tree_list
+                tree_list.save_plot_csv(plot, path)
+            else:
+                with open(path, "w") as fh:
+                    json.dump(plot, fh, indent=2)
             report = placement_report(params, work)
+            report["plot_center"] = plot["plot_center"]
             report_path = os.path.join(args.outdir, f"plot_{pid}_report.json")
             with open(report_path, "w") as fh:
                 json.dump(report, fh, indent=2)
