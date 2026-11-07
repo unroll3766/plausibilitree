@@ -3,9 +3,13 @@
 PlausibiliTree is a modular assortment of software that generates realistic and
 labelled point clouds of forested scenes.
 
-This document is the authoritative design. Code and this document must agree;
-where they disagree, one of them is wrong and must be fixed. Development
-proceeds by changing this document first, then changing the code to match.
+`notes.md` is the upstream design document, written and commented by the
+project owner; wherever this document disagrees with `notes.md`, `notes.md`
+wins. This document is the specification of record: it tracks `notes.md`
+section by section, tags implementation status, and turns every deviation
+between `notes.md`, this spec, and the code into a register entry
+(Section 11). Development proceeds by reconciling `notes.md` here first,
+then changing the code to match.
 
 Each section is tagged with its implementation status:
 
@@ -46,9 +50,10 @@ Section 11 lists every known code-to-design gap as actionable work items.
 
 ## 2. Inputs
 
-**[implemented]** — the JSON tree list contract (Sections 8.1, 7.1),
+**[partial]** — the tree list contract (Section 8.1, both serializations),
 generation-time param-dict lookup, and the parameter dictionary's JSON
-serialization (8.6) are all implemented.
+serialization (8.6) are implemented; the CSV-canonical tree list default
+per notes.md is not (item W17).
 
 The core consumes:
 
@@ -63,15 +68,15 @@ The core consumes:
 - **Point cloud settings**: points-per-metre budget for generation, and
   derived-stage settings such as max density for normalization (Section 9).
 
-All interchange data between tools and stages — tree lists, parameter
-dictionaries, scene/info records — is JSON; CSV appears only as a legacy
-input form. A plot with its own measured positions does not run the FIA
+Tree lists interchange as CSV and are also accepted as JSON (Section 8.1);
+parameter dictionaries, scene and info records are JSON. A plot with its
+own measured positions does not run the FIA
 helper at all; a hand-authored tree list in the Section 8.1 format is a
 first-class input.
 
 ## 3. Core process
 
-### 3.1 Tree generation and placement — **[implemented]**
+### 3.1 Tree generation and placement — **[partial]**
 
 For each tree in the tree list, in order:
 
@@ -81,17 +86,19 @@ For each tree in the tree list, in order:
   the parameter dictionary's ranges. Realized DBH and HT may therefore differ
   slightly from the input values (differences recorded in tree info JSON).
 - The tree is placed at (X, Y) with a random rotation about its base, drawn
-  from [0, 360) degrees, and a random reflection.
+  from [0, 360) in steps of N degrees (ROTATION_STEP, seeded), and a random
+  reflection.
 
 Implementation status: canonical JSON tree lists are generated per the
 contract — the parameter dictionary lookup, allometric bounds and per-tree
 seeded draws all happen at generation time (legacy SST parameter CSVs remain
-accepted as input). Rotation is continuous and seeded; reflection is a
-seeded 50/50 mirror draw across the vertical plane through the tree's
-base, applied with the rotation at plot assembly. The parameter dictionary
-is JSON (`data/functional_groups.json`, Section 8.6).
+accepted as input). Rotation is seeded but drawn continuously, not quantized
+in steps of N per the design (item W19); reflection is a seeded 50/50 mirror
+draw across the vertical plane through the tree's base, applied with the
+rotation at plot assembly. The parameter dictionary is JSON
+(`data/functional_groups.json`, Section 8.6).
 
-### 3.2 Collision trimming — **[implemented]**
+### 3.2 Collision trimming — **[partial]**
 
 Uses the per-tree skeletons to find intersections between different trees.
 For each tree, in ascending order of TREE_UID:
@@ -109,10 +116,12 @@ skeleton, so branches use `BRANCH_RADIUS_FRAC * branch_length`
 (`MIN_BRANCH_RADIUS` floor) as their collision radius; trunks use their taper
 radii; a `COLLISION_TOLERANCE` may relax both.
 
-Trimmed points are removed from the cloud at trim time (final clouds are
-surviving points only). Trimming is additionally recorded structurally: the
-trimmed tree skeletons carry `node_trimmed` flags, and the scene JSON records
-per-tree removed-point counts. There is no per-point `trimmed` dimension.
+Trimmed points are flagged per point on the `trimmed` dimension
+(Section 8.3) and removed from the cloud at trim time (final clouds carry
+surviving points only, reading `trimmed` = 0). Trimming is additionally
+recorded structurally: the trimmed tree skeletons carry `node_trimmed`
+flags, and the scene JSON records per-tree removed-point counts. The
+per-point `trimmed` dimension is not yet implemented in the code (item W14).
 
 ### 3.3 Topography — **[implemented]**
 
@@ -138,7 +147,7 @@ The DTM is an ESRI ASCII grid (.asc) in metres.
 
 Implementation status: all three topography resolutions are implemented —
 DTM filepath (draped with a coverage check, no tiling/stretching), random
-parameters (generated, saved as an .asc, cell DTM_CELL_SIZE), and None (a
+parameters (generated, saved as an .asc, cell DTM_RESOLUTION), and None (a
 uniform flat plane at z = 0; the terrain stage always runs, sampling ground
 points at the default density and warning when none was configured). Conflicts
 resolve per the None > filepath > random order with a warning describing the
@@ -153,7 +162,8 @@ is identical).
 - **Shrubs first.** Each shrub is procedurally generated and placed at random
   within cover/pattern constraints; tree proximity is enforced via canopy
   attenuation. Any shrub point intersecting a tree point is removed.
-  Shrubs are labelled with `shrub_id` and semantic code 4.
+  Shrubs are labelled with `shrub_id` and the shrub semantic code (target 8
+  per notes.md; the code writes 4 today, item W14).
 - **Grass next.** Any grass point intersecting a tree point or a shrub point
   is removed. Grass carries no per-plant identity (semantics only).
 
@@ -169,13 +179,14 @@ Interaction rules (collision trimming against debris, shrub/grass removal
 against debris points, semantic codes, volume accounting) will be specified
 as part of W10.
 
-### 3.6 Info JSONs — **[implemented]**
+### 3.6 Info JSONs — **[partial]**
 
 After all clouds exist, plot-level and tree-level info JSONs are written
 (Section 8.4), including volumes with raw and trimmed variants:
 trunk (frustum sum along the skeleton with taper radii), branch (cylinder
 per branch element), foliage (occupied-voxel volume), canopy (convex-hull
-volume of foliage).
+volume of foliage). The notes.md field names and totals (NUM_TREES,
+BASAL_AREA, VOL_SHRUB, VOL_GRASS, ...) are pending (item W16).
 
 ## 4. Core outputs
 
@@ -213,14 +224,14 @@ Each is a separate stage over the core outputs, never part of the core run.
   sufficient for anyone to do this themselves. **[partial]**: today per-tree
   sub-clouds are instead written directly by every core run (item W6).
 - **Stem map** **[implemented as an always-on stage]** — a 2-band raster of
-  the breast-height slab (DBH_HT +/- STEM_THRESHOLD, cell STEM_CELL_SIZE),
+  the breast-height slab (DBH_HT +/- STEM_SECTION, cell STEM_RESOLUTION),
   both bands covering the whole plot: band 1 counts all points in the
   slab; band 2 is a binary mask, 1 where a tree point lies in the slab, 0
   elsewhere. Per-tree stem bounding boxes (JSON) accompany it.
   **[partial]**: the implementation writes a single-band count raster and
   expresses masks as per-tree cropped rasters (item W6).
 - **Canopy map (CHM)** **[implemented as an always-on stage]** — a canopy
-  raster at CANOPY_CELL_SIZE (max height above ground per cell; foliage
+  raster at CHM_RESOLUTION (max height above ground per cell; foliage
   presence), plus per-tree crown bounding boxes and convex hulls.
 - **Normalization** **[partial]** — subsample / rescale / voxelize clouds for
   DL consumption.
@@ -290,7 +301,7 @@ Process:
    previously placed trunks, and the proportion of the disc outside the plot
    must be <= edge effects; failed placements retry up to the maximum number
    of tries; placed trees get ascending UIDs.
-8. Write the placed tree list (Section 8.1) as JSON and a JSON report of
+8. Write the placed tree list (Section 8.1) as CSV and a JSON report of
    parameters used, trees placed, trees not placed, and the proportion.
 
 Implementation status: process steps 1-7 are implemented — the plot-center
@@ -298,8 +309,9 @@ join is a passthrough of pre-joined LAT/LON/ELEV columns, unit conversion,
 dead-tree removal, functional-group resolution, height-descending placement
 (DBH tiebreak), the expansion modifier with round-up, `min_distance`
 spacing, `max_tries` and `edge_effects` controls, and the per-plot report
-JSON. The placed tree list is written as canonical JSON (Section 8.1,
-default) or the legacy SST parameter CSV (`--format sst-csv`);
+JSON. The placed tree list is written as CSV
+per the design (the code currently emits canonical JSON by default with CSV
+as the legacy option — reversed from notes.md; item W17);
 per-tree geo derivation from plot center plus local placement is not yet
 computed (item W5). A hand-authored tree list with positions replaces this
 helper entirely.
@@ -390,7 +402,7 @@ Synthesis chain for one tree (H = HT, DBH in metres, DBH_HT = 1.37 m):
    3.2) and the frustum volumes in the info JSONs.
 2. **Crown width (allometry).** With DBH converted to inches (DBH_in):
 
-   CW_ft = exp(CW_A0 + CW_A1 * ln(DBH_in)),  MAX_CAN_W (m) = 0.3048 * CW_ft
+   CW_ft = exp(A0 + A1 * ln(DBH_in)),  MAX_CAN_W (m) = 0.3048 * CW_ft
 
    A0 sets crown width at any given size; A1 sets how strongly width grows
    with DBH.
@@ -450,11 +462,11 @@ HT by the entry's allometry (Section 7.2).
 | Column(s) | Meaning | Raising it ... |
 |---|---|---|
 | FUNC_GROUP | tree code this entry is keyed by | — |
-| CW_A0, CW_A1 | crown-width allometry: CW (ft) = exp(A0 + A1 ln(DBH_in)), then to metres | widens the crown at a given DBH (A0) / makes big trees disproportionately wide (A1); wider crowns mean more collision trimming in dense plots |
+| A0, A1 | crown-width allometry (notes.md's a0/a1): CW (ft) = exp(A0 + A1 ln(DBH_in)), then to metres | widens the crown at a given DBH (A0) / makes big trees disproportionately wide (A1); wider crowns mean more collision trimming in dense plots |
 | TAPER_B | butt-swell exponent, Section 7.2 step 1 | reduces butt swell (base diameter closer to DBH); lowering it thickens the trunk base |
-| DBH_TOL, HT_TOL | proportional size tolerances (default 0.01, i.e. +/- 1%). SST requires bounded height/base-diameter ranges, so the module bounds each tree's realized size around its tree list values: HT is drawn in [HT(1-tol), HT(1+tol)] and base diameter is derived from taper then bounded likewise | wider tolerances = more realized-size variation around the same DBH/HT |
+| DBH_MIN, DBH_MAX, HT_MIN, HT_MAX | applicability bounds on the trees this entry covers (notes.md: bounds on the tree's DBH / HT). A tree's list DBH/HT must lie inside them; the realized SST ranges are derived around the tree list values | a tree outside the bounds falls through the code resolution order (species -> functional group -> DEFAULT); wider bounds admit more trees to this entry |
 | SPLIT_PROB | probability the tree forks at all (0 = single straight stem) | more forked trees |
-| SPLIT_NUM_LO/HI | number of cascading trunk splits, drawn per tree (default 1:1 = single fork) | more levels of forking and bushier multi-leader crowns; each leader's crown is airier at the same point count, so raise the point budget for dense multi-leader crowns |
+| SPLIT_NUM_LO/HI | number of cascading trunk splits, drawn per tree (default 1:1 = single fork); spec extension, not in notes.md's parameter list | more levels of forking and bushier multi-leader crowns; each leader's crown is airier at the same point count, so raise the point budget for dense multi-leader crowns |
 | SPLIT_HT_LO/HI | where each split happens, as a fraction of the stem being split | pushes splits higher up the stems |
 | NUM_BRANCH_LO/HI | nominal branch count, drawn per tree and split between the lower crown band and the upper crown/fork band | denser canopy and more foliage points |
 | MIN_CAN_HT_LO/HI | crown base: height of the lowest branch, as a fraction of H | raises the crown base (pruned-plantation look); more bare, visible stem |
@@ -464,21 +476,38 @@ HT by the entry's allometry (Section 7.2).
 | FP_RAND_HT | upward vertical jitter added to foliage points, m | fuzzier, less clearly bounded canopy |
 | SPR_LO/HI | stem-point fraction of the point budget, drawn per tree | more points on trunk and branches, at the cost of canopy detail |
 
-Useful silhouettes: a **conifer** look is low SPLIT_PROB, small CW_A0/A1,
+Useful silhouettes: a **conifer** look is low SPLIT_PROB, small A0/A1,
 high crown base variation and high NUM_BRANCH; a **hardwood** look is high
-SPLIT_PROB, high CW_A0/A1, a low crown base, and SPLIT_NUM_LO/HI above
+SPLIT_PROB, high A0/A1, a low crown base, and SPLIT_NUM_LO/HI above
 1:1 for cascading multi-leader crowns. TOP_DIST and MID_DIST only change
 stem geometry, so they add variety without changing the crown.
 
 **[partial]**: keyed-by-code consumption is implemented at generation time
-(rows are expanded from the tree list's DBH/HT with tolerance bounds from
-DBH_TOL/HT_TOL, allometry-derived crown width and base diameter); the
-dictionary is serialized as JSON (`data/functional_groups.json`; legacy
-CSV tables still load).
+(rows are expanded from the tree list's DBH/HT, with allometry-derived
+crown width and base diameter); the dictionary is serialized as JSON
+(`data/functional_groups.json`; legacy CSV tables still load). The code
+currently uses the CW_A0/CW_A1/TAPER_B naming and proportional
+DBH_TOL/HT_TOL size tolerances rather than notes.md's a0/a1, taper and
+DBH/HT applicability bounds (item W18).
 
-### 7.4 SST skeleton JSON — **[implemented]**
+### 7.4 SST skeleton JSON — **[partial]**
 
-Per tree, a JSON describing the generated structure:
+Design target (per notes.md): a JSON where each element represents one
+portion of the generated tree — an element graph:
+
+| Attribute | Type | Description |
+|---|---|---|
+| BRANCH_UID | string | unique id of the element within the tree |
+| BRANCH_ORDER | int | 0 = trunk, 1 = connected to the trunk, 2 = connected to a 1st order element, ... (5 is a soft upper limit) |
+| BRANCH_LENGTH | float | length of the element, m |
+| BRANCH_RADIUS | float | radius of the element, m |
+| BRANCH_VOLUME | float | cylinder volume pi * r^2 * L from the element's length and radius |
+| SOURCE | string | UID of the element this element connects to (exactly one) |
+| DESTINATION | string | UID(s) of the elements connected to this one (multiple at a fork) |
+
+Current implementation: the skeleton JSON is the polyline-and-splits form
+below; converting it to (or additionally exporting) the element graph is
+item W15.
 
 - `tree_uid`, `plot_uid`, `tree_id`, `coordinate_frame`, `base_xy`,
   `height_m`, `base_radius_m`, `fork`, `fork_height_m`, `n_splits`,
@@ -488,8 +517,9 @@ Per tree, a JSON describing the generated structure:
 - `branches`: same organization for branch elements, each with its length
   and the branch element id that its points carry.
 
-Branch connectivity (joint structure) is expressed by the polylines and
-splits; there is no separate SOURCE/DESTINATION table.
+In the polyline form, branch connectivity (joint structure) is expressed
+by the polylines and splits; there is no separate SOURCE/DESTINATION
+table.
 
 ### 7.5 SST codebase modifications
 
@@ -499,16 +529,20 @@ splits; there is no separate SOURCE/DESTINATION table.
   Section 8.3 at their schema dtypes via extra-bytes records (LAZ
   compression via lazrs) as **LAS 1.4**, point format 0 — **[implemented]**
   (formats 0-5 remain valid in 1.4, so only the version tag changed;
-  merged-file point counts are no longer uint32-capped).
+  merged-file point counts are no longer uint32-capped). The added columns
+  notes.md lists (`tree_ID`, `semantic`, `branch_ID`, `branch_order`,
+  `trimmed`) map to the Section 8.3 dimensions; the per-point `trimmed`
+  column is pending (item W14).
 
 ## 8. Data structures
 
-### 8.1 Tree list (input; emitted by the FIA helper or authored by hand) — **[implemented]**
+### 8.1 Tree list (input; emitted by the FIA helper or authored by hand) — **[partial]**
 
-Serialized as **JSON**: one object per plot (PLOT_UID, plot shape and
-dimensions, optional plot center geo) containing a `trees` array whose
-elements carry the attributes below. Every tool in the pipeline exchanges
-tree lists as JSON; CSV is the legacy form.
+Serialized as **CSV**, one row per tree (per notes.md: the FIA helper's
+placed tree list is a .csv and the parameter helper reads a tree-list
+.csv). The JSON form — one object per plot (PLOT_UID, plot shape and
+dimensions, optional plot center geo) with a `trees` array — remains an
+accepted alternate serialization carrying the same attributes.
 Required attributes:
 
 | Attribute | Type | Description | Range | Notes |
@@ -516,6 +550,7 @@ Required attributes:
 | TREE_UID | string | unique tree id in the list | | ex: 0001, 0002 |
 | X | float | local x of tree centroid, metres from lower-left | [0, PLOT_LENGTH] rect / [0, 2 PLOT_RADIUS] circle | |
 | Y | float | local y of tree centroid, metres from lower-left | [0, PLOT_WIDTH] rect / [0, 2 PLOT_RADIUS] circle | |
+| Z | float | local z of tree base, metres | [0, inf) | typically 0 |
 | DBH | float | trunk diameter at breast height, metres | (MIN_DBH, inf) | |
 | HT | float | tree height above ground, metres | (0, 120) | tallest known tree is ~116 m |
 | TREE_CODE | string | vegetation type code (species, functional group) | | resolution order: species code -> functional group -> DEFAULT |
@@ -524,15 +559,14 @@ Optional attributes:
 
 | Attribute | Type | Description | Range | Notes |
 |---|---|---|---|---|
-| Z | float | local z of tree base, metres | [0, inf) | typically 0 |
 | LON | float | centroid longitude, EPSG:4326 | [-180.0, 180.0] | plot center + local placement; absent without a known plot center |
 | LAT | float | centroid latitude, EPSG:4326 | [-90.0, 90.0] | plot center + local placement; absent without a known plot center |
 | ELEV | float | base elevation, metres (EPSG:5773) | [-500, 5000] | plot center + local placement; absent without a known plot center |
 
-**Status**: the canonical JSON contract is implemented — the FIA helper
-emits `plot_<UID>.json` by default (`--format sst-csv` emits the legacy SST
-parameter table) and every stage loads either contract through
-`tree_list.py`; DBH/HT carry full inventory precision. Legacy SST CSVs are
+**Status**: the attribute contract is implemented and every stage loads
+either serialization through `tree_list.py`; DBH/HT carry full inventory
+precision. The code default is JSON with CSV as the legacy option — the
+reverse of the notes.md design (item W17). Legacy SST parameter CSVs remain
 accepted as input for generation. The parameter dictionary is JSON
 (Section 8.6).
 
@@ -552,7 +586,7 @@ accepted as input for generation. The parameter dictionary is JSON
     textual/        shrub info JSONs         (understory stage)
 ```
 
-### 8.3 Point cloud dimensions — **[implemented]**
+### 8.3 Point cloud dimensions — **[partial]**
 
 x, y, z plus:
 
@@ -565,26 +599,58 @@ x, y, z plus:
 | branch_code | int8 | 0 not-tree; 1 trunk; 2+ = branch element code |
 | branch_id | int32 | branch element identity within the plot (0 = unassigned) |
 | height_above_ground | float32 | z minus DTM at (x, y) |
+| trimmed | uint8 | 1 = point flagged for trim removal, 0 otherwise |
 
-Semantic codes: 0 unassigned, 1 trunk, 2 branch stem, 3 foliage, 4 shrub,
-5 grass, 6 ground, 9 noise.
+Semantic codes (per notes.md): 0 ground, 1 trunk, 2 branch stem, 3 foliage,
+8 shrub, 9 grass. Under this scheme the codes the code uses today for
+unassigned (0) and noise (9) are taken; they need new values (interim
+proposal until notes.md rules: unassigned = 255, noise = 7; code still
+writes 0/4/5/6/9 today, item W14).
 
-### 8.4 Info JSONs — **[implemented]**
+### 8.4 Info JSONs — **[partial]**
 
-Plot info (`<PLOT_UID>_info.json`): plot_uid, plot_shape (with radius or
-length/width), n_trees, n_shrubs, bounding box, volumes
-{trunk, branch, foliage, canopy} x {raw, trimmed}, heights (voxel counts /
-percentiles), vegetation characteristics (percent cover), neighborhood
-statistics, and `meta` (plot center lon/lat/elev when known, coordinate
-system, units).
+Plot info (`<PLOT_UID>_info.json`), required attributes (per notes.md):
 
-Tree info (per tree): tree_uid, dbh_m, height_m, volumes as above, bounding
-box, crown major/minor axis, orientation, max width and its height,
-and neighborhood counts. Shrub info analogous per shrub.
+| Attribute | Type | Description |
+|---|---|---|
+| NUM_TREES | int | number of trees contained in the plot |
+| NUM_SHRUBS | int | number of shrubs contained in the plot |
+| BASAL_AREA | float | basal area of the plot's trees, m² (sum of pi * (DBH/2)²) |
+| PLOT_SHAPE | string | CIRCLE or RECTANGLE |
+| PLOT_AREA | float | plot area, m² |
+| BOUNDING_BOX | 6 floats | 3D bounding box of the point cloud; EPSG:4326/5773 when the plot center is known, else local metres |
+| VOL_TREES | float | sum of every tree's volume |
+| VOL_TRUNK | float | sum of trunk volumes (from the tree/skeleton JSONs) |
+| VOL_BRANCH | float | sum of branch volumes (from the tree/skeleton JSONs) |
+| VOL_FOLIAGE | float | sum of foliage volumes (voxelized at FOLIAGE_VOXEL) |
+| VOL_SHRUB | float | sum of shrub volumes (from the per-shrub JSONs) |
+| VOL_GRASS | float | volume of all grass points (voxelized at GRASS_VOXEL) |
+| CHM_PATH | string | relative path to the generated canopy height map |
+| STEM_PATH | string | relative path to the generated stem map |
+| configuration record path | string | relative path to the JSON recording the settings used |
+
+Optional: PLOT_CENTER (lon, lat, elev in EPSG:4326/5773).
+
+Tree info (per tree), required attributes (per notes.md): TREE_UID,
+TREE_DBH (may differ from the tree list DBH), TREE_HT (may differ from the
+tree list HT), TREE_X, TREE_Y, TREE_Z (position; X/Y match the tree list,
+Z often varies from it), VOL_TREE (trunk + branch + foliage), VOL_TRUNK,
+VOL_BRANCH, VOL_FOLIAGE, BOUNDING_BOX. Optional: TREE_CENTER_REAL (lon,
+lat, elev; base-of-tree elevation).
+
+Current code (fields beyond the notes.md set are retained as extensions
+where useful): the plot info writes plot_uid, plot_shape, n_trees,
+n_shrubs, bounding box, volumes {trunk, branch, foliage, canopy} x
+{raw, trimmed}, heights (voxel counts / percentiles), vegetation
+characteristics (percent cover), neighborhood statistics and `meta`;
+BASAL_AREA and the plot-level VOL_TREES / VOL_SHRUB / VOL_GRASS totals
+are not computed, and none of the notes.md names are used yet — item W16.
+Shrub info analogous per shrub.
 
 Volume methods: trunk = frustum sum along skeleton centerlines with taper
 radii; branch = cylinder per branch (pi r^2 L); foliage = occupied-voxel
-volume at OCCUPIED_VOXEL_SIZE; canopy = convex-hull volume of foliage.
+volume at FOLIAGE_VOXEL; grass at GRASS_VOXEL; canopy = convex-hull
+volume of foliage (spec extension).
 
 ### 8.5 Scene JSON — **[implemented]**
 
@@ -596,13 +662,17 @@ dict + vegetation settings.
 ### 8.6 Tree parameter dictionary
 
 Module-specific mapping tree code -> parameters, serialized as **JSON**
-— **[implemented]**: `data/functional_groups.json`, one object keyed by
-tree code whose values are that code's parameters (Section 7.3 columns);
-the Section 6.2 helper edits it (legacy CSV tables still accepted).
-Height and diameter originate from the tree list, never from this
-dictionary — the dictionary supplies only the proportional tolerances
-(DBH_TOL, HT_TOL) that bound each tree's realized size around its
-tree list values.
+— **[partial]**: `data/functional_groups.json`, one object keyed by
+tree code whose values are that code's parameters (the Section 7.3
+columns: a0/a1 crown-width allometry, the taper function, DBH/HT
+applicability bounds, and the required SST parameters HT_LO, HT_HI,
+BASE_DIA_LO, BASE_DIA_HI, SPLIT_HT_LO/HI, SPLIT_PROB, NUM_BRANCH_LO/HI,
+MIN_CAN_HT_LO/HI, MAX_CAN_W, MAX_CAN_W_HT_LO/HI, TOP_DIST, MID_DIST,
+FP_RAND_HT, SPR_LO/HI per notes.md); the Section 6.2 helper edits it
+(legacy CSV tables still accepted). Height and diameter always originate
+in the tree list, never from this dictionary; the dictionary supplies
+each code's applicability bounds. The code's DBH_TOL/HT_TOL proportional
+tolerances are the deviation to close (item W18).
 
 ### 8.7 Topography dict
 
@@ -635,16 +705,18 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
 | DBH_HT | float | 1.37 | breast height, m |
 | POINTS_PER_METRE | int | 4096 | points per 1 m height slice, scaled by base diameter: Np = POINTS_PER_METRE x ceil(HT) x BASE_DIA |
 | MAX_ATTEMPTS | int | 10 | retries when resolving tree generation |
+| ROTATION_STEP | float | TBD (proposed 1.0) | placement rotation quantization in degrees; notes.md's "steps of N" |
 | BRANCH_RADIUS_FRAC | float | 0.10 | branch collision radius as a fraction of branch length |
 | MIN_BRANCH_RADIUS | float | 0.02 | floor for the above, m |
 | COLLISION_TOLERANCE | float | 0.0 | trim radius relaxation, m |
-| STEM_CELL_SIZE | float | 0.05 | stem map cell size, m (was STEM_RESOLUTION) |
-| STEM_THRESHOLD | float | 0.25 | half-height of the breast-height stem slab, m (was STEM_SECTION buffer) |
-| CANOPY_CELL_SIZE | float | 0.05 | canopy map cell size, m (was CHM_RESOLUTION) |
+| STEM_RESOLUTION | float | 0.05 | stem map cell size, m |
+| STEM_SECTION | float | 0.25 | buffer applied to DBH_HT for the breast-height stem map slab, m |
+| CHM_RESOLUTION | float | 0.05 | canopy height map cell size, m |
 | CANOPY_BUFFER | int | 2 | canopy raster growth padding, cells |
-| OCCUPIED_VOXEL_SIZE | float | 0.1 | voxel size for foliage/grass/shrub volume, m (was FOLIAGE_VOXEL / GRASS_VOXEL) |
+| FOLIAGE_VOXEL | float | 0.1 | voxel size for foliage volume, m |
+| GRASS_VOXEL | float | 0.1 | voxel size for grass volume, m |
 | OCCUPIED_VOXEL_THRESHOLD | int | 1 | points needed to count a voxel occupied |
-| DTM_CELL_SIZE | float | 0.25 | generated DTM cell size, m (was DTM_RESOLUTION) |
+| DTM_RESOLUTION | float | 0.25 | generated DTM cell size, m |
 | DTM_BUMPINESS | float | 0.5 | generated terrain micro-relief scale |
 | DTM_RELIEF | float | 10.0 | generated terrain total relief, m |
 | GROUND_DENSITY | float | 1.0 | ground points per DTM cell |
@@ -660,6 +732,10 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
 | GRASS_CANDIDATE_DENSITY | float | 200.0 | grass candidate density, per m^2 |
 | CANOPY_ATTENUATION | float | 0.3 | vegetation reduction near tree canopies, 0-1 |
 | MAX_DENSITY | int | 5000 | normalization: max points per m^3/cube (derived stage) |
+
+The code currently uses the old internal names for several of these
+(STEM_CELL_SIZE, STEM_THRESHOLD, CANOPY_CELL_SIZE, OCCUPIED_VOXEL_SIZE,
+DTM_CELL_SIZE); renaming to the notes.md names above is item W19.
 
 ## 10. Coordinate reference policy — **[planned]**
 
@@ -713,7 +789,13 @@ matches the design).
 | W10 | Downed woody debris | design and implement the DWD stage (logs, stumps) per Section 3.5 | open |
 | W11 | Design defaults | align code defaults with Section 9: PLOT_RADIUS 7.315, DTM_CELL_SIZE 0.25, CANOPY_CELL_SIZE 0.05, STEM_CELL_SIZE 0.05 | closed |
 | W12 | LAS 1.4 writer | switch the canonical writer to LAS version 1.4 (point format 0 + extra bytes unchanged; Section 7.5) | closed |
-| W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | closed |
+| W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | closed (tree-list part reversed; see W17) |
+| W14 | notes.md semantic codes + per-point trimmed | reinstate the notes.md semantic codes (0 ground, 8 shrub, 9 grass; new codes needed for unassigned/noise since 0 and 9 are taken) and the per-point `trimmed` dimension across schema, writers and stages (Sections 3.2, 3.4, 7.5, 8.3) | open |
+| W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | open |
+| W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_*; requires computing basal area and understory volume totals (Section 8.4) | open |
+| W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | open |
+| W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | open |
+| W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | open |
 
 Registry of resolved decisions (for provenance):
 
@@ -775,3 +857,16 @@ Registry of resolved decisions (for provenance):
   tree code; legacy CSV tables still load) and the parameter editor
   imports/exports JSON; interchange is JSON end to end with CSV as a
   legacy input form only.
+- Design-alignment ruling (2026-11-07): notes.md is the upstream design
+  document and overrides this spec wherever they disagree. Reversed by
+  that ruling: semantic codes return to 0 ground / 8 shrub / 9 grass (the
+  earlier 4/5/6 decision is itself withdrawn; unassigned and noise need new
+  codes, W14); the per-point `trimmed` dimension is reinstated (the earlier
+  structural-record-only decision is withdrawn, W14); placed tree lists are
+  CSV again, with the parameter dictionary remaining JSON (W17); the
+  parameter dictionary carries per-code DBH/HT applicability bounds and the
+  a0/a1/taper form rather than proportional tolerances (W18); placement
+  rotation is quantized in steps of N (W19); the skeleton JSON design
+  target is the per-element graph with SOURCE/DESTINATION and cylinder
+  volumes (W15). Section 8.4 now carries notes.md's plot/tree info schemas
+  (W16).
