@@ -839,7 +839,7 @@ the round's behavior, so nothing lives only in /tmp again.
   derived from plot center + placement (item W5); this sample has no PLOT
   join (plot_center all-null).
 
-### 2026-11-07 — W17: CSV-canonical tree lists (commit <pin>)
+### 2026-11-07 — W17: CSV-canonical tree lists (commit ed8838e)
 
 notes.md design applied (it wins): the FIA helper's placed tree list is a
 minimal CSV — tree rows only (TREE_UID, X, Y, Z, DBH, HT, TREE_CODE;
