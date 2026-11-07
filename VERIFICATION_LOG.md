@@ -1095,7 +1095,7 @@ volumes — so they are place()-invariant by construction).
 Pending (rides with W16): per-element `trimmed` flags on trimmed
 variants; the structural record remains node_trimmed + scene counts.
 
-### 2026-11-07 — Trim records removed everywhere (owner ruling) (commit <pin>)
+### 2026-11-07 — Trim records removed everywhere (owner ruling) (commit de88920)
 
 Ruling: once a point or branch has been trimmed, no record of it is
 kept. Consequences implemented:
