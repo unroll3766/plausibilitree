@@ -960,7 +960,7 @@ expected, each observed):
   armed cross-artifact suite already executes the renamed
   --generate-dtm/--dtm-resolution terrain path on a rugged DTM.
 
-### 2026-11-07 — W14: notes.md semantic codes; trimmed dimension withdrawn (commit <pin>)
+### 2026-11-07 — W14: notes.md semantic codes; trimmed dimension withdrawn (commit 77b8ac7)
 
 Owner rulings applied: semantic 0 = ground and doubles as "no semantic
 class needed" — ground and noise are the traditional LAS classification's
