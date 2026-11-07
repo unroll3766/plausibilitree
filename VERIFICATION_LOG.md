@@ -1050,7 +1050,7 @@ Aimed at anything the first pass could have missed, in particular the
 No code changed in this pass, so no suite re-run (the standing run_all
 exit 0 / 119 PASS remains the current result for the code).
 
-### 2026-11-07 — W15: notes.md element graph embedded in skeleton JSONs (commit <pin>)
+### 2026-11-07 — W15: notes.md element graph embedded in skeleton JSONs (commit 42618e1)
 
 The notes.md element graph (spec Section 7.4) is computed at generation
 by sst_generator.element_graph and embedded under `elements` in every
