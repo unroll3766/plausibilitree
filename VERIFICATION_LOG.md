@@ -997,7 +997,7 @@ old codes (4/5/6) — no migration; regenerate.
 **Not verified**: scene_editor's GUI colorization paths (no display);
 they read semantic_code generically per code review.
 
-### 2026-11-07 — W14 review pass: two stale-code bugs found and fixed (commit <pin>)
+### 2026-11-07 — W14 review pass: two stale-code bugs found and fixed (commit 0d0f8b0)
 
 The standing suites could not catch these (colorize_plot and the
 scene_editor GUI are outside both), found by grepping for numeric-code
