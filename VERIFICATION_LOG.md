@@ -932,7 +932,7 @@ per-seed determinism is preserved); scene_editor's GUI was not exercised
 (no display); CLI flag renames are breaking — old spellings are not
 aliased (checked no other caller in-repo).
 
-### 2026-11-07 — W19 review pass (commit <pin>)
+### 2026-11-07 — W19 review pass (commit df5ee88)
 
 No bugs found beyond what the round closed. Checks (exit-0/exit-1 as
 expected, each observed):
