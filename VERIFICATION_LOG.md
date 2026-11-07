@@ -1145,7 +1145,7 @@ Known scope note: the raw/trimmed CLOUD pair (pre-/post-trim stage
 variants) remains — deleting it is W6's output-design call, not a trim
 record per se.
 
-### 2026-11-07 — Trim-removal review pass: cut geometry verified (commit <pin>)
+### 2026-11-07 — Trim-removal review pass: cut geometry verified (commit c8dfe17)
 
 - Consumer sweep: nothing in the codebase reads the removed fields
   (collision log, removal counts, node_trimmed, trim_summary, per-branch
