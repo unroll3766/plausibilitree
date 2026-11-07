@@ -25,3 +25,9 @@ Re-entries only when behavior changes. Long-form narrative lives in
 - 2026-11-07 — Shrub volume JSON schema: per-shrub *_volume.json after the
   invariant-suite run (--keep) carries volume_m3 {primitive, mesh} only —
   voxel key and voxel_volume_params absent (sampled-shape rule).
+- 2026-11-07 — W19 review pass: rotation-grid assertion (25 deg rejected
+  with the explicit message, 90 deg accepted); stem/canopy/terrain CLIs
+  list the new flags; understory CLI has no occupied-voxel refs; replicate
+  sidecar round-trip executed (dtm_resolution key) through a full
+  run_pipeline on a legacy SST replicate (1 ok, exit 0); scene JSON
+  records rotation_step_deg 30.0 with rotations on the grid.

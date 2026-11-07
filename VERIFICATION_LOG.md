@@ -931,3 +931,31 @@ mechanism changed from uniform float to integer grid draws — expected, and
 per-seed determinism is preserved); scene_editor's GUI was not exercised
 (no display); CLI flag renames are breaking — old spellings are not
 aliased (checked no other caller in-repo).
+
+### 2026-11-07 — W19 review pass (commit <pin>)
+
+No bugs found beyond what the round closed. Checks (exit-0/exit-1 as
+expected, each observed):
+
+- Rotation grid assertion: `--rotation-step 25` -> AssertionError
+  ("does not divide 360 evenly") before any tree processing; 90 accepted.
+- `--help` on stem_map / canopy_map / terrain / understory -> all parse;
+  the notes.md flags are listed; understory has zero occupied-voxel
+  references.
+- Replicate env-sidecar round-trip actually executed for the first time:
+  `replicate.py` wrote `dtm_resolution: 1.0` into the sidecar, and
+  `run_pipeline.py --understory --limit 1` consumed it end-to-end on the
+  legacy SST table replicate (generation -> assemble -> stem/canopy ->
+  restructure -> generated-DTM terrain from the sidecar's drawn params ->
+  understory -> build_info -> normalize; 1 ok / 0 failed, 22 s). This also
+  exercised the legacy-table path through the W17 minimal-CSV loader.
+- Scene JSON from that run: `rotation_step_deg: 30.0` present;
+  `rotations_deg` values on the grid.
+- Stale-name grep: no live references to gen_cell_size / --gen-cell-size /
+  --stem-cell-size / --stem-threshold / --canopy-cell-size /
+  DEFAULT_THRESHOLD / DEFAULT_CELL_SIZE outside VERIFICATION_LOG's
+  append-only history. scene_editor's terrain/understory CLI builders
+  carry only current flags (static review; GUI not exercised, no display).
+- Confirmed in passing: tests/fixture.py runs `generate_dtm=True`, so the
+  armed cross-artifact suite already executes the renamed
+  --generate-dtm/--dtm-resolution terrain path on a rugged DTM.
