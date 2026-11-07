@@ -58,3 +58,10 @@ Re-entries only when behavior changes. Long-form narrative lives in
   semantics; colliding two-tree plot through the full pipeline: info
   volumes single-valued, scene clean (exit 0); shrub totals check added
   (n>0, mesh volume>0) pinning the shrub_index bug fix; run_all 210 PASS.
+- 2026-11-07 — Trim-removal review pass: consumer grep clean (no code reads
+  the removed fields; only the suite's ban-list names remain); cut-geometry
+  probe on 4 forced-collision trees (seed 5, frac 45): every surviving
+  polyline run is a contiguous span of the raw stem's edge lengths
+  (tree 001 trunk 52.93 -> 50.60 m across 7 runs; graph 174 -> 7),
+  subsets internally consistent; branch_order las_field doc drift fixed
+  (real field is branch_code); re-run run_all.py exit 0, 210 PASS.

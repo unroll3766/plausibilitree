@@ -1144,3 +1144,28 @@ Checks (exit-0 gated):
 Known scope note: the raw/trimmed CLOUD pair (pre-/post-trim stage
 variants) remains — deleting it is W6's output-design call, not a trim
 record per se.
+
+### 2026-11-07 — Trim-removal review pass: cut geometry verified (commit <pin>)
+
+- Consumer sweep: nothing in the codebase reads the removed fields
+  (collision log, removal counts, node_trimmed, trim_summary, per-branch
+  flags); the only remaining mentions are the suite's intentional
+  ban-list. scene_editor reads neither skeletons nor the collision log.
+- Cut-geometry probe (the standing fixture has zero collisions, so this
+  path was otherwise untested on real mid-cuts): 4 trees assembled with
+  branch_radius_frac 45 / tolerance 3 on the legacy demo table. Every
+  trimmed polyline run proved to be a contiguous span of the raw stem's
+  edge lengths (rotation-invariant comparison); tree 001 lost 2.33 m of
+  trunk across a 7-run split, its 167 branches dropped, its element
+  graph 174 -> 7 with consistent SOURCE/DESTINATION; others lost whole
+  crowns to the branch-vs-trunk rule while keeping intact trunks (runs
+  1/1). The aggressive trimming also spot-checked the runs edge cases
+  (middle cuts, distal cuts).
+- Doc drift found and fixed: the scene's branch_order_encoding block and
+  the assemble docstring claimed a las_field "branch_order" that no LAS
+  carries; the real order field is branch_code (order info also lives in
+  the skeleton JSONs). Pre-existing drift, corrected while here.
+- No code-behavior change in this pass beyond the docstring/scene-doc fix
+  (scene "branch_order_encoding" now names las_field branch_code and
+  points at the skeleton fields). check.py exit 0; run_all.py re-run exit 0
+  (210 PASS, 0 FAIL).

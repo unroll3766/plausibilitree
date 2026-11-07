@@ -15,9 +15,9 @@ Outputs, under the plot directory:
     plot_placement/<PLOT_UID>_raw.las        merged scene, rotated + placed
     plot_placement/<PLOT_UID>_scene.json     bounds, rotations, reflections,
     plot_placement/<PLOT_UID>_trimmed.las    merged scene, surviving points,
-                                             with branch_id + branch_order
+                                             with branch_id + branch_code
     individual_trees/<TREE_UID>_trimmed.las  per-tree, surviving points, with
-                                             branch_id + branch_order
+                                             branch_id + branch_code
     individual_trees/<TREE_UID>_trimmed_skeleton.json
 
 Trimmed points are REMOVED, not flagged: the trimmed .las files contain only
@@ -834,7 +834,9 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
             "unassigned_value": 0,
         },
         "branch_order_encoding": {
-            "las_field": "branch_order",
+            "las_field": "branch_code",
+            "skeleton_fields": ["trunk.segments.branch_order",
+                                "branches.branch_order"],
             "definition": "0 = main stem; a fork or a branch is parent order + "
                           "1 (fork = 1, branch on trunk = 1, branch on fork = 2)",
             "note": "current simulator produces orders 0, 1 and 2",
