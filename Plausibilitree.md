@@ -872,9 +872,12 @@ Registry of resolved decisions (for provenance):
 - Design-alignment ruling (2026-11-07): notes.md is the upstream design
   document and overrides this spec wherever they disagree. Reversed by
   that ruling: semantic codes return to 0 ground / 8 shrub / 9 grass (the
-  earlier 4/5/6 decision is itself withdrawn; unassigned and noise need new
-  codes, W14); the per-point `trimmed` dimension is reinstated (the earlier
-  structural-record-only decision is withdrawn, W14); placed tree lists are
+  earlier 4/5/6 decision is itself withdrawn; superseded by the W14 closing
+  rulings — 0 doubles as "no class needed", no separate unassigned/noise
+  codes); the per-point `trimmed` dimension is reinstated (the earlier
+  structural-record-only decision is withdrawn — itself superseded by the
+  W14 closing ruling: no trimmed dimension, structural record only, W14);
+  placed tree lists are
   CSV again, with the parameter dictionary remaining JSON (W17); the
   parameter dictionary carries per-code DBH/HT applicability bounds and the
   a0/a1/taper form rather than proportional tolerances (W18); placement

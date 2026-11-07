@@ -1028,3 +1028,24 @@ Checks (exit-0 gated):
   brown, shrub (10,528) + foliage (6,363) fully randomized — exit 0.
 - `conda run -n ssf python tests/run_all.py` re-run after the fixes ->
   exit 0, 119 PASS.
+
+### 2026-11-07 — W14 second review pass: registry supersession annotation (commit <pin>)
+
+Aimed at anything the first pass could have missed, in particular the
+0-collision (semantic 0 used to mean "unassigned"):
+
+- `sst_generator.py` `old_sem == 0`: false alarm — that is treesim's own
+  module-local raw label column (1 stem / 0 foliage), never the schema
+  semantic code; the inline comment disambiguates.
+- No live references anywhere to the old codes remain (numeric masks,
+  dict keys, prose); `branch_id`'s "0 = unassigned" is a different
+  dimension and correct.
+- Media/ examples hold images only.
+- One documentation-internal contradiction fixed: the historical
+  Design-alignment ruling bullet in the Section 11 registry still said
+  the per-point trimmed dimension "is reinstated" and unassigned/noise
+  "need new codes" — now annotated as superseded by the W14 closing
+  rulings (pointer annotations, W13 precedent).
+
+No code changed in this pass, so no suite re-run (the standing run_all
+exit 0 / 119 PASS remains the current result for the code).
