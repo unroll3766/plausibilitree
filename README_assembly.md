@@ -12,10 +12,10 @@ plot_11519/
   plot_placement/
     plot_11519_raw.laz        merged scene, rotated + placed (all points)
     plot_11519_trimmed.laz    same scene with collision points removed
-    plot_11519_scene.json     bounds, per-tree rotations, full collision log
+    plot_11519_scene.json     bounds, per-tree rotations
   individual_trees/
     <UID>_trimmed.laz             collision-culled points, canonical tree schema
-    <UID>_trimmed_skeleton.json   per-element trimmed flags + branch ids
+    <UID>_trimmed_skeleton.json   placed skeleton of the surviving geometry
 ```
 
 Both per-tree outputs are written for every tree, including untouched ones, so
@@ -30,9 +30,10 @@ height_above_ground are 0 out of assembly).
 Collision losers are **removed**, not flagged. The `_raw.laz` cloud is the full
 placed geometry; `_trimmed.laz` is the same scene with the trimmed points
 deleted, so it has fewer points (e.g. a plot might drop ~0.4% to collisions).
-There is no per-point `trimmed` column — downstream stages that want the culled
-geometry simply read the trimmed cloud. The per-element trim decisions are still
-recorded in `_trimmed_skeleton.json` as metadata.
+There is no per-point `trimmed` column and no record of removed elements
+anywhere (spec 3.2) — downstream stages that want the culled
+geometry simply read the trimmed cloud or the trimmed skeleton, which
+contain only the surviving structure.
 
 ## Semantic and branch code
 
@@ -212,8 +213,7 @@ divergence.
 ## Scene metadata
 
 `_scene.json` records bounds, plot radius, per-tree rotations and reflections, the parameters
-used, point counts, and every collision with the rule that decided it — enough
-to audit any individual trim without rerunning. It also carries `plot_lat`,
+used and point counts — enough to reproduce the assembly. It also carries `plot_lat`,
 `plot_lon`, `plot_elev` — the plot-center values passed straight through from
 the FIA input by `fia_helper.py` (see README_fia_helper.md), read back out of
 the plot table's `plot_lat`/`plot_lon`/`plot_elev` columns here and copied

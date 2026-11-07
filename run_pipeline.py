@@ -138,7 +138,7 @@ def run_pipeline(plotdir, *,
                  rotation_step=30.0,
                  max_density=5000, spatial=True, density="none",
                  plot_l=30, plot_z=None, tree_l=30, tree_z=None,
-                 norm_source="understory", drop_trimmed=False,
+                 norm_source="understory",
                  stop_on_error=False, dry_run=False):
     t0 = time.time()
     if density == "none":          # accept the CLI-style sentinel programmatically
@@ -311,8 +311,6 @@ def run_pipeline(plotdir, *,
             if density == "square":
                 norm += ["--plot-z", plot_z, "--tree-z", tree_z]
         norm += ["--source", norm_source, "--seed", seed]
-        if drop_trimmed:
-            norm.append("--drop-trimmed")
         print(f"[normalize] {len(restructured)} plot(s) together "
               f"(dataset-wide uniform schema)")
         if not _run("normalize.py", [*restructured, *norm], dry_run):
@@ -423,7 +421,6 @@ def main():
                     help="cloud normalize reads; default resolves to the "
                          "furthest-processed present (understory->terrain->"
                          "trimmed->raw)")
-    ap.add_argument("--drop-trimmed", action="store_true")
     # control
     ap.add_argument("--stop-on-error", action="store_true",
                     help="abort the batch on the first stage failure")
@@ -468,7 +465,6 @@ def main():
         max_density=args.max_density, spatial=args.spatial, density=density,
         plot_l=args.plot_l, plot_z=args.plot_z, tree_l=args.tree_l,
         tree_z=args.tree_z, norm_source=args.norm_source,
-        drop_trimmed=args.drop_trimmed,
         stop_on_error=args.stop_on_error, dry_run=args.dry_run)
     sys.exit(rc)
 

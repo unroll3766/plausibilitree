@@ -17,13 +17,13 @@ meta: plot_uid, coordinate_system, units, plot_shape, plot_center, bounding_box
 vegetation_characteristics:
   trees:
     n_trees, basal_area_m2
-    total_volume_m3        {raw, trimmed}   = trunk + branch + foliage
-    trunk_volume_m3        {raw, trimmed}
-    branch_volume_m3       {raw, trimmed}
-    foliage_volume_m3      {raw, trimmed}
-    canopy_volume_m3       {raw, trimmed}
+    total_volume_m3                        = trunk + branch + foliage
+    trunk_volume_m3
+    branch_volume_m3
+    foliage_volume_m3
+    canopy_volume_m3
   shrubs:
-    n_shrubs, total_volume_m3 {primitive, mesh, voxel}
+    n_shrubs, total_volume_m3, primitive_reference_m3
   grass:
     percent_cover, total_volume_m3
 ```
@@ -42,13 +42,13 @@ meta: tree_uid, plot_uid, coordinate_system, units, bounding_box
 tree_characteristics:
   center [x, y], dbh_m, height_m
   canopy:
-    convex_hull_volume_m3 {raw, trimmed}
+    convex_hull_volume_m3
     major_axis {length_m, orientation_deg}
     minor_axis {length_m, orientation_deg}
   volume_m3:
-    trunk   {raw, trimmed}
-    branch  {raw, trimmed}
-    foliage {raw, trimmed}
+    trunk
+    branch
+    foliage
 neighborhood:
   n_other_trees_in_bbox, n_shrubs_in_bbox
   target_voxel_volume_m3
@@ -63,20 +63,20 @@ neighborhood:
 **Trunk volume** — frustum (truncated-cone) sum along the skeleton trunk
 centerline. For each pair of consecutive polyline nodes the radius comes from the
 taper model `r(h) = base_radius * (1 - h / height)`, and the frustum volume is
-`(pi/3) L (r0^2 + r0 r1 + r1^2)` with `L` the 3D segment length. `trimmed` skips
-segments whose end node is flagged in the skeleton's `node_trimmed`.
+`(pi/3) L (r0^2 + r0 r1 + r1^2)` with `L` the 3D segment length. The (placed)
+skeleton carries only the surviving geometry (spec 3.2).
 
 **Branch volume** — each branch is a **cylinder**: `pi * r^2 * length`, where `r`
-is the taper radius at the branch's base height. `trimmed` skips branches flagged
-`trimmed` in the skeleton.
+is the taper radius at the branch's base height; trimmed branches are physically
+absent from the skeleton.
 
 **Foliage volume** — occupied-voxel volume of the foliage points
 (`semantic_code == 3`): voxelize at `occupied_voxel_size`, count voxels holding
-`>= occupied_voxel_threshold` points, times the voxel cell volume. `raw` uses the
-raw cloud, `trimmed` the trimmed (collision-culled) cloud.
+`>= occupied_voxel_threshold` points, times the voxel cell volume, over the
+surviving (trimmed) cloud.
 
 **Canopy volume** — convex-hull volume of the foliage points, read from the
-per-tree `canopy_convex_hull.json` (raw and trimmed).
+per-tree `canopy_convex_hull.json` (single post-trim value).
 
 **Total volume (plot trees)** — `trunk + branch + foliage` (canopy is a separate
 envelope measure and is reported alongside, not summed into the total).
@@ -108,12 +108,12 @@ params, so the proportions are on one consistent basis. `target_voxel_volume_m3`
 is the target tree's own occupied-voxel volume inside its bbox, exposed so the
 proportions are interpretable. A proportion is `null` when both volumes are zero.
 
-## raw vs trimmed
+## Post-trim values
 
-- Skeleton volumes (trunk/branch): `raw` = all elements, `trimmed` = non-trimmed
-  elements only (per-element flags in the skeleton).
-- Cloud volumes (foliage voxel, canopy hull): `raw` = raw cloud, `trimmed` =
-  trimmed (collision-culled) cloud.
+Every volume is a single post-trim value (spec 3.2): trimmed elements are
+physically absent from the (placed) skeleton, and the clouds are the
+surviving points — so there are no raw/trimmed pairs and no record of
+removed material anywhere.
 
 ## Parameters
 

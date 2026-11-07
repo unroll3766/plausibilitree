@@ -191,25 +191,19 @@ def _canopy_instance_mask(feature_tif, pts):
 # ---------------------------------------------------------------------------
 
 def _per_tree_volumes(raw_pts, trimmed_pts):
-    """{tree_id: (raw_vol, trimmed_vol_or_None)} of convex-hull canopy volume.
+    """{tree_id: canopy hull volume} of convex-hull canopy volume.
 
-    Canopy = foliage points (semantic 3). Trimming removes points, so the
-    trimmed cloud is already culled -- no per-point flag to filter.
+    Canopy = foliage points (semantic 3). The trimmed cloud is already the
+    culled geometry (no flag, no record of removed points, spec 3.2), so
+    it is preferred when present.
     """
     out = {}
-    rb = raw_pts[:, 3].astype(int) == schema.SEM_FOLIAGE
-    for t in np.unique(raw_pts[rb, 4].astype(int)):
-        m = rb & (raw_pts[:, 4].astype(int) == t)
-        _, _, vol, _ = canopy_hull(raw_pts[m, :3])
-        tvol = None
-        if trimmed_pts is not None:
-            tb = ((trimmed_pts[:, 3].astype(int) == schema.SEM_FOLIAGE)
-                  & (trimmed_pts[:, 4].astype(int) == t))
-            if tb.any():
-                _, _, tvol, _ = canopy_hull(trimmed_pts[tb, :3])
-            else:
-                tvol = 0.0
-        out[int(t)] = (float(vol), None if tvol is None else float(tvol))
+    pts = trimmed_pts if trimmed_pts is not None else raw_pts
+    sem = pts[:, 3].astype(int) == schema.SEM_FOLIAGE
+    for t in np.unique(pts[sem, 4].astype(int)):
+        m = sem & (pts[:, 4].astype(int) == t)
+        _, _, vol, _ = canopy_hull(pts[m, :3])
+        out[int(t)] = float(vol)
     return out
 
 
@@ -290,19 +284,14 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
     _move(canopy_feat_flat,
           layout.plot_path(plot_dir, plot_uid, "canopy_feature_raw"))
 
-    # ---- plot-level volume JSON ------------------------------------------
-    raw_total = round(sum(v[0] for v in vols.values()), 4)
+    # ---- plot-level canopy total ------------------------------------------
+    canopy_total = round(sum(vols.values()), 4)
     plot_vol = {
         "plot_uid": plot_uid,
         "n_trees": len(vols),
         "method": "sum of per-tree convex hull volumes of branch points",
-        "total_canopy_volume_m3": {"raw": raw_total},
+        "total_canopy_volume_m3": canopy_total,
     }
-    if has_trim:
-        plot_vol["total_canopy_volume_m3"]["trimmed"] = round(
-            sum((v[1] or 0.0) for v in vols.values()), 4)
-        plot_vol["total_canopy_volume_m3"]["note"] = (
-            "trimmed excludes points flagged by the skeleton collision step")
     # (plot volume JSON retired; superseded by build_info's _info.json)
 
     # ---- per-tree: move + derive -----------------------------------------
@@ -408,9 +397,7 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
 
     if verbose:
         print(f"{plot_uid}: restructured {len(uids)} trees into the canonical "
-              f"layout (raw canopy volume {raw_total:.1f} m3"
-              + (f", trimmed {plot_vol['total_canopy_volume_m3']['trimmed']:.1f} m3"
-                 if has_trim else "") + ")")
+              f"layout (canopy volume {canopy_total:.1f} m3)")
     return scene
 
 

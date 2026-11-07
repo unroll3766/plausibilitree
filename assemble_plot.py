@@ -21,9 +21,8 @@ Outputs, under the plot directory:
     individual_trees/<TREE_UID>_trimmed_skeleton.json
 
 Trimmed points are REMOVED, not flagged: the trimmed .las files contain only
-the surviving points, each carrying its branch id. The scene JSON records how
-many points trimming removed (under the legacy key name
-"points_flagged_trimmed").
+the surviving points, each carrying its branch id. No record of a removed
+point or element is retained anywhere (spec Section 3.2).
 
 Trim rules (applied per tree in ascending TREE_UID order):
   branch x branch  -> shorter path-length-back-to-trunk is trimmed; ties broken
@@ -411,8 +410,10 @@ def _aabb_overlap(a, b) -> bool:
 
 
 def resolve_collisions(trees: list[TreeSkeleton], tolerance: float = 0.0,
-                       rng: np.random.Generator | None = None) -> list[dict]:
-    """Trim intersecting elements across trees. Returns a collision log.
+                       rng: np.random.Generator | None = None) -> None:
+    """Trim intersecting elements across trees, in place. Removed elements
+    leave no record (spec 3.2): they are dropped from the internal
+    masks, and the surviving geometry is the only output.
 
     Trees are visited in ascending TREE_UID order; within a visit, every
     still-live element of that tree is tested against every still-live element
@@ -421,7 +422,6 @@ def resolve_collisions(trees: list[TreeSkeleton], tolerance: float = 0.0,
     rng = rng or np.random.default_rng(0)
     order = sorted(range(len(trees)), key=lambda k: trees[k].tree_uid)
     boxes = [t.aabb() for t in trees]
-    log = []
 
     for ai in order:
         A = trees[ai]
@@ -450,15 +450,8 @@ def resolve_collisions(trees: list[TreeSkeleton], tolerance: float = 0.0,
                 ea, eb = int(live_a[h[0]]), int(live_b[h[1]])
                 if A.trimmed[ea] or B.trimmed[eb]:
                     continue
-                loser, elem, reason = _pick_loser(A, ea, B, eb, rng)
-                n = loser.trim_subtree(elem)
-                log.append({
-                    "tree_a": A.tree_uid, "element_a": ea, "kind_a": str(A.kind[ea]),
-                    "tree_b": B.tree_uid, "element_b": eb, "kind_b": str(B.kind[eb]),
-                    "trimmed_tree": loser.tree_uid, "trimmed_element": elem,
-                    "elements_trimmed": int(n), "rule": reason,
-                })
-    return log
+                loser, elem, _reason = _pick_loser(A, ea, B, eb, rng)
+                loser.trim_subtree(elem)
 
 
 def _pick_loser(A: TreeSkeleton, ea: int, B: TreeSkeleton, eb: int, rng):
@@ -530,53 +523,79 @@ def assign_points(points: np.ndarray, tree: TreeSkeleton,
 # Skeleton serialisation
 # ---------------------------------------------------------------------------
 
-def trimmed_skeleton_dict(tree: TreeSkeleton, n_points_trimmed: int) -> dict:
-    """Copy of the raw skeleton with per-element trimmed flags added."""
+def trimmed_skeleton_dict(tree: TreeSkeleton) -> dict:
+    """Copy of the raw skeleton, placed (rotated + mirrored) to match the
+    cloud beside it. Removed elements leave no trace (spec 3.2)."""
     out = json.loads(json.dumps(tree.raw))
     out["rotation_deg"] = round(math.degrees(tree.rotation_rad), 4)
     out["reflected"] = bool(tree.reflected)
-    out["trim_summary"] = {
-        "elements_total": int(len(tree.trimmed)),
-        "elements_trimmed": int(tree.trimmed.sum()),
-        "points_trimmed": int(n_points_trimmed),
-        "any_trimmed": bool(tree.trimmed.any()),
-    }
     plot_uid = tree.raw.get("plot_uid", "plot")
 
     # rotated (+ mirrored) geometry, so the file still matches the point
-    # cloud beside it
-    polys = out["trunk"]["polylines"]
-    for si, pl in enumerate(polys):
-        arr = np.asarray(pl, dtype=float)
+    # cloud beside it. Trimmed sub-segments are cut out of the polylines
+    # and trimmed branches dropped: the surviving geometry is the record
+    # (spec 3.2 -- removed elements leave no trace).
+    new_polys, new_segs, dead_stems = [], [], []
+    for si, pl in enumerate(out["trunk"]["polylines"]):
+        arr = np.asarray(pl, dtype=float).copy()
         arr[:, :2] = rotate_z(arr[:, :2], tree.rotation_rad, *tree.base_xy)
         if tree.reflected:
             mirror_x(arr[:, :2], float(tree.base_xy[0]))
-        polys[si] = arr.tolist()
-        node_trimmed = [False] * len(arr)
-        # one skeleton element per vertex pair; store its branch id against the
-        # sub-segment's start node so the JSON maps 1:1 onto the LAS branch_id.
-        sub_branch_ids = [None] * (len(arr) - 1)
-        sub_branch_uids = [None] * (len(arr) - 1)
+        # one skeleton element per vertex pair; its branch id is stored
+        # against the sub-segment's start node so the JSON maps 1:1 onto
+        # the LAS branch_id.
         sel = np.flatnonzero((tree.kind == "trunk") & (tree.poly == si))
+        keep = np.ones(len(arr) - 1, dtype=bool)     # surviving sub-segments
+        elem_at = {}                                # start node -> element k
         for k in sel:
             ni = int(tree.node[k])
-            sub_branch_ids[ni] = branch_id_int(tree.tree_id, k)
-            sub_branch_uids[ni] = branch_uid_str(plot_uid, tree.tree_id, k)
-            if tree.trimmed[k]:
-                node_trimmed[ni] = True
-                node_trimmed[ni + 1] = True
-        seg = out["trunk"]["segments"][si]
-        seg["node_trimmed"] = node_trimmed
-        seg["trimmed"] = bool(any(node_trimmed))
-        seg["subsegment_branch_ids"] = sub_branch_ids
-        seg["subsegment_branch_uids"] = sub_branch_uids
-        # every element of a polyline shares one order (0 for the main stem,
-        # 1 for a fork); read it from the first element of this polyline
-        seg["branch_order"] = int(tree.order[sel[0]]) if len(sel) else 0
+            elem_at[ni] = k
+            keep[ni] = not tree.trimmed[k]
+        order = int(tree.order[sel[0]]) if len(sel) else 0
+        runs, i = [], 0
+        while i < len(arr) - 1:
+            if not keep[i]:
+                i += 1
+                continue
+            j = i
+            while j + 1 < len(arr) - 1 and keep[j + 1]:
+                j += 1
+            runs.append((i, j + 1))
+            i = j + 2
+        if not runs:
+            dead_stems.append(si)
+            continue
+        for (a, b) in runs:
+            run = arr[a:b + 1]
+            n = b - a               # surviving sub-segments in this run
+            ids = [None] * n
+            uids = [None] * n
+            for s in range(n):
+                k = elem_at.get(a + s)
+                if k is not None:
+                    ids[s] = branch_id_int(tree.tree_id, k)
+                    uids[s] = branch_uid_str(plot_uid, tree.tree_id, k)
+            L = float(np.linalg.norm(np.diff(run, axis=0), axis=1).sum())
+            new_polys.append(run.tolist())
+            new_segs.append({
+                "z_range": [float(run[0][2]), float(run[-1][2])],
+                "length_m": L,
+                "subsegment_branch_ids": ids,
+                "subsegment_branch_uids": uids,
+                "branch_order": order,
+            })
+    out["trunk"]["polylines"] = new_polys
+    out["trunk"]["segments"] = new_segs
+    out["trunk"]["n_segments"] = len(new_segs)
+    out["trunk"]["total_length_m"] = float(sum(s["length_m"] for s in new_segs))
 
+    new_branches, dead_branch_idx = [], []
     for k in np.flatnonzero(tree.kind == "branch"):
         bi = int(tree.branch_idx[k])
-        br = out["branches"][bi]
+        if tree.trimmed[k]:
+            dead_branch_idx.append(bi)
+            continue                     # removed branches leave no record
+        br = json.loads(json.dumps(out["branches"][bi]))
         base = rotate_z(np.asarray(br["base"], dtype=float)[None, :2],
                         tree.rotation_rad, *tree.base_xy)[0]
         tip = rotate_z(np.asarray(br["tip"], dtype=float)[None, :2],
@@ -586,10 +605,26 @@ def trimmed_skeleton_dict(tree: TreeSkeleton, n_points_trimmed: int) -> dict:
             tip[0] = 2.0 * tree.base_xy[0] - tip[0]
         br["base"] = [float(base[0]), float(base[1]), float(br["base"][2])]
         br["tip"] = [float(tip[0]), float(tip[1]), float(br["tip"][2])]
-        br["trimmed"] = bool(tree.trimmed[k])
         br["branch_id"] = branch_id_int(tree.tree_id, int(k))
         br["branch_uid"] = branch_uid_str(plot_uid, tree.tree_id, int(k))
         br["branch_order"] = int(tree.order[k])
+        new_branches.append(br)
+    out["branches"] = new_branches
+    out["n_branches"] = len(new_branches)
+
+    # element graph (Section 7.4): drop the removed elements. Fully-trimmed
+    # stems drop their element and everything the trim already removed with
+    # them; survivors keep their generation-time lengths and parents, with
+    # the dropped UIDs scrubbed from every DESTINATION list.
+    if isinstance(out.get("elements"), list):
+        # the Section 7.4 SST UID scheme: branches indexed by skeleton order
+        dead = {f"B{bi:03d}" for bi in dead_branch_idx}
+        dead |= {f"T{si:02d}" for si in dead_stems}
+        kept = [e for e in out["elements"] if e.get("BRANCH_UID") not in dead]
+        for e in kept:
+            e["DESTINATION"] = [d for d in e.get("DESTINATION", [])
+                                if d not in dead]
+        out["elements"] = kept
     return out
 
 
@@ -692,13 +727,11 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
     hi = raw[:, :3].max(axis=0)
 
     # ---- collisions ------------------------------------------------------
-    log = resolve_collisions(trees, tolerance=tolerance, rng=rng)
+    resolve_collisions(trees, tolerance=tolerance, rng=rng)
 
-    # ---- per-tree trimmed outputs ---------------------------------------
-    # Points are flagged, never removed: every raw point survives into the
-    # trimmed cloud carrying a trimmed flag (0/1) and a branch id. Consumers
-    # decide what to do with trimmed points; this stage does not clip.
-    total_trimmed = 0
+    # ---- per-tree outputs ------------------------------------------------
+    # Points of trimmed elements are REMOVED (spec 3.2) -- no flag, no
+    # record; the surviving points are the stage's only output.
     _branch_id_remap = {}          # full branch_id_int -> compact int32 id
     scene_xyz, scene_tid, scene_sem, scene_code, scene_bid = [], [], [], [], []
     for tree, pts in zip(trees, clouds):
@@ -706,9 +739,7 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
 
         valid = elem >= 0
         keep = np.ones(len(pts), dtype=bool)
-        # trimmed points are now REMOVED, not flagged
         keep[valid] = ~tree.trimmed[elem[valid]].astype(bool)
-        total_trimmed += int((~keep).sum())
 
         e = elem[keep]
         ev = e >= 0
@@ -756,7 +787,7 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
             level="tree")
         with open(os.path.join(trees_dir,
                                f"{tree.tree_uid}_trimmed_skeleton.json"), "w") as f:
-            json.dump(trimmed_skeleton_dict(tree, int((~keep).sum())), f, indent=2)
+            json.dump(trimmed_skeleton_dict(tree), f, indent=2)
 
         scene_xyz.append(kpts[:, :3])
         scene_tid.append(tid)
@@ -795,7 +826,6 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
         "rotations_deg": rotations,
         "reflections": reflections,
         "points_raw": int(len(raw)),
-        "points_flagged_trimmed": int(total_trimmed),
         "branch_id_encoding": {
             "las_field": "branch_id",
             "formula": "tree_id * {} + element_index + 1".format(ELEMENTS_PER_TREE),
@@ -810,16 +840,12 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
             "note": "current simulator produces orders 0, 1 and 2",
             "unassigned_value": 0,
         },
-        "n_collisions": len(log),
-        "collisions": log,
     }
     with open(os.path.join(place_dir, f"{plot_uid}_scene.json"), "w") as f:
         json.dump(scene, f, indent=2)
 
     if verbose:
-        print(f"{plot_uid}: {len(trees)} trees, {len(raw):,} points, "
-              f"{len(log)} collisions, {total_trimmed:,} points trimmed "
-              f"({100 * total_trimmed / max(len(raw), 1):.1f}%)")
+        print(f"{plot_uid}: {len(trees)} trees, {len(raw):,} points")
     return scene
 
 

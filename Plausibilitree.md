@@ -117,12 +117,12 @@ skeleton, so branches use `BRANCH_RADIUS_FRAC * branch_length`
 (`MIN_BRANCH_RADIUS` floor) as their collision radius; trunks use their taper
 radii; a `COLLISION_TOLERANCE` may relax both.
 
-Trimmed points are removed from the cloud at trim time (final clouds carry
-surviving points only). Trimming is recorded structurally: the trimmed
-tree skeletons carry `node_trimmed` flags, and the scene JSON records
-per-tree removed-point counts. Per the owner's ruling (2026-11-07) there
-is no per-point `trimmed` dimension — removed points leave no trace in the
-final clouds.
+Trimmed points are removed from the cloud at trim time. No record of a
+trimmed point or branch is retained anywhere (owner ruling 2026-11-07):
+there is no per-point `trimmed` dimension, no skeleton node or element
+flag, no trim summary, no collision log, no removed-point count, and no
+pre-trim ("raw") volume variant — the surviving geometry is the only
+output.
 
 ### 3.3 Topography — **[implemented]**
 
@@ -182,11 +182,12 @@ as part of W10.
 ### 3.6 Info JSONs — **[partial]**
 
 After all clouds exist, plot-level and tree-level info JSONs are written
-(Section 8.4), including volumes with raw and trimmed variants:
-trunk (frustum sum along the skeleton with taper radii), branch (cylinder
-per branch element), foliage (occupied-voxel volume), canopy (convex-hull
-volume of foliage). The notes.md field names and totals (NUM_TREES,
-BASAL_AREA, VOL_SHRUB, VOL_GRASS, ...) are pending (item W16).
+(Section 8.4): trunk (frustum sum along the skeleton with taper radii),
+branch (cylinder per branch element), foliage (occupied-voxel volume),
+canopy (convex-hull volume of foliage) — one post-trim value each, no
+pre-trim variants (Section 3.2). The notes.md field names and totals
+(NUM_TREES, BASAL_AREA, VOL_SHRUB, VOL_GRASS, ...) are pending (item
+W16).
 
 ## 4. Core outputs
 
@@ -199,7 +200,7 @@ clouds at every stage instead (Section 11, item W6).
 All point clouds are LAZ (compressed LAS, lazrs backend). All artifacts are
 written into the canonical per-plot layout (Section 8.2), and one
 `<PLOT_UID>_scene.json` links every artifact with a relative path, plus
-bounds, rotations and reflections, and the collision log.
+bounds, rotations and reflections.
 
 - **Plot cloud** (raw, trimmed, terrain, understory variants) with the
   canonical extra dimensions (Section 8.3). The `tree_id` and `shrub_id`
@@ -529,15 +530,13 @@ decisions of the notes.md table:
 - DESTINATION is the inverse of SOURCE (children in the same order).
 
 The polyline-and-splits form below remains the trimming stage's native
-format; consumers of the skeleton can use either. The per-element
-`trimmed` flag on trimmed variants is pending (the structural trim record
-stays the polyline `node_trimmed` flags plus scene JSON counts).
+format; consumers of the skeleton can use either.
 
 - `tree_uid`, `plot_uid`, `tree_id`, `coordinate_frame`, `base_xy`,
   `height_m`, `base_radius_m`, `fork`, `fork_height_m`, `n_splits`,
   `splits`, `min_canopy_height_m`, `max_canopy_width_height_m`;
-- `trunk`: centerline polylines per segment with per-segment z-range,
-  length, and (trimmed variants) `node_trimmed` flags;
+- `trunk`: centerline polylines per segment with per-segment z-range
+  and length;
 - `branches`: same organization for branch elements, each with its length
   and the branch element id that its points carry.
 
@@ -667,11 +666,12 @@ lat, elev; base-of-tree elevation).
 
 Current code (fields beyond the notes.md set are retained as extensions
 where useful): the plot info writes plot_uid, plot_shape, n_trees,
-n_shrubs, bounding box, volumes {trunk, branch, foliage, canopy} x
-{raw, trimmed}, heights (voxel counts / percentiles), vegetation
-characteristics (percent cover), neighborhood statistics and `meta`;
-BASAL_AREA and the plot-level VOL_TREES / VOL_SHRUB / VOL_GRASS totals
-are not computed, and none of the notes.md names are used yet — item W16.
+n_shrubs, bounding box, volumes {trunk, branch, foliage, canopy}
+(single post-trim values, Section 3.2), heights (voxel counts / percentiles), vegetation
+characteristics (percent cover, per-shrub mesh-volume totals, grass cover
+and volume, basal_area_m2) and `meta`;
+BASAL_AREA and the notes.md field names (NUM_TREES, VOL_*) are still
+pending — item W16.
 Shrub info analogous per shrub.
 
 Volume methods: trunk = frustum sum along skeleton centerlines with taper
@@ -685,7 +685,7 @@ convex-hull volume of foliage (spec extension).
 ### 8.5 Scene JSON — **[implemented]**
 
 One per plot; relative links to every artifact; plot bounds; per-tree
-rotations and reflections; collision log with removed-point counts; terrain record (DTM
+rotations and reflections; terrain record (DTM
 source, cell size, generated-ness) sufficient to reproduce the DTM; topo
 dict + vegetation settings.
 
@@ -826,7 +826,7 @@ matches the design).
 | W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | closed (tree-list part reversed; see W17) |
 | W14 | notes.md semantic codes | semantic codes per notes.md: 0 ground (doubling as "no class needed" — ground/noise are the traditional LAS classification's job, so no separate unassigned/noise codes), 8 shrub, 9 grass (Sections 3.4, 8.3). The per-point `trimmed` dimension was withdrawn from the design (owner ruling 2026-11-07): trimmed points are removed, structural record only | closed |
 | W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | closed (per-element trimmed flags on trimmed variants ride with W16) |
-| W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_*; requires computing basal area and understory volume totals (Section 8.4) | open |
+| W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_* — adopt the notes.md field names over the current tree_characteristics/vegetation_characteristics nesting; split build_info's shared occupied-voxel accounting into FOLIAGE_VOXEL / GRASS_VOXEL (Section 8.4) | open |
 | W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | closed |
 | W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | open |
 | W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | closed (FOLIAGE_VOXEL/GRASS_VOXEL split deferred to W16) |
@@ -947,3 +947,16 @@ Registry of resolved decisions (for provenance):
   verbatim. Standing suite section J re-derives the graph independently
   of the writer (root/reciprocity/partition/lengths/radii/volumes) and
   cascade-forced builds verified granddaughter chains.
+- Owner ruling, trim records (2026-11-07): once a point or branch has
+  been trimmed, no record of it is kept — the per-point dimension, the
+  skeleton node/element trim flags, the trim summary, the scene-JSON
+  collision log and removal counts, and all raw-vs-trimmed volume pairs
+  were removed. The trimmed skeleton is now physically the surviving
+  geometry (polylines cut at removed sub-segments, trimmed branches
+  dropped, element graph subsetted), build_info computes single
+  post-trim volumes, and the standing suites gained a forced-collision
+  section proving record absence. The raw/trimmed cloud pair remains a
+  pre-/post-trim stage variant until W6; whether it survives is W6's
+  call. A latent bug also fixed here: the plot info's shrub totals read
+  a shrub_index.json no stage writes (always zero); they now sum the
+  per-shrub mesh volumes.

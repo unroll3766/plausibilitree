@@ -1094,3 +1094,53 @@ volumes — so they are place()-invariant by construction).
 
 Pending (rides with W16): per-element `trimmed` flags on trimmed
 variants; the structural record remains node_trimmed + scene counts.
+
+### 2026-11-07 — Trim records removed everywhere (owner ruling) (commit <pin>)
+
+Ruling: once a point or branch has been trimmed, no record of it is
+kept. Consequences implemented:
+
+-assemble_plot: resolve_collisions returns nothing (no collision log);
+  the scene JSON drops n_collisions/collisions/points_flagged_trimmed;
+  trimmed skeletons lose node_trimmed, per-segment/per-branch "trimmed"
+  flags and trim_summary, and are now physically the surviving geometry —
+  trunk polylines are cut into runs at removed sub-segments (rebuilt
+  segments with recomputed z-range/length/subsegment ids), trimmed
+  branches are dropped, and the element graph is subsetted (dropped
+  elements and scrubbed DESTINATION links). Cabin summary print no
+  longer reports trim counts.
+- build_info: single post-trim volumes everywhere (trunk frustum, branch
+  cylinders, foliage voxel over the surviving cloud, canopy hull);
+  trunk_volume/branch_volume lose their trimmed_only machinery; plot and
+  tree infos carry plain floats. Latent bug fixed while in here: the plot
+  info's shrub totals read a shrub_index.json that no stage writes
+  (n_shrubs was always 0); they now sum the per-shrub volume JSONs
+  (mesh = the shrub volume per the W19 ruling; primitive kept as
+  analytic reference).
+- canopy_map/restructure: single post-trim canopy-volume totals
+  (canopy_map's _trimmed_volume and restructure's raw/trimmed pairs
+  removed); run_pipeline's --drop-trimmed removed (dead: normalize never
+  defined it); normalize drops the phantom "trimmed" extra field.
+
+Checks (exit-0 gated):
+- check.py exit 0; tests/run_all.py exit 0, 210 PASS.
+- Placement suite section 8 (new): forced heavy collisions
+  (branch_radius_frac 45, tolerance 3; 8,430 -> 2,067 points) — scene
+  carries no collision log or removal counts; trimmed skeletons contain
+  no node_trimmed/trim_summary/"trimmed"; surviving graph elements match
+  their raw counterparts (DESTINATION may only shrink); trimmed branch
+  lists shrink. (First version of this check wrongly asserted full
+  element equality and caught its own error — DESTINATION legitimately
+  shrinks — before being fixed.)
+- Colliding two-tree plot (trees 0.5 m apart) through the full pipeline:
+  tree/plot info volumes all single-valued floats, scene free of trim
+  records; exit 0.
+- Cross suite: section J restated to the subset semantics; new standing
+  check that the plot info counts its shrubs (n=45, mesh total > 0) —
+  this pins the shrub_index fix.
+- Zero-collision standing fixture unchanged (identical values), so the
+  removals altered no surviving geometry.
+
+Known scope note: the raw/trimmed CLOUD pair (pre-/post-trim stage
+variants) remains — deleting it is W6's output-design call, not a trim
+record per se.

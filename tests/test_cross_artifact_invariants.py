@@ -172,7 +172,7 @@ def run_checks(fixroot, plot_dir):
         vol = sum(frustum_volume(np.asarray(pl, dtype=float),
                                  sk["base_radius_m"], sk["height_m"])
                   for pl in sk["trunk"]["polylines"])
-        reported = ti["tree_characteristics"]["volume_m3"]["trunk"]["trimmed"]
+        reported = ti["tree_characteristics"]["volume_m3"]["trunk"]
         check(f"{uid} trunk frustum volume {vol:.3f} == info {reported:.3f}",
               abs(vol - reported) < 1e-3)
 
@@ -223,6 +223,14 @@ def run_checks(fixroot, plot_dir):
     check("shrubs carry semantic 8", int((sem == 8).sum()) > 0)
     check("grass carries semantic 9", int((sem == 9).sum()) > 0)
     check("ground carries semantic 0", int((sem == 0).sum()) > 0)
+    pi = json.load(open(os.path.join(
+        place, "textual", f"{uid_tag}_info.json")))
+    sh = pi["vegetation_characteristics"]["shrubs"]
+    check(f"plot info counts its shrubs (n={sh['n_shrubs']}, "
+          f"total {sh['total_volume_m3']:.2f} m3)",
+          sh["n_shrubs"] > 0 and sh["total_volume_m3"] > 0.0)
+    check("shrub totals come from the sampled shape (mesh), never voxels",
+          set(sh) == {"n_shrubs", "total_volume_m3", "primitive_reference_m3"})
     grass = sem == 9
     check("grass z above ground", float(uxyz[grass][:, 2].min()) > -0.01)
     check("all points within 1.5x plot radius",
@@ -310,11 +318,31 @@ def run_checks(fixroot, plot_dir):
         check(f"{uid} element lengths recompute from the geometry", seg_ok)
         check(f"{uid} stem radii follow the taper profile", rad_ok)
         check(f"{uid} element volumes are pi r^2 L", vol_ok)
-        # the trimmed variant carries the same, place()-invariant graph
+        # the trimmed variant carries the surviving subgraph (removed
+        # elements are physically absent, spec 3.2): every element must
+        # match its raw counterpart exactly and resolve within itself
         trm = json.load(open(os.path.join(
             treed(uid), "textual", f"{uid_tag}_{uid}_trimmed_skeleton.json")))
-        check(f"{uid} trimmed skeleton carries the identical graph",
-              trm.get("elements") == els)
+        tels = trm.get("elements")
+        check(f"{uid} trimmed skeleton carries the surviving element graph",
+              isinstance(tels, list) and len(tels) > 0)
+        if tels:
+            raw_map = {e["BRANCH_UID"]: e for e in els}
+            check(f"{uid} trimmed graph matches the raw graph element-wise "
+                  f"(DESTINATION may only shrink)",
+                  all(raw_map.get(e["BRANCH_UID"]) and
+                      all(raw_map[e["BRANCH_UID"]][k] == e[k] for k in
+                          ("BRANCH_ORDER", "BRANCH_LENGTH", "BRANCH_RADIUS",
+                           "BRANCH_VOLUME", "SOURCE")) and
+                      set(e["DESTINATION"])
+                      <= set(raw_map[e["BRANCH_UID"]]["DESTINATION"])
+                      for e in tels))
+            check(f"{uid} trimmed graph sources resolve internally",
+                  all(e["SOURCE"] in {x["BRANCH_UID"] for x in tels}
+                      or e["SOURCE"] is None for e in tels))
+            check(f"{uid} trimmed graph destinations stay internal",
+                  all(c in {x["BRANCH_UID"] for x in tels}
+                      for e in tels for c in e["DESTINATION"]))
 
 
 if __name__ == "__main__":

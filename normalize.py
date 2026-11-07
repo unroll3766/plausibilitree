@@ -53,7 +53,7 @@ from las import read_points_las, export_points_las, export_canonical_las, read_c
 import schema
 
 # source columns after read_points_las(..., extra_fields=SRC_EXTRA)
-SRC_EXTRA = ["trimmed", "branch_id", "branch_order"]
+SRC_EXTRA = ["branch_id", "branch_order"]
 C_X, C_Y, C_Z, C_SEM, C_TID, C_TRIM, C_BID, C_ORDER = range(8)
 
 # The per-voxel categorical ratio columns adapt to the source cloud. Every

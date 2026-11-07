@@ -50,3 +50,11 @@ Re-entries only when behavior changes. Long-form narrative lives in
   and 3: 5- and 7-stem trees, granddaughter chains) hold reciprocity and
   acyclicity; run_all.py exit 0, 179 PASS total, same-seed fixture values
   unchanged (rng-neutral treesim additions).
+- 2026-11-07 — Trim-record removal (owner ruling): placement suite section 8
+  forces heavy collisions (8,430 -> 2,067 pts) — no collision log/removal
+  counts in scene, no node_trimmed/trim_summary/"trimmed" in trimmed
+  skeletons, surviving graph matches raw element-wise (DESTINATION subset),
+  branch lists shrink — all PASS; cross suite J restated to subset
+  semantics; colliding two-tree plot through the full pipeline: info
+  volumes single-valued, scene clean (exit 0); shrub totals check added
+  (n>0, mesh volume>0) pinning the shrub_index bug fix; run_all 210 PASS.

@@ -72,13 +72,9 @@ the cells this tree is the visible top of, intersect the mask with
 ## Total canopy volume
 
 `_scene.json`'s `canopy_map.total_canopy_volume` sums the per-tree convex hull
-volumes over the successfully placed trees:
-
-- `raw_m3` — from all branch points.
-- `trimmed_m3` — from branch points **not** flagged `trimmed` by the skeleton
-  collision step (stage 3), present only when `<PLOT_UID>_trimmed.laz` exists
-  and carries a `trimmed` column. In the example, trimming 0.6% of points takes
-  the total from 4786.0 to 4776.2 m³.
+volumes over the successfully placed trees — a single post-trim value
+(`volume_m3`); there is no raw/trimmed pair (spec 3.2: no record of removed
+points is kept).
 
 Convex hull volume (not bounding-box volume) is used as the canopy volume, since
 the hull is the tighter solid the task defines around the branch points.

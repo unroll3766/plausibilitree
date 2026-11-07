@@ -12,8 +12,10 @@ Volumes:
   branch  -- cylinder per branch: pi * r(base_height)^2 * length
   foliage -- occupied-voxel volume of foliage points (semantic 3)
   canopy  -- convex-hull volume of foliage points
-Each of trunk/branch/foliage has raw (all elements / all points) and trimmed
-(non-trimmed elements / trimmed cloud) variants.
+Each volume is a single post-trim value (spec 3.2): trimmed elements are
+physically absent from the skeleton, so sums over the skeleton / inner
+geometry are already over the surviving structure; clouds are the
+surviving points.
 
 Crown major axis = the longest chord across the crown hull (x-y); minor axis =
 the widest span perpendicular to it. Lengths in m, orientation in degrees CCW
@@ -44,32 +46,21 @@ def _taper_radius(base_radius, total_height, h):
     return max(0.0, base_radius * (1.0 - h / total_height))
 
 
-def trunk_volume(skel, trimmed_only):
+def trunk_volume(skel):
     """Frustum sum along each trunk polyline using the taper radius per node.
 
     A frustum (truncated cone) between consecutive nodes at heights h0,h1 with
     radii r0,r1 and slant length L has volume (pi/3) L (r0^2 + r0 r1 + r1^2).
-    Uses 3D segment length between nodes. When trimmed_only, segments whose
-    end node is flagged node_trimmed are skipped.
+    Uses 3D segment length between nodes.
     """
     base_r = float(skel.get("base_radius_m", 0.0))
     h_t = float(skel.get("height_m", 0.0))
     total = 0.0
-    trunk = skel.get("trunk", {})
-    polylines = trunk.get("polylines", [])
-    segments = trunk.get("segments", [])
-    for pi, pl in enumerate(polylines):
+    for pl in skel.get("trunk", {}).get("polylines", []):
         arr = np.asarray(pl, dtype=float)
         if len(arr) < 2:
             continue
-        node_trimmed = None
-        if trimmed_only and pi < len(segments):
-            nt = segments[pi].get("node_trimmed")
-            if nt is not None and len(nt) == len(arr):
-                node_trimmed = np.asarray(nt, dtype=bool)
         for k in range(len(arr) - 1):
-            if node_trimmed is not None and (node_trimmed[k] or node_trimmed[k + 1]):
-                continue
             p0, p1 = arr[k], arr[k + 1]
             L = float(np.linalg.norm(p1 - p0))
             r0 = _taper_radius(base_r, h_t, p0[2])
@@ -78,14 +69,12 @@ def trunk_volume(skel, trimmed_only):
     return total
 
 
-def branch_volume(skel, trimmed_only):
+def branch_volume(skel):
     """Cylinder per branch: pi * r^2 * length, r = taper radius at branch base."""
     base_r = float(skel.get("base_radius_m", 0.0))
     h_t = float(skel.get("height_m", 0.0))
     total = 0.0
     for b in skel.get("branches", []):
-        if trimmed_only and b.get("trimmed"):
-            continue
         base_h = float(b.get("base", [0, 0, 0])[2])
         r = _taper_radius(base_r, h_t, base_h)
         L = float(b.get("length_m", 0.0))
@@ -217,18 +206,16 @@ def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
 
     fol_raw = _foliage_xyz(raw_las)
     fol_trim = _foliage_xyz(trim_las)
+    # single post-trim foliage source (spec 3.2): the surviving points
+    fol_src = fol_trim if len(fol_trim) else fol_raw
 
-    # canopy hull volumes (raw/trimmed) from the hull json
+    # canopy hull volume from the hull json (post-trim single value)
     hull = _load(layout.tree_path(plot_dir, plot_uid, uid, "canopy_hull_json",
                                   create=False)) or {}
-    hv = hull.get("volume_m3")
-    if isinstance(hv, dict):
-        hull_raw, hull_trim = hv.get("raw"), hv.get("trimmed")
-    else:
-        hull_raw = hull_trim = hv
+    hull_vol = hull.get("volume_m3")
 
-    # crown axes from foliage x-y (prefer trimmed, else raw)
-    crown_src = fol_trim if len(fol_trim) else fol_raw
+    # crown axes from surviving foliage x-y
+    crown_src = fol_src
     axes = crown_axes(crown_src[:, :2]) if len(crown_src) else None
 
     info = {
@@ -245,16 +232,13 @@ def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
             "dbh_m": _dbh(skel),
             "height_m": float(skel.get("height_m", 0.0)),
             "canopy": {
-                "convex_hull_volume_m3": {"raw": hull_raw, "trimmed": hull_trim},
+                "convex_hull_volume_m3": hull_vol,
                 **(axes or {"major_axis": None, "minor_axis": None}),
             },
             "volume_m3": {
-                "trunk": {"raw": trunk_volume(skel, False),
-                          "trimmed": trunk_volume(skel, True)},
-                "branch": {"raw": branch_volume(skel, False),
-                           "trimmed": branch_volume(skel, True)},
-                "foliage": {"raw": voxel_volume(fol_raw, voxel_size, voxel_threshold),
-                            "trimmed": voxel_volume(fol_trim, voxel_size, voxel_threshold)},
+                "trunk": trunk_volume(skel),
+                "branch": branch_volume(skel),
+                "foliage": voxel_volume(fol_src, voxel_size, voxel_threshold),
             },
         },
     }
@@ -382,22 +366,15 @@ def build_plot_info(plot_dir, plot_uid, skels, tree_infos, coord_system, units,
     # tree aggregates from the per-tree infos (single source of truth)
     n_trees = len(tree_infos)
     basal_area = 0.0
-    tv = {"trunk": {"raw": 0.0, "trimmed": 0.0},
-          "branch": {"raw": 0.0, "trimmed": 0.0},
-          "foliage": {"raw": 0.0, "trimmed": 0.0},
-          "canopy": {"raw": 0.0, "trimmed": 0.0}}
+    tv = {"trunk": 0.0, "branch": 0.0, "foliage": 0.0, "canopy": 0.0}
     for info in tree_infos.values():
         tc = info["tree_characteristics"]
         basal_area += np.pi * (tc["dbh_m"] / 2.0) ** 2
         for k in ("trunk", "branch", "foliage"):
-            for v in ("raw", "trimmed"):
-                tv[k][v] += tc["volume_m3"][k][v] or 0.0
-        ch = tc["canopy"]["convex_hull_volume_m3"]
-        tv["canopy"]["raw"] += ch["raw"] or 0.0
-        tv["canopy"]["trimmed"] += ch["trimmed"] or 0.0
+            tv[k] += tc["volume_m3"][k] or 0.0
+        tv["canopy"] += tc["canopy"]["convex_hull_volume_m3"] or 0.0
 
-    total_vol = {v: tv["trunk"][v] + tv["branch"][v] + tv["foliage"][v]
-                 for v in ("raw", "trimmed")}
+    total_vol = tv["trunk"] + tv["branch"] + tv["foliage"]
 
     # shrubs / grass from the understory cloud + shrub index
     shrub_total = _shrub_totals(plot_dir, plot_uid, voxel_size, voxel_threshold)
@@ -426,6 +403,7 @@ def build_plot_info(plot_dir, plot_uid, skels, tree_infos, coord_system, units,
             "shrubs": {
                 "n_shrubs": shrub_total["n"],
                 "total_volume_m3": shrub_total["volume"],
+                "primitive_reference_m3": shrub_total["primitive"],
             },
             "grass": {
                 "percent_cover": grass_cover,
@@ -436,20 +414,21 @@ def build_plot_info(plot_dir, plot_uid, skels, tree_infos, coord_system, units,
 
 
 def _shrub_totals(plot_dir, plot_uid, voxel_size, voxel_threshold):
-    """Sum shrub volumes (all three methods) from the shrub index / volume JSONs."""
-    idx = _load(os.path.join(plot_dir, layout.PLOT_PLACEMENT, "textual",
-                             f"{plot_uid}_shrub_index.json"))
-    total = {"primitive": 0.0, "mesh": 0.0, "voxel": 0.0}
-    n = 0
-    if idx:
-        for s in idx.get("shrubs", []):
-            n += 1
-            v = s.get("volume_m3", {})
-            for k in total:
-                val = v.get(k)
-                if val is not None and val == val:      # skip NaN
-                    total[k] += val
-    return {"n": n, "volume": total}
+    """Sum shrub volumes from the per-shrub volume JSONs (sampled shape:
+    mesh is the shrub volume per the notes.md ruling; primitive is the
+    analytic NOMINAL reference)."""
+    import glob as _glob
+    pattern = os.path.join(plot_dir, "individual_shrubs",
+                          f"{plot_uid}_shrub_*", "deep_learning", "volume",
+                          "labels", "*_volume.json")
+    n, mesh, prim = 0, 0.0, 0.0
+    for p in sorted(_glob.glob(pattern)):
+        doc = _load(p) or {}
+        v = doc.get("volume_m3", {})
+        n += 1
+        mesh += float(v.get("mesh") or 0.0)
+        prim += float(v.get("primitive") or 0.0)
+    return {"n": n, "volume": mesh, "primitive": prim}
 
 
 def _grass_stats(plot_cloud, voxel_size, voxel_threshold):

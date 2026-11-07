@@ -28,7 +28,13 @@ log's exit-code discipline: check `$?`, never eyeball `tail` output).
   mirror is a true handedness flip (signed area over ordered branch
   bases) rather than a substituted rotation, and the W19 rotation grid —
   every recorded rotation is a multiple of ROTATION_STEP (default 30
-  degrees) from [0, 360), all orientations occurring across seeds.
+  degrees) from [0, 360), all orientations occurring across seeds. Section 8
+  forces heavy collisions (branch_radius_frac 45, tolerance 3) to prove
+  trim records are truly gone (owner ruling, spec 3.2): no collision log
+  or removal counts in the scene JSON, no node_trimmed / trim_summary /
+  "trimmed" strings in trimmed skeletons, surviving element-graph
+  elements match their raw counterparts (DESTINATION may only shrink),
+  and trimmed branch lists shrink.
 - **`test_cross_artifact_invariants.py`** — recomputes every stage's
   key quantities from a *different* artifact than the one that wrote
   it: skeleton-vs-cloud stem coax, info-JSON bbox/DBH/frustum volumes,

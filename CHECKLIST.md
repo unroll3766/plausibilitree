@@ -21,8 +21,8 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
 - [ ] **LAS I/O** (`las.py`): canonical export/read at the schema's dtypes;
       generic export with caller-specified extra dims; point format 0
       (no RGB), scale 0.001, offsets at the cloud minimum.
-- [ ] **Scene JSON**: one file per plot recording geometry, seeds, the
-      collision log, id-encoding documentation, and relative links to every
+- [ ] **Scene JSON**: one file per plot recording geometry, seeds,
+      id-encoding documentation, and relative links to every
       artifact.
 
 ## 1. Tree list preparation (optional entry point)

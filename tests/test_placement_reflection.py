@@ -218,6 +218,49 @@ def run_checks(tmp, table, plot_dir):
           f"{len(set(rots))} distinct")
     ap.assemble_plot(table, seed=fixture.SEED, verbose=False)  # restore
 
+    print("== 8. trim-record absence (spec 3.2, forced-collision run) ==")
+    over = ap.assemble_plot(table, seed=fixture.SEED, verbose=False,
+                            branch_radius_frac=45.0, tolerance=3.0)
+    check("scene JSON carries no collision log or removal counts",
+          "collisions" not in over and "n_collisions" not in over
+          and "points_flagged_trimmed" not in over)
+    raw_pts = read_canonical_las(os.path.join(plot_dir, "plot_placement",
+                                              f"{fixture.PLOT_UID}_raw.laz"),
+                                level="plot")[0]
+    trm_pts = read_canonical_las(os.path.join(plot_dir, "plot_placement",
+                                              f"{fixture.PLOT_UID}_trimmed.laz"),
+                                 level="plot")[0]
+    check(f"forced collisions trimmed points ({len(raw_pts):,} -> "
+          f"{len(trm_pts):,})", len(trm_pts) < len(raw_pts))
+    banned = ("node_trimmed", "trim_summary", '"trimmed"')
+    for uid in ["001", "002", "006"]:
+        trm = open(os.path.join(treedir, f"{uid}_trimmed_skeleton.json")).read()
+        check(f"{uid} trimmed skeleton carries no trim records",
+              not any(b in trm for b in banned))
+    # graph: surviving elements match their raw counterparts; a DESTINATION
+    # list may only have lost entries (scrubbed links to removed elements)
+    for uid in ["001", "002", "006"]:
+        rel = json.load(open(os.path.join(treedir, f"{uid}_raw_skeleton.json")))
+        trl = json.load(open(os.path.join(treedir,
+                                          f"{uid}_trimmed_skeleton.json")))
+        raw_map = {e["BRANCH_UID"]: e for e in rel["elements"]}
+        ok = True
+        for e in trl["elements"]:
+            r = raw_map.get(e["BRANCH_UID"])
+            if r is None:
+                ok = False
+                break
+            ok = ok and all(r[k] == e[k] for k in
+                            ("BRANCH_ORDER", "BRANCH_LENGTH",
+                             "BRANCH_RADIUS", "BRANCH_VOLUME", "SOURCE"))
+            ok = ok and set(e["DESTINATION"]) <= set(r["DESTINATION"])
+        check(f"{uid} trimmed graph elements match the raw graph "
+              f"(DESTINATION may only shrink)", ok)
+        # trimmed branches are physically absent from the branches list
+        check(f"{uid} trimmed branch count <= raw",
+              len(trl["branches"]) <= len(rel["branches"]))
+    ap.assemble_plot(table, seed=fixture.SEED, verbose=False)  # restore
+
 
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(description=__doc__.splitlines()[0])

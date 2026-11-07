@@ -254,16 +254,10 @@ def build_canopy_map(csv_path, plot_dir=None,
             mask, x0, y0, grid.cell)
         n_written += 1
 
-    # total canopy volume (raw), and trimmed if the trimmed cloud exists
-    volume = {"raw_m3": round(raw_volume_total, 4),
+    # single post-trim canopy volume (spec 3.2: no record of trimmed
+    # points is kept, so there is no raw/trimmed pair)
+    volume = {"volume_m3": round(raw_volume_total, 4),
               "method": "sum of per-tree convex hull volumes"}
-    trimmed_path = layout.cloud_file(place_dir, f"{plot_uid}_trimmed")
-    if os.path.exists(trimmed_path):
-        tvol = _trimmed_volume(trimmed_path)
-        if tvol is not None:
-            volume["trimmed_m3"] = round(tvol, 4)
-            volume["note"] = ("trimmed excludes points flagged trimmed by the "
-                              "skeleton collision step")
 
     # link from the plot scene JSON
     rel = f"{plot_uid}/plot_placement"
@@ -286,32 +280,11 @@ def build_canopy_map(csv_path, plot_dir=None,
             json.dump(scene, f, indent=2)
 
     if verbose:
-        tv = volume.get("trimmed_m3")
-        tv_s = f", {tv:.1f} m3 trimmed" if tv is not None else ""
         print(f"{plot_uid}: CHM {grid.width}x{grid.height} px @ "
               f"{cell_size*100:g} cm, max height {chm.max():.1f} m, "
               f"{len(bbox_entries)} canopies, {n_written} crops+masks, "
-              f"{volume['raw_m3']:.1f} m3 raw canopy volume{tv_s}")
+              f"{volume['volume_m3']:.1f} m3 canopy volume")
     return canopy_meta
-
-
-def _trimmed_volume(trimmed_las_path):
-    """Sum of per-tree convex hull volumes from the trimmed cloud's foliage.
-
-    Trimming now removes points, so the trimmed cloud is already the culled
-    geometry -- no per-point flag to filter. Returns the total foliage-hull
-    volume, which is <= the raw volume because collision points were removed.
-    """
-    xyz, cols = read_canonical_las(trimmed_las_path, level="plot")
-    sem = cols["semantic_code"].astype(int)
-    tid = cols["tree_id"].astype(int)
-    keep = sem == schema.SEM_FOLIAGE
-    total = 0.0
-    for t in np.unique(tid[keep]):
-        m = keep & (tid == t)
-        _, _, vol, _ = canopy_hull(xyz[m])
-        total += vol
-    return total
 
 
 def main():
