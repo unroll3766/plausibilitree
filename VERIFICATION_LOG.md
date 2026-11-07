@@ -1029,7 +1029,7 @@ Checks (exit-0 gated):
 - `conda run -n ssf python tests/run_all.py` re-run after the fixes ->
   exit 0, 119 PASS.
 
-### 2026-11-07 — W14 second review pass: registry supersession annotation (commit <pin>)
+### 2026-11-07 — W14 second review pass: registry supersession annotation (commit cc7ff3c)
 
 Aimed at anything the first pass could have missed, in particular the
 0-collision (semantic 0 used to mean "unassigned"):
