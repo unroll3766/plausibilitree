@@ -10,7 +10,7 @@ so they need no separate stage. Disable with `understory.py --no-shrub-outputs`.
 ```
 individual_shrubs/<plot>_shrub_<uid>/
   las/
-    <tag>_raw.laz           the shrub's own points only (semantic 4)
+    <tag>_raw.laz           the shrub's own points only (semantic 8)
     <tag>_understory.laz    the shrub + surrounding context (bbox crop)
     <tag>_normalized.laz     written if a normalize run is performed
   deep_learning/

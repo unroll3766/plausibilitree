@@ -996,3 +996,35 @@ old codes (4/5/6) — no migration; regenerate.
 
 **Not verified**: scene_editor's GUI colorization paths (no display);
 they read semantic_code generically per code review.
+
+### 2026-11-07 — W14 review pass: two stale-code bugs found and fixed (commit <pin>)
+
+The standing suites could not catch these (colorize_plot and the
+scene_editor GUI are outside both), found by grepping for numeric-code
+keys/masks:
+
+- `colorize_plot.py` still mapped the old codes — ground 6, grass 5,
+  shrub 4 — so post-W14 grass would stay black instead of grey and shrubs
+  would get no per-id palette; ground was black only by luck (zeroed
+  array). Fixed at the root: the masks now use the schema.SEM_*
+  constants, so a future code change re-points the colors automatically.
+- `scene_editor.py` SEM_COLORS/SEM_NAMES keyed 4/5/6 for shrub/grass/
+  ground: shrub/grass points would have had no display color or layer
+  toggle after the change. Same fix: keyed by schema constants
+  (GUI itself still not exercised — no display; corrected by static
+  review + import).
+- Also refreshed normalize's documented categorical column names in
+  README_understory (dynamic in code: `semantic_{c}` from observed codes,
+  so post-W14 the columns are semantic_0/1/2/3/8/9) and README_shrub_
+  outputs' "(semantic 4)" -> 8. build_info's `isin(sem, (1,2,3))` masks
+  survive unchanged (codes 1/2/3 are the same in both schemes).
+
+Checks (exit-0 gated):
+- `conda run -n ssf python check.py` -> exit 0 (28 files) after both fixes.
+- Colorize functional: cross-artifact suite run with `--keep`, then
+  `colorize_plot.py` on the on-disk understory cloud (101,578 pts) and an
+  independent point-order-paired assertion of the output RGB: grass
+  (61,263) fully grey, ground (21,357) fully black, woody (2,067) fully
+  brown, shrub (10,528) + foliage (6,363) fully randomized — exit 0.
+- `conda run -n ssf python tests/run_all.py` re-run after the fixes ->
+  exit 0, 119 PASS.

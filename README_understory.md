@@ -71,8 +71,8 @@ understory → terrain → trimmed → raw. Every canonical cloud carries both
 `branch_code` and `semantic_code`, so normalize picks the meaningful one: when
 it reads an **understory/terrain** cloud, its per-voxel **categorical ratio
 columns come from `semantic_code`** — `semantic_1` (trunk), `semantic_2`
-(branch), `semantic_3` (foliage), `semantic_4` (shrub), `semantic_5` (grass),
-`semantic_6` (ground). Reading a pre-terrain **trimmed/raw** cloud uses
+(branch), `semantic_3` (foliage), `semantic_8` (shrub), `semantic_9` (grass),
+`semantic_0` (ground). Reading a pre-terrain **trimmed/raw** cloud uses
 `branch_code_k` instead. `num_trees` and `density` are unchanged. The run-wide
 union is taken over whichever categorical applies, so all normalized files share
 one schema. If a run's plots resolve to mixed kinds (some understory, some only

@@ -49,6 +49,7 @@ from matplotlib.figure import Figure  # noqa: E402
 
 import layout
 import tree_list
+import schema
 from las import read_canonical_las
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -56,15 +57,16 @@ PY = sys.executable
 
 # semantic code -> display color / name (README_schema)
 SEM_COLORS = {
-    1: "#8B5A2B",   # trunk stem
-    2: "#B08968",   # branch stem
-    3: "#3A8C4A",   # foliage
-    4: "#6B8E23",   # shrub
-    5: "#C9B037",   # grass
-    6: "#8A8A8A",   # ground
+    schema.SEM_TREE: "#8B5A2B",   # trunk stem
+    schema.SEM_BRANCH: "#B08968",  # branch stem
+    schema.SEM_FOLIAGE: "#3A8C4A",  # foliage
+    schema.SEM_SHRUB: "#6B8E23",   # shrub
+    schema.SEM_GRASS: "#C9B037",   # grass
+    schema.SEM_GROUND: "#8A8A8A",  # ground
 }
-SEM_NAMES = {1: "trunk", 2: "branch stem", 3: "foliage", 4: "shrub",
-             5: "grass", 6: "ground"}
+SEM_NAMES = {schema.SEM_TREE: "trunk", schema.SEM_BRANCH: "branch stem",
+             schema.SEM_FOLIAGE: "foliage", schema.SEM_SHRUB: "shrub",
+             schema.SEM_GRASS: "grass", schema.SEM_GROUND: "ground"}
 
 DISPLAY_CAP = 120000        # scatter subsample cap; full clouds reach millions
 

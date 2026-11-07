@@ -1,8 +1,8 @@
 """Colorize a plot-level cloud by semantic rules and save a stripped RGB .las.
 
-  ground (6)        -> black
-  grass  (5)        -> light grey
-  shrub  (4)        -> random colour per shrub_id (not black/brown/grey)
+  ground (0)        -> black
+  grass  (9)        -> light grey
+  shrub  (8)        -> random colour per shrub_id (not black/brown/grey)
   trunk/branch(1,2) -> brown
   foliage(3)        -> random colour per tree_id (not black/brown/grey)
 
@@ -12,6 +12,8 @@ Keeps only xyz + RGB.
 import sys
 import numpy as np
 import laspy
+
+import schema
 
 BLACK = (0, 0, 0)
 GREY = (200, 200, 200)
@@ -51,13 +53,13 @@ def main():
     sid = np.asarray(las.shrub_id).astype(int)
 
     rgb = np.zeros((len(xyz), 3), dtype=np.uint16)
-    rgb[sem == 6] = BLACK
-    rgb[sem == 5] = GREY
-    rgb[np.isin(sem, (1, 2))] = BROWN
-    for i, col in _palette(np.unique(sid[sem == 4]), rng).items():
-        rgb[(sem == 4) & (sid == i)] = col
-    for i, col in _palette(np.unique(tid[sem == 3]), rng).items():
-        rgb[(sem == 3) & (tid == i)] = col
+    rgb[sem == schema.SEM_GROUND] = BLACK
+    rgb[sem == schema.SEM_GRASS] = GREY
+    rgb[np.isin(sem, (schema.SEM_TREE, schema.SEM_BRANCH))] = BROWN
+    for i, col in _palette(np.unique(sid[sem == schema.SEM_SHRUB]), rng).items():
+        rgb[(sem == schema.SEM_SHRUB) & (sid == i)] = col
+    for i, col in _palette(np.unique(tid[sem == schema.SEM_FOLIAGE]), rng).items():
+        rgb[(sem == schema.SEM_FOLIAGE) & (tid == i)] = col
 
     # 8-bit colours -> 16-bit LAS range
     rgb16 = (rgb.astype(np.uint16) * 257)

@@ -37,3 +37,9 @@ Re-entries only when behavior changes. Long-form narrative lives in
   tests/run_all.py exit 0 with new standing invariants (understory
   domain subset {0,1,2,3,8,9}, shrubs=8, grass=9, ground=0); observed
   plot cloud reads semantic_code=[0,1,2,3,8,9].
+- 2026-11-07 — W14 review pass: found+fixed two stale-code bugs the suites
+  don't cover — colorize_plot (ground 6/grass 5/shrub 4 masks; now schema
+  constants) and scene_editor SEM_COLORS/SEM_NAMES (4/5/6 keys; now
+  schema constants). Colorize executed on a kept fixture: grass 61,263
+  grey, ground 21,357 black, woody brown, shrub/foliage randomized
+  (101,578 pts). re-run tests/run_all.py exit 0 (119 PASS).
