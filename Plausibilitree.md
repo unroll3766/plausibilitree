@@ -50,10 +50,10 @@ Section 11 lists every known code-to-design gap as actionable work items.
 
 ## 2. Inputs
 
-**[partial]** — the tree list contract (Section 8.1, both serializations),
+**[implemented]** — the tree list contract (Section 8.1, both
+serializations — CSV canonical per notes.md since W17, JSON alternate),
 generation-time param-dict lookup, and the parameter dictionary's JSON
-serialization (8.6) are implemented; the CSV-canonical tree list default
-per notes.md is not (item W17).
+serialization (8.6).
 
 The core consumes:
 
@@ -309,10 +309,12 @@ join is a passthrough of pre-joined LAT/LON/ELEV columns, unit conversion,
 dead-tree removal, functional-group resolution, height-descending placement
 (DBH tiebreak), the expansion modifier with round-up, `min_distance`
 spacing, `max_tries` and `edge_effects` controls, and the per-plot report
-JSON. The placed tree list is written as CSV
-per the design (the code currently emits canonical JSON by default with CSV
-as the legacy option — reversed from notes.md; item W17);
-per-tree geo derivation from plot center plus local placement is not yet
+JSON. The placed tree list is written as the minimal per-tree CSV (default;
+tree rows only — plot geometry and plot center are recorded in the report
+JSON, which `tree_list` reads back when loading CSV lists). The JSON
+tree-list form remains the `--format tree-list-json` alternate and
+`--format sst-csv` the legacy parameter table.
+Per-tree geo derivation from plot center plus local placement is not yet
 computed (item W5). A hand-authored tree list with positions replaces this
 helper entirely.
 
@@ -536,7 +538,7 @@ table.
 
 ## 8. Data structures
 
-### 8.1 Tree list (input; emitted by the FIA helper or authored by hand) — **[partial]**
+### 8.1 Tree list (input; emitted by the FIA helper or authored by hand) — **[implemented]**
 
 Serialized as **CSV**, one row per tree (per notes.md: the FIA helper's
 placed tree list is a .csv and the parameter helper reads a tree-list
@@ -563,11 +565,14 @@ Optional attributes:
 | LAT | float | centroid latitude, EPSG:4326 | [-90.0, 90.0] | plot center + local placement; absent without a known plot center |
 | ELEV | float | base elevation, metres (EPSG:5773) | [-500, 5000] | plot center + local placement; absent without a known plot center |
 
-**Status**: the attribute contract is implemented and every stage loads
-either serialization through `tree_list.py`; DBH/HT carry full inventory
-precision. The code default is JSON with CSV as the legacy option — the
-reverse of the notes.md design (item W17). Legacy SST parameter CSVs remain
-accepted as input for generation. The parameter dictionary is JSON
+**Status**: the attribute contract is implemented in both serializations
+and every stage loads either through `tree_list.py`; DBH/HT carry full
+inventory precision and CSV loads parse with
+`float_precision="round_trip"` so CSV/JSON round-trips are bit-exact.
+For CSV lists the plot-level fields come from the sibling
+`plot_<UID>_report.json`; the JSON form carries them in the plot object.
+Legacy SST parameter CSVs remain accepted as input for generation. The
+parameter dictionary is JSON
 (Section 8.6).
 
 ### 8.2 Canonical output layout
@@ -793,7 +798,7 @@ matches the design).
 | W14 | notes.md semantic codes + per-point trimmed | reinstate the notes.md semantic codes (0 ground, 8 shrub, 9 grass; new codes needed for unassigned/noise since 0 and 9 are taken) and the per-point `trimmed` dimension across schema, writers and stages (Sections 3.2, 3.4, 7.5, 8.3) | open |
 | W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | open |
 | W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_*; requires computing basal area and understory volume totals (Section 8.4) | open |
-| W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | open |
+| W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | closed |
 | W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | open |
 | W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | open |
 
@@ -870,3 +875,9 @@ Registry of resolved decisions (for provenance):
   target is the per-element graph with SOURCE/DESTINATION and cylinder
   volumes (W15). Section 8.4 now carries notes.md's plot/tree info schemas
   (W16).
+- Sixth code-alignment round (2026-11-07): W17 closed — the FIA helper
+  emits the minimal tree-list CSV by default (tree rows only; plot geometry
+  and plot center recorded in the report sidecar, read back by tree_list),
+  every stage loads both serializations through tree_list.py, and CSV
+  loads parse with round_trip float precision so CSV/JSON round-trips are
+  bit-exact; JSON is the alternate form, the SST table the legacy one.
