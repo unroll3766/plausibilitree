@@ -340,6 +340,8 @@ def gen_single_simtree(Nstem=300, Nfol=1000, model_params=None, tx=None, ty=None
             'height_m': float(branchz[i]),
             'azimuth_rad': float(theta),
             'length_m': float(np.linalg.norm(np.array(verts[-1]) - np.array(verts[-6]))),
+            'stem_index': int(j),
+            'radius_m': float(thick),
         })
         built_z.append(branchz[i])
         

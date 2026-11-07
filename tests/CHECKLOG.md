@@ -43,3 +43,10 @@ Re-entries only when behavior changes. Long-form narrative lives in
   schema constants). Colorize executed on a kept fixture: grass 61,263
   grey, ground 21,357 black, woody brown, shrub/foliage randomized
   (101,578 pts). re-run tests/run_all.py exit 0 (119 PASS).
+- 2026-11-07 — W15 element graph: suite section J (60 checks) re-derives
+  the graph from the polyline skeleton independent of the writer
+  (root/reciprocity/partition/lengths/radii/volumes; fixture includes a
+  fork tree) — exit 0; cascade-forced builds (SPLIT_PROB=1, num_splits 2
+  and 3: 5- and 7-stem trees, granddaughter chains) hold reciprocity and
+  acyclicity; run_all.py exit 0, 179 PASS total, same-seed fixture values
+  unchanged (rng-neutral treesim additions).

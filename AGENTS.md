@@ -112,9 +112,9 @@ adds facts specific to this repository.
   Generator.
 
 ## Register snapshot (2026-11-07)
-- Closed: W1-W4, W7, W11-W14, W17, W19.
+- Closed: W1-W4, W7, W11-W15, W17, W19.
 - Open: W5 (UTM internals + EPSG export), W6 (single plot cloud, opt-in
   derived stages, 2-band stem map), W8 (HELIOS++), W9 (polygon mesh),
-  W10 (downed woody debris), and the notes.md alignment round: W15
-  (element-graph skeleton), W16 (info JSON schemas + FOLIAGE_VOXEL/
-  GRASS_VOXEL split), W18 (parameter dict bounds).
+  W10 (downed woody debris), and the notes.md alignment round: W16 (info
+  JSON schemas + FOLIAGE_VOXEL/GRASS_VOXEL split + per-element trimmed
+  flags), W18 (parameter dict bounds).

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -254,6 +255,66 @@ def run_checks(fixroot, plot_dir):
                if not os.path.exists(os.path.join(fixroot, p))]
     check(f"every scene-JSON path resolves ({len(links)} links)",
           not missing, str(missing[:5]))
+
+    print("== J. element graph (notes.md Section 7.4, W15) ==")
+    for _, row in table.iterrows():
+        uid = str(row["TREE_UID"])
+        sk = json.load(open(os.path.join(treed(uid), "textual",
+                                         f"{uid_tag}_{uid}_raw_skeleton.json")))
+        els = sk.get("elements")
+        check(f"{uid} skeleton carries the element graph",
+              isinstance(els, list) and len(els) > 0)
+        if not els:
+            continue
+        uids = {e["BRANCH_UID"] for e in els}
+        # every element has exactly one SOURCE (null only for the trunk
+        # root) and DESTINATION is its exact inverse
+        roots = [e for e in els if e["SOURCE"] is None]
+        check(f"{uid} exactly one null SOURCE (the trunk root)",
+              len(roots) == 1 and roots[0]["BRANCH_UID"] == "T00")
+        check(f"{uid} every SOURCE resolves",
+              all(e["SOURCE"] in uids for e in els if e["SOURCE"] is not None))
+        by_uid = {e["BRANCH_UID"]: e for e in els}
+        inv_ok = all(by_uid[c]["SOURCE"] == e["BRANCH_UID"]
+                     for e in els for c in e["DESTINATION"])
+        cov_ok = all(e["BRANCH_UID"] in by_uid[e["SOURCE"]]["DESTINATION"]
+                     for e in els if e["SOURCE"] is not None)
+        check(f"{uid} DESTINATION is the exact inverse of SOURCE",
+              inv_ok and cov_ok)
+        # partition: one order-0 element per trunk stem, one order-1 per
+        # branch, lengths recomputed from the polyline geometry
+        n_stems = len(sk["trunk"]["segments"])
+        n_br = len(sk["branches"])
+        check(f"{uid} element count == trunk segments + branches",
+              len(els) == n_stems + n_br)
+        check(f"{uid} trunk elements are order 0, branches order 1",
+              all(e["BRANCH_ORDER"] == (0 if e["BRANCH_UID"].startswith("T")
+                                        else 1) for e in els))
+        seg_ok = vol_ok = rad_ok = True
+        for i, seg in enumerate(sk["trunk"]["segments"]):
+            e = by_uid[f"T{i:02d}"]
+            poly = np.asarray(sk["trunk"]["polylines"][i], dtype=float)
+            arc = float(np.linalg.norm(np.diff(poly, axis=0), axis=1).sum())
+            seg_ok = seg_ok and abs(e["BRANCH_LENGTH"] - arc) < 1e-6
+            r_exp = max(0.0, sk["base_radius_m"]
+                        * (1.0 - seg["z_range"][0] / sk["height_m"]))
+            rad_ok = rad_ok and abs(e["BRANCH_RADIUS"] - r_exp) < 1e-9
+        for k, br in enumerate(sk["branches"]):
+            e = by_uid[f"B{k:03d}"]
+            d = float(np.linalg.norm(np.asarray(br["tip"])
+                                     - np.asarray(br["base"])))
+            seg_ok = seg_ok and abs(e["BRANCH_LENGTH"] - d) < 1e-6
+        for e in els:
+            v = math.pi * e["BRANCH_RADIUS"] ** 2 * e["BRANCH_LENGTH"]
+            vol_ok = vol_ok and abs(e["BRANCH_VOLUME"] - v) <= 1e-9 * max(v, 1.0)
+        check(f"{uid} element lengths recompute from the geometry", seg_ok)
+        check(f"{uid} stem radii follow the taper profile", rad_ok)
+        check(f"{uid} element volumes are pi r^2 L", vol_ok)
+        # the trimmed variant carries the same, place()-invariant graph
+        trm = json.load(open(os.path.join(
+            treed(uid), "textual", f"{uid_tag}_{uid}_trimmed_skeleton.json")))
+        check(f"{uid} trimmed skeleton carries the identical graph",
+              trm.get("elements") == els)
 
 
 if __name__ == "__main__":

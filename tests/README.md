@@ -34,7 +34,13 @@ log's exit-code discipline: check `$?`, never eyeball `tail` output).
   it: skeleton-vs-cloud stem coax, info-JSON bbox/DBH/frustum volumes,
   spec 3.3 draping rules (lowest point on the DTM at the tree's
   (X, Y); per-point shrub drape), scene-record coverage, and a full
-  scene-JSON link audit. This is the pattern that caught four
+  scene-JSON link audit. New in the W15 round: section J re-derives the
+  notes.md element graph from the polyline skeleton independently of the
+  writer (single null-SOURCE root, SOURCE/DESTINATION reciprocity,
+  stem/branch partition, lengths recomputed from polylines and
+  base-tip pairs, taper-profile radii, cylinder volumes), and checks
+  the trimmed variant carries the identical, place()-invariant graph.
+  This is the pattern that caught four
   long-hidden bugs (see the verification log), so the fixtures are
   deliberately *not* flat: a generated DTM (rugged terrain) plus
   understory exercises the paths flat runs never touch.

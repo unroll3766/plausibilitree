@@ -85,6 +85,71 @@ def _max_stem_excursion(skeleton: dict) -> float:
     return worst
 
 
+def element_graph(skeleton: dict) -> list:
+    """The notes.md element graph (spec Section 7.4) from the SST skeleton.
+
+    One order-0 element per trunk stem (stem 0 is the root; each split k
+    appends daughter stems 2k+1 and 2k+2, both children of the split's
+    parent stem) and one order-1 element per branch, sourced to the stem
+    element recorded at generation. Elements carry no coordinates -- only
+    UIDs, parents, lengths, radii and cylinder volumes -- so they are
+    invariant under place()'s rotation and reflection and can be copied
+    verbatim into trimmed skeletons."""
+    def stem_uid(i: int) -> str:
+        return f"T{i:02d}"
+
+    r0 = float(skeleton["base_radius_m"])
+    h = float(skeleton["height_m"])
+    segments = skeleton["trunk"]["segments"]
+    branches = skeleton["branches"]
+
+    # stem index -> parent stem index (root trunk has none)
+    parent_of = {}
+    for k, sp in enumerate(skeleton.get("splits", [])):
+        parent_of[2 * k + 1] = int(sp["parent_polyline"])
+        parent_of[2 * k + 2] = int(sp["parent_polyline"])
+
+    elements = []
+    children = {i: [] for i in range(len(segments) + len(branches))}
+    for i, seg in enumerate(segments):
+        z_base = float(seg["z_range"][0])
+        radius = max(0.0, r0 * (1.0 - z_base / h)) if h > 0 else 0.0
+        length = float(seg["length_m"])
+        parent = parent_of.get(i)
+        if parent is not None:
+            children[parent].append(i)
+        elements.append({
+            "BRANCH_UID": stem_uid(i),
+            "BRANCH_ORDER": 0,
+            "BRANCH_LENGTH": length,
+            "BRANCH_RADIUS": radius,
+            "BRANCH_VOLUME": float(np.pi) * radius ** 2 * length,
+            "SOURCE": (stem_uid(parent) if parent is not None else None),
+            "DESTINATION": [],
+        })
+    for k, br in enumerate(branches):
+        i = int(br.get("stem_index", 0))
+        length = float(br["length_m"])
+        radius = float(br.get("radius_m", 0.0))
+        children[i].append(len(segments) + k)
+        elements.append({
+            "BRANCH_UID": f"B{k:03d}",
+            "BRANCH_ORDER": 1,
+            "BRANCH_LENGTH": length,
+            "BRANCH_RADIUS": radius,
+            "BRANCH_VOLUME": float(np.pi) * radius ** 2 * length,
+            "SOURCE": stem_uid(i),
+            "DESTINATION": [],
+        })
+
+    for j, e in enumerate(elements):
+        e["DESTINATION"] = [elements[c]["BRANCH_UID"] for c in children[j]]
+    uids = {e["BRANCH_UID"] for e in elements}
+    assert all(e["SOURCE"] in uids or e["SOURCE"] is None
+               for e in elements)
+    return elements
+
+
 @register
 class SSTGenerator(GeneratorModule):
     """Simple Synth Tree behind the Section 7.1 contract."""
@@ -253,6 +318,8 @@ class SSTGenerator(GeneratorModule):
         if excursion > limit:
             raise ValueError(f"stem excursion {excursion:.1f} m exceeds "
                              f"{limit:.1f} m")
+
+        skeleton["elements"] = element_graph(skeleton)
 
         import schema
         old_sem = points[:, 3].astype(int)        # 1 stem, 0 foliage

@@ -504,12 +504,34 @@ portion of the generated tree — an element graph:
 | BRANCH_LENGTH | float | length of the element, m |
 | BRANCH_RADIUS | float | radius of the element, m |
 | BRANCH_VOLUME | float | cylinder volume pi * r^2 * L from the element's length and radius |
-| SOURCE | string | UID of the element this element connects to (exactly one) |
+| SOURCE | string | UID of the element this element connects to (exactly one; null for the root trunk element) |
 | DESTINATION | string | UID(s) of the elements connected to this one (multiple at a fork) |
 
-Current implementation: the skeleton JSON is the polyline-and-splits form
-below; converting it to (or additionally exporting) the element graph is
-item W15.
+Implementation (W15): the graph is computed at generation time and
+embedded in every skeleton JSON under the `elements` key (raw and trimmed
+variants alike — the elements carry no coordinates, only UIDs/parents/
+lengths/radii/volumes, so they are invariant under place() rotation and
+reflection and the trimmed skeleton copies them verbatim). SST realization
+decisions of the notes.md table:
+
+- Partition: one element per trunk stem (all trunk material, including
+  fork daughter stems, is BRANCH_ORDER 0) and one element per branch
+  (BRANCH_ORDER 1; SST branches do not sub-branch, so no higher orders).
+- UID scheme: `T00`, `T01`, ... for stems in stem order, `B000`, `B001`,
+  ... for branches in skeleton order.
+- SOURCE: the root trunk element's is null; each fork daughter stem's is
+  the parent stem element (from the split log); each branch's is its
+  recorded stem element (`stem_index`, recorded at generation).
+- RADIUS: a stem element uses the taper radius of Section 7.2 step 1 at
+  the element's base height; a branch element uses its recorded ribbon
+  half-thickness. BRANCH_VOLUME is the notes.md cylinder; the frustum
+  accounting of Section 8.4 is separate and unchanged.
+- DESTINATION is the inverse of SOURCE (children in the same order).
+
+The polyline-and-splits form below remains the trimming stage's native
+format; consumers of the skeleton can use either. The per-element
+`trimmed` flag on trimmed variants is pending (the structural trim record
+stays the polyline `node_trimmed` flags plus scene JSON counts).
 
 - `tree_uid`, `plot_uid`, `tree_id`, `coordinate_frame`, `base_xy`,
   `height_m`, `base_radius_m`, `fork`, `fork_height_m`, `n_splits`,
@@ -803,7 +825,7 @@ matches the design).
 | W12 | LAS 1.4 writer | switch the canonical writer to LAS version 1.4 (point format 0 + extra bytes unchanged; Section 7.5) | closed |
 | W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | closed (tree-list part reversed; see W17) |
 | W14 | notes.md semantic codes | semantic codes per notes.md: 0 ground (doubling as "no class needed" — ground/noise are the traditional LAS classification's job, so no separate unassigned/noise codes), 8 shrub, 9 grass (Sections 3.4, 8.3). The per-point `trimmed` dimension was withdrawn from the design (owner ruling 2026-11-07): trimmed points are removed, structural record only | closed |
-| W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | open |
+| W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | closed (per-element trimmed flags on trimmed variants ride with W16) |
 | W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_*; requires computing basal area and understory volume totals (Section 8.4) | open |
 | W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | closed |
 | W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | open |
@@ -913,3 +935,15 @@ Registry of resolved decisions (for provenance):
   removed and recorded structurally (skeleton node_trimmed flags, scene
   JSON counts) only. W14 closed with codes 0/1/2/3/8/9 in code and the
   standing suites asserting the mapping.
+- Eighth code-alignment round (2026-11-07): W15 closed — every skeleton
+  JSON (raw and trimmed) carries the notes.md element graph under
+  `elements`: one order-0 element per trunk stem (root SOURCE null;
+  split daughters source their parent stem), one order-1 element per
+  branch (sourced to its stem via `stem_index`, recorded at generation),
+  cylinder volumes and UIDs per the Section 7.4 decisions (treesim also
+  records each branch ribbon's half-thickness as `radius_m`; both
+  additions are rng-neutral — same-seed clouds are bit-identical). The
+  elements carry no coordinates, so the trimmed variant copies them
+  verbatim. Standing suite section J re-derives the graph independently
+  of the writer (root/reciprocity/partition/lengths/radii/volumes) and
+  cascade-forced builds verified granddaughter chains.

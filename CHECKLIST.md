@@ -54,7 +54,11 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
 - [ ] **Per-tree generation** (`generate_trees.py`): table row -> simulator
       params, density scaled by tree size (points per metre), retry loop,
       writes per-tree `_raw.las` + raw skeleton JSON (trunk polylines and
-      segments, branch base/tip) + generation JSON.
+      segments, branch base/tip, and the notes.md element graph under
+      `elements`: one order-0 element per trunk stem, one order-1 element
+      per branch, SOURCE/DESTINATION links, cylinder pi*r^2*L volumes;
+      trimmed variants carry the same, place()-invariant graph)
+      + generation JSON.
 - [ ] **Interactive parameter editor** (`param_editor.py`): GUI to edit any
       cell of a parameter CSV (functional groups or similar), generate N
       sample trees from the selected row, page through them in a 3D viewer

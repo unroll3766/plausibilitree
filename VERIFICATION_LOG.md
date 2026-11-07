@@ -1049,3 +1049,48 @@ Aimed at anything the first pass could have missed, in particular the
 
 No code changed in this pass, so no suite re-run (the standing run_all
 exit 0 / 119 PASS remains the current result for the code).
+
+### 2026-11-07 — W15: notes.md element graph embedded in skeleton JSONs (commit <pin>)
+
+The notes.md element graph (spec Section 7.4) is computed at generation
+by sst_generator.element_graph and embedded under `elements` in every
+skeleton JSON; trimmed variants carry the identical graph (the trimmed
+writer already deep-copies the raw skeleton, and the elements carry no
+coordinates — UIDs, SOURCE/DESTINATION, lengths, radii, cylinder
+volumes — so they are place()-invariant by construction).
+
+**Code**:
+- `treesim.py` records two facts the graph needs, both from values
+  already drawn (rng-neutral): each branch's `stem_index` (the drawn
+  stem it was placed on) and `radius_m` (the ribbon half-thickness).
+- `sst_generator.py` `element_graph()`: one order-0 element per trunk
+  stem (root T00 SOURCE null; split daughters 2k+1/2k+2 source their
+  parent stem), one order-1 element per branch sourced to its stem;
+  radii per Section 7.4 (taper at stem base; ribbon half-thickness);
+  volumes = pi r^2 L; DESTINATION = inverse of SOURCE.
+- Polyline-and-splits form unchanged (trimming keeps consuming it).
+
+**Checks** (exit-0 gated):
+- check.py -> exit 0 (28 files; one caught slip: the new function was
+  initially inserted under SSTGenerator's @register decorator, caught
+  immediately by the module failing to register).
+- Direct build smoke: root/branch links, reciprocity, volumes.
+- Standing suite section J (new, 60 checks on the fixture): graph
+  presence, single null-SOURCE root, SOURCE resolution and exact
+  DESTINATION reciprocity, stem/branch partition, element count ==
+  trunk segments + branches, lengths recomputed from polylines and
+  branch base-tip pairs, stem radii follow the taper profile, volumes
+  = pi r^2 L, trimmed variant identical. Fixture includes a forked
+  tree (005: 3 stems). -> exit 0.
+- Cascade coverage: forced SPLIT_PROB=1 with num_splits 2 and 3 -> 5-
+  and 7-stem trees with granddaughter chains; reciprocity and
+  acyclicity hold. (First attempt forced the wrong key names; the
+  entry's fork probability gates the cascade — forcing SPLIT_PROB=1
+  engages it.)
+- tests/run_all.py -> exit 0, 179 PASS; the placement suite's
+  bit-identical same-seed check and unchanged fixture point counts
+  (e.g. 001 RW 3,534 pts) confirm the treesim additions drew no new rng
+  values.
+
+Pending (rides with W16): per-element `trimmed` flags on trimmed
+variants; the structural record remains node_trimmed + scene counts.
