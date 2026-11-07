@@ -4,7 +4,7 @@ Stage 4: rasterise a breast-height cross-section of the placed plot into a stem
 map for deep learning, with per-tree bounding boxes and semantic masks.
 
 ```
-python stem_map.py plot_11519.csv --cell-size 0.01
+python stem_map.py plot_11519.csv --stem-resolution 0.01
 ```
 
 ```
@@ -31,8 +31,9 @@ Because every tree is generated with its base at z = 0 and placement only
 shifts x-y, breast height is a single global z-band across the whole plot — no
 terrain to account for.
 
-Defaults: cell size 1 cm (`--cell-size`), band half-thickness 0.10 m so the
-slice is 20 cm thick (`--threshold`), DBH 1.37 m (`--dbh-height`). The raster
+Defaults: cell size 0.05 m (`--stem-resolution`), band half-thickness 0.25 m
+so the slice is 0.5 m thick (`--stem-section`), DBH 1.37 m (`--dbh-height`).
+The raster
 value type is uint16 (counts stay small — max 5 per cell in the example).
 
 ## Bounding boxes
@@ -100,7 +101,7 @@ is correct for a synthetic local frame.
 ## Two things to be aware of
 
 **Thin bands lose trees.** At the 0.10 m default the example keeps 44 of 49
-trees; at `--threshold 0.03` only 22 survive, because a 6 cm slice of a sparse
+trees; at `--stem-section 0.03` only 22 survive, because a 6 cm slice of a sparse
 synthetic cloud simply contains no stem points for many trees. Thinner slices
 give rounder stem discs but fewer usable stems — pick per how dense your clouds
 are.

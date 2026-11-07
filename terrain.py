@@ -220,7 +220,7 @@ def sample_ground(dtm, x_min, y_min, x_max, y_max, density, noise, rng):
 
 def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=None,
                   noise=0.0,
-                  source="trimmed", seed=0, generate=False, gen_cell_size=1.0,
+                  source="trimmed", seed=0, generate=False, dtm_resolution=1.0,
                   gen_bumpiness=0.5, gen_relief=10.0, verbose=True):
     plot_uid = os.path.splitext(os.path.basename(csv_path))[0]
     if plot_dir is None:
@@ -274,22 +274,22 @@ def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=None,
         # bounds auto-sized to the plot point-cloud bbox (symmetric about the
         # centre so the recentred grid always covers it). One cell of margin
         # avoids edge points landing exactly on the grid boundary.
-        half_w = max(abs(x_min - cx), abs(x_max - cx)) + gen_cell_size
-        half_h = max(abs(y_min - cy), abs(y_max - cy)) + gen_cell_size
+        half_w = max(abs(x_min - cx), abs(x_max - cx)) + dtm_resolution
+        half_h = max(abs(y_min - cy), abs(y_max - cy)) + dtm_resolution
         width = 2.0 * half_w
         height = 2.0 * half_h
-        dtm = DTM.generate(width, height, gen_cell_size, gen_bumpiness,
+        dtm = DTM.generate(width, height, dtm_resolution, gen_bumpiness,
                            gen_relief, seed=seed)
         dtm.recenter_to(cx, cy)
         dtm_desc = (f"generated {dtm.width:.1f}x{dtm.height:.1f} m "
-                    f"(cell {gen_cell_size}, bumpiness {gen_bumpiness}, "
+                    f"(cell {dtm_resolution}, bumpiness {gen_bumpiness}, "
                     f"relief {gen_relief})")
     elif flat:
         # the None topography: a uniform flat plane at z = 0, sized to the
         # same auto-bounds so recentring/coverage checks behave identically
-        half_w = max(abs(x_min - cx), abs(x_max - cx)) + gen_cell_size
-        half_h = max(abs(y_min - cy), abs(y_max - cy)) + gen_cell_size
-        dtm = DTM.flat(2.0 * half_w, 2.0 * half_h, gen_cell_size)
+        half_w = max(abs(x_min - cx), abs(x_max - cx)) + dtm_resolution
+        half_h = max(abs(y_min - cy), abs(y_max - cy)) + dtm_resolution
+        dtm = DTM.flat(2.0 * half_w, 2.0 * half_h, dtm_resolution)
         dtm.recenter_to(cx, cy)
         dtm_desc = "flat plane (topography = None, z = 0)"
     else:
@@ -476,8 +476,8 @@ def main():
                                    "--generate-dtm (spec Section 3.3)")
     ap.add_argument("--generate-dtm", action="store_true",
                     help="synthesize a DTM sized to each plot's footprint")
-    ap.add_argument("--gen-cell-size", type=float, default=0.25,
-                    help="generated/flat DTM cell size, m")
+    ap.add_argument("--dtm-resolution", type=float, default=0.25,
+                    help="generated/flat DTM cell size, m (spec DTM_RESOLUTION)")
     ap.add_argument("--gen-bumpiness", type=float, default=0.5,
                     help="generated DTM bumpiness/roughness (with --generate-dtm)")
     ap.add_argument("--gen-relief", type=float, default=10.0,
@@ -496,7 +496,7 @@ def main():
                       density=args.density, noise=args.noise,
                       source=args.source, seed=args.seed,
                       generate=args.generate_dtm,
-                      gen_cell_size=args.gen_cell_size,
+                      dtm_resolution=args.dtm_resolution,
                       gen_bumpiness=args.gen_bumpiness,
                       gen_relief=args.gen_relief)
 

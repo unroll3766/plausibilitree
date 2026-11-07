@@ -76,7 +76,7 @@ first-class input.
 
 ## 3. Core process
 
-### 3.1 Tree generation and placement — **[partial]**
+### 3.1 Tree generation and placement — **[implemented]**
 
 For each tree in the tree list, in order:
 
@@ -92,11 +92,12 @@ For each tree in the tree list, in order:
 Implementation status: canonical JSON tree lists are generated per the
 contract — the parameter dictionary lookup, allometric bounds and per-tree
 seeded draws all happen at generation time (legacy SST parameter CSVs remain
-accepted as input). Rotation is seeded but drawn continuously, not quantized
-in steps of N per the design (item W19); reflection is a seeded 50/50 mirror
-draw across the vertical plane through the tree's base, applied with the
-rotation at plot assembly. The parameter dictionary is JSON
-(`data/functional_groups.json`, Section 8.6).
+accepted as input). Rotation is quantized: a multiple of ROTATION_STEP
+degrees is drawn from [0, 360) (default 30; the scene JSON records
+rotation_step_deg); reflection is a
+seeded 50/50 mirror draw across the vertical plane through the tree's
+base, applied with the rotation at plot assembly. The parameter dictionary
+is JSON (`data/functional_groups.json`, Section 8.6).
 
 ### 3.2 Collision trimming — **[partial]**
 
@@ -654,8 +655,11 @@ Shrub info analogous per shrub.
 
 Volume methods: trunk = frustum sum along skeleton centerlines with taper
 radii; branch = cylinder per branch (pi r^2 L); foliage = occupied-voxel
-volume at FOLIAGE_VOXEL; grass at GRASS_VOXEL; canopy = convex-hull
-volume of foliage (spec extension).
+volume at FOLIAGE_VOXEL; grass at GRASS_VOXEL; shrub = sampled-shape
+volume — the actual (jittered) primitive mesh that produced the shrub's
+points (per the notes.md ruling, never occupied-voxel; the nominal
+ellipsoid (4/3) pi (w/2)^2 (h/2) is the analytic reference); canopy =
+convex-hull volume of foliage (spec extension).
 
 ### 8.5 Scene JSON — **[implemented]**
 
@@ -697,7 +701,8 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
   (canopy attenuation 0-1).
 - Grass: cover fraction, min/max height (m), patch scale (m), candidate
   point density (per m^2), tree proximity (canopy attenuation 0-1).
-- Shared: occupied-voxel size and threshold for volume accounting.
+- Shared: the grass voxel (GRASS_VOXEL) is grass volume accounting;
+  shrub volumes come from the sampled shape, not voxels.
 
 ## 9. Variables
 
@@ -710,7 +715,7 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
 | DBH_HT | float | 1.37 | breast height, m |
 | POINTS_PER_METRE | int | 4096 | points per 1 m height slice, scaled by base diameter: Np = POINTS_PER_METRE x ceil(HT) x BASE_DIA |
 | MAX_ATTEMPTS | int | 10 | retries when resolving tree generation |
-| ROTATION_STEP | float | TBD (proposed 1.0) | placement rotation quantization in degrees; notes.md's "steps of N" |
+| ROTATION_STEP | float | 30.0 | placement rotation quantization, degrees (notes.md's steps of N; 360 must be divisible by it) |
 | BRANCH_RADIUS_FRAC | float | 0.10 | branch collision radius as a fraction of branch length |
 | MIN_BRANCH_RADIUS | float | 0.02 | floor for the above, m |
 | COLLISION_TOLERANCE | float | 0.0 | trim radius relaxation, m |
@@ -738,9 +743,12 @@ vertical jitter). Resolution and conflict rules in Section 3.3.
 | CANOPY_ATTENUATION | float | 0.3 | vegetation reduction near tree canopies, 0-1 |
 | MAX_DENSITY | int | 5000 | normalization: max points per m^3/cube (derived stage) |
 
-The code currently uses the old internal names for several of these
-(STEM_CELL_SIZE, STEM_THRESHOLD, CANOPY_CELL_SIZE, OCCUPIED_VOXEL_SIZE,
-DTM_CELL_SIZE); renaming to the notes.md names above is item W19.
+These surface as per-script CLI flags fanned out by run_pipeline; the
+stem/canopy/DTM knobs carry the notes.md names (--stem-resolution,
+--stem-section, --chm-resolution, --dtm-resolution; W19). build_info's
+--occupied-voxel flags cover foliage and neighbor-class accounting until
+W16 splits FOLIAGE_VOXEL / GRASS_VOXEL. Shrub volume
+is never voxel-based (sampled-shape ruling, Section 8.4).
 
 ## 10. Coordinate reference policy — **[planned]**
 
@@ -800,7 +808,7 @@ matches the design).
 | W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_*; requires computing basal area and understory volume totals (Section 8.4) | open |
 | W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | closed |
 | W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | open |
-| W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | open |
+| W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | closed (FOLIAGE_VOXEL/GRASS_VOXEL split deferred to W16) |
 
 Registry of resolved decisions (for provenance):
 
@@ -881,3 +889,16 @@ Registry of resolved decisions (for provenance):
   every stage loads both serializations through tree_list.py, and CSV
   loads parse with round_trip float precision so CSV/JSON round-trips are
   bit-exact; JSON is the alternate form, the SST table the legacy one.
+- Owner rulings for W19 (2026-11-07): placement rotation is quantized in
+  steps of N degrees with ROTATION_STEP defaulting to 30 (12
+  orientations); shrub volume is calculated from the sampled shape (the
+  actual jittered primitive mesh, nominal ellipsoid as the analytic
+  reference) — shrub occupied-voxel accounting is withdrawn.
+- Seventh code-alignment round (2026-11-07): W19 closed — rotations are
+  drawn on the ROTATION_STEP grid (asserted to divide 360; scene JSON
+  records rotation_step_deg; standing suite check guarantees the grid),
+  the stem/canopy/DTM knobs carry the notes.md names end to end
+  (--stem-resolution, --stem-section, --chm-resolution, --dtm-resolution,
+  env-sidecar key dtm_resolution), and shrub volume JSONs carry
+  primitive + mesh only. W16 inherits the FOLIAGE_VOXEL / GRASS_VOXEL
+  split of build_info's shared occupied-voxel accounting.

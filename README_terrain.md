@@ -40,7 +40,7 @@ Provide a larger DTM or use --generate-dtm (no tiling/stretching is applied).
 
 **Generated** (`--generate-dtm`): synthesize a DTM per plot with the project's
 `generate_dtm` (diamond-square), so provided and generated DTMs share one
-terrain model. You supply `--gen-cell-size`, `--gen-bumpiness` and
+terrain model. You supply `--dtm-resolution`, `--gen-bumpiness` and
 `--gen-relief`; the **bounds are auto-sized to the plot's point-cloud bounding
 box** (symmetric about the centre, plus one cell of margin), so coverage is
 guaranteed and no coverage check is needed. Each plot gets its own DTM sized to
@@ -103,7 +103,7 @@ The terrain stage always runs (per plot, after restructure); `--dtm` /
 ```
 --dtm PATH             provided DTM .asc to drape onto (wins over --generate-dtm)
 --generate-dtm         synthesize a per-plot DTM instead (bounds auto-fit)
---gen-cell-size N      generated/flat DTM cell size, m (default 0.25)
+--dtm-resolution N      generated/flat DTM cell size, m (default 0.25)
 --gen-bumpiness N      generated DTM roughness (default 0.5)
 --gen-relief M         generated DTM vertical relief, m (default 10)
 --ground-density N     ground points per DTM cell (default 1)

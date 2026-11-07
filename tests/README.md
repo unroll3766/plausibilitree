@@ -26,7 +26,9 @@ log's exit-code discipline: check `$?`, never eyeball `tail` output).
   re-quantization and the 4 dp angle record are the documented
   tolerances), the ~50 % mirror draw distribution, and chirality — the
   mirror is a true handedness flip (signed area over ordered branch
-  bases) rather than a substituted rotation.
+  bases) rather than a substituted rotation, and the W19 rotation grid —
+  every recorded rotation is a multiple of ROTATION_STEP (default 30
+  degrees) from [0, 360), all orientations occurring across seeds.
 - **`test_cross_artifact_invariants.py`** — recomputes every stage's
   key quantities from a *different* artifact than the one that wrote
   it: skeleton-vs-cloud stem coax, info-JSON bbox/DBH/frustum volumes,

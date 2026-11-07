@@ -112,7 +112,8 @@ than a 1st-order structure), the rule lives entirely in `TreeSkeleton.order`.
 
 ## Rotation, reflection and placement
 
-Each tree gets a uniform random rotation on [0, 360) about **its own base**,
+Each tree gets a rotation drawn in steps of `--rotation-step` degrees
+(default 30, so 12 possible orientations) from [0, 360) about **its own base**,
 not about the plot origin — the stems were already generated at their `X`/`Y`,
 so rotating about the origin would move them off their placement. The rotation
 is applied to both the cloud and the skeleton, then the base is re-anchored on

@@ -60,6 +60,10 @@ import tree_list
 BRANCH_RADIUS_FRAC = 0.10
 MIN_BRANCH_RADIUS = 0.02
 
+# Placement rotation quantization (notes.md: "a random rotation [0,360) in
+# steps of N"). Trees are drawn on the discrete grid 0, N, 2N, ... degrees.
+ROTATION_STEP = 30.0
+
 # Per-point branch identity.
 #
 # Two forms are written, because one integer can't be both plot-global and fit
@@ -598,13 +602,19 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
                   plot_radius_m: float | None = None,
                   branch_radius_frac: float = BRANCH_RADIUS_FRAC,
                   tolerance: float = 0.0,
+                  rotation_step: float = ROTATION_STEP,
                   plot_shape: str = "circle",
                   plot_length_m: float | None = None,
                   plot_width_m: float | None = None,
                   verbose: bool = True) -> dict:
     """Rotate, place, collide and trim every tree of one plot.
 
-    Accepts a canonical tree-list JSON or a legacy SST parameter CSV."""
+    Accepts a canonical tree-list JSON or a legacy SST parameter CSV.
+    Rotations are quantized: each draw is a multiple of `rotation_step`
+    degrees from [0, 360)."""
+    n_orientations = int(round(360.0 / rotation_step))
+    assert abs(n_orientations * rotation_step - 360.0) < 1e-9, \
+        f"rotation_step {rotation_step} does not divide 360 evenly"
     plot_uid = os.path.splitext(os.path.basename(table_path))[0]
     if plot_dir is None:
         plot_dir = os.path.join(os.path.dirname(os.path.abspath(table_path)), plot_uid)
@@ -638,9 +648,11 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
         tree = TreeSkeleton(skel, uid, int(skel.get("tree_id", 0)),
                             branch_radius_frac=branch_radius_frac)
 
-        # rotate about the tree's own base, 50/50 mirror reflection (W7),
+        # rotate about the tree's own base in quantized steps of
+        # rotation_step degrees, 50/50 mirror reflection (W7),
         # then re-anchor on the table X/Y
-        angle = float(rng.uniform(0.0, 2 * math.pi))
+        angle = math.radians(float(rng.integers(0, n_orientations))
+                             * float(rotation_step))
         reflected = bool(rng.random() < 0.5)
         cx, cy = float(skel["base_xy"][0]), float(skel["base_xy"][1])
         pts[:, :2] = rotate_z(pts[:, :2], angle, cx, cy)
@@ -779,6 +791,7 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
         "seed": int(seed),
         "branch_radius_frac": float(branch_radius_frac),
         "contact_tolerance_m": float(tolerance),
+        "rotation_step_deg": float(rotation_step),
         "rotations_deg": rotations,
         "reflections": reflections,
         "points_raw": int(len(raw)),
@@ -824,6 +837,10 @@ def main():
     ap.add_argument("--branch-radius-frac", type=float, default=BRANCH_RADIUS_FRAC)
     ap.add_argument("--tolerance", type=float, default=0.0,
                     help="extra clearance required between elements, metres")
+    ap.add_argument("--rotation-step", type=float, default=ROTATION_STEP,
+                    help=f"rotation quantization in degrees; a multiple of "
+                         f"it is drawn from [0, 360) per tree "
+                         f"(default {ROTATION_STEP:g})")
     args = ap.parse_args()
 
     for path in args.csv:
@@ -831,6 +848,7 @@ def main():
                       plot_radius_m=args.plot_radius,
                       branch_radius_frac=args.branch_radius_frac,
                       tolerance=args.tolerance,
+                      rotation_step=args.rotation_step,
                       plot_shape=args.plot_shape,
                       plot_length_m=args.length,
                       plot_width_m=args.width)

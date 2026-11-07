@@ -44,19 +44,8 @@ Three volume estimates per shrub, plus the generation parameters:
 | field | meaning |
 |---|---|
 | `volume_m3.primitive` | nominal ellipsoid `(4/3)pi (w/2)^2 (h/2)` from the shrub's height/width, before jitter |
-| `volume_m3.mesh` | actual volume of the jittered primitive mesh (trimesh `.volume`, or the convex-hull volume of the mesh vertices as a fallback) |
-| `volume_m3.voxel` | occupied-voxel count times `occupied_voxel_size^3` |
+| `volume_m3.mesh` | sampled-shape volume: the actual (jittered) primitive mesh that produced the shrub's points (trimesh `.volume`, or the convex-hull volume of the mesh vertices as a fallback) — the shrub volume per the notes.md ruling |
 | `height_m`, `width_m`, `center_xy` | the generated shrub geometry |
-| `voxel_volume_params` | the voxel size/threshold used, plus occupied/non-empty voxel counts |
-
-### Voxel volume
-
-Voxelize the shrub's own points at `occupied_voxel_size` (default 0.1 m). A voxel
-is **occupied** if it contains at least `occupied_voxel_threshold` (default 1)
-points with `semantic_code == 4` and this shrub's `shrub_id`. The volume is the
-occupied-voxel count times the voxel cell volume. Both are new pipeline
-parameters (`--occupied-voxel-size`, `--occupied-voxel-threshold`); for now they
-apply to shrubs only.
 
 ## Canopy and DBH maps
 
@@ -75,11 +64,13 @@ apply to shrubs only.
 
 Set on `understory.py` (and surfaced through `run_pipeline.py`):
 
-- `--occupied-voxel-size` (default 0.1) — voxel edge length in metres.
-- `--occupied-voxel-threshold` (default 1) — min points for an occupied voxel.
 - `--shrub-canopy-cell-size` (default 0.25), `--shrub-stem-cell-size` (0.25) —
   raster resolution for the shrub canopy/DBH maps.
 - `--no-shrub-outputs` — skip per-shrub outputs entirely.
+
+Shrub volume is calculated from the sampled shape, never from voxels
+(notes.md ruling, 2026-11-07); the earlier occupied-voxel estimate and its
+`--occupied-voxel-*` flags were removed.
 
 ## Notes / caveats
 

@@ -76,7 +76,6 @@ def build_understory(csv_path, plot_dir=None, *, dtm_path=None, seed=0,
                      grass_patch_scale=5.0, grass_candidate_density=200.0,
                      canopy_attenuation=0.3,
                      shrub_outputs=True,
-                     occupied_voxel_size=0.1, occupied_voxel_threshold=1,
                      shrub_canopy_cell_size=0.25, shrub_stem_cell_size=0.25,
                      verbose=True):
     plot_uid = os.path.splitext(os.path.basename(csv_path))[0]
@@ -206,8 +205,6 @@ def build_understory(csv_path, plot_dir=None, *, dtm_path=None, seed=0,
         from shrub_outputs import build_shrub_outputs
         n_shrub_files = build_shrub_outputs(
             plot_dir, plot_uid, shrub_geom,
-            occupied_voxel_size=occupied_voxel_size,
-            occupied_voxel_threshold=occupied_voxel_threshold,
             canopy_cell_size=shrub_canopy_cell_size,
             stem_cell_size=shrub_stem_cell_size,
             verbose=verbose)
@@ -318,10 +315,6 @@ def main():
     # per-shrub individual outputs
     ap.add_argument("--no-shrub-outputs", action="store_true",
                     help="skip writing per-shrub individual outputs")
-    ap.add_argument("--occupied-voxel-size", type=float, default=0.1,
-                    help="voxel edge (m) for shrub voxel-count volume (default 0.1)")
-    ap.add_argument("--occupied-voxel-threshold", type=int, default=1,
-                    help="min points in a voxel to count it occupied (default 1)")
     ap.add_argument("--shrub-canopy-cell-size", type=float, default=0.25)
     ap.add_argument("--shrub-stem-cell-size", type=float, default=0.25)
     args = ap.parse_args()
@@ -339,8 +332,6 @@ def main():
             grass_candidate_density=args.grass_candidate_density,
             canopy_attenuation=args.canopy_attenuation,
             shrub_outputs=not args.no_shrub_outputs,
-            occupied_voxel_size=args.occupied_voxel_size,
-            occupied_voxel_threshold=args.occupied_voxel_threshold,
             shrub_canopy_cell_size=args.shrub_canopy_cell_size,
             shrub_stem_cell_size=args.shrub_stem_cell_size)
 

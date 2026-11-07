@@ -42,7 +42,7 @@ modified.
 | Control | Flag | Meaning |
 |---|---|---|
 | generate DTM / provided .asc | `--generate-dtm` / `--dtm` | synthesize a DTM per plot, or drape onto a supplied ESRI ASCII grid |
-| cell / bump / relief | `--gen-cell-size` / `--gen-bumpiness` / `--gen-relief` | DTM resolution, roughness and height range (generated mode) |
+| cell / bump / relief | `--dtm-resolution` / `--gen-bumpiness` / `--gen-relief` | DTM resolution, roughness and height range (generated mode) |
 | ground pts/cell, noise | `--density` / `--noise` | bare-earth sampling density and vertical jitter |
 | source | `--source` | which tree cloud the terrain drapes (`trimmed`/`raw`) |
 

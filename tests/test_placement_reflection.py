@@ -203,6 +203,21 @@ def run_checks(tmp, table, plot_dir):
         check(f"{uid} signed area {'flips' if trm_sk['reflected'] else 'preserved'}"
               f" ({s_raw:.4f} -> {s_out:.4f})", ok)
 
+    print("== 7. rotation quantization (W19, steps of ROTATION_STEP) ==")
+    rots = []
+    for s in range(8):
+        sc = ap.assemble_plot(table, seed=2000 + s, verbose=False)
+        rots += list(sc["rotations_deg"].values())
+    step = float(ap.ROTATION_STEP)
+    check("every recorded rotation is a multiple of the step and in [0, 360)",
+          all(abs((r / step) - round(r / step)) < 1e-9 and 0.0 <= r < 360.0
+              for r in rots),
+          f"n={len(rots)}")
+    check(f"all {int(round(360.0 / step))} orientations occur across seeds",
+          len(set(rots)) == int(round(360.0 / step)),
+          f"{len(set(rots))} distinct")
+    ap.assemble_plot(table, seed=fixture.SEED, verbose=False)  # restore
+
 
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(description=__doc__.splitlines()[0])

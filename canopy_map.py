@@ -45,9 +45,10 @@ import pandas as pd
 from las import read_points_las, read_canonical_las
 import layout
 import schema
-from stem_map import RasterGrid, _write_geotiff, _tree_uid, DEFAULT_CELL_SIZE
+from stem_map import RasterGrid, _write_geotiff, _tree_uid
 
 BRANCH_CLASS = schema.SEM_FOLIAGE    # canopy = foliage points (semantic 3)
+CHM_RESOLUTION = 0.05       # metres per pixel (spec CHM_RESOLUTION)
 DEFAULT_BUFFER_PX = 2        # crop buffer around a canopy bbox, pixels
 
 
@@ -113,7 +114,7 @@ def max_height_raster(grid: RasterGrid, x, y, z):
 # ---------------------------------------------------------------------------
 
 def build_canopy_map(csv_path, plot_dir=None,
-                     cell_size=DEFAULT_CELL_SIZE,
+                     cell_size=CHM_RESOLUTION,
                      buffer_px=DEFAULT_BUFFER_PX,
                      source="raw",
                      verbose=True):
@@ -317,15 +318,15 @@ def main():
     ap = argparse.ArgumentParser(description="Canopy height map + 3D canopy geometry")
     ap.add_argument("csv", nargs="+", help="plot table csv(s)")
     ap.add_argument("-d", "--plot-dir", default=None)
-    ap.add_argument("-c", "--cell-size", type=float, default=DEFAULT_CELL_SIZE,
-                    help="metres per pixel (default 0.01 = 1 cm)")
+    ap.add_argument("--chm-resolution", type=float, default=CHM_RESOLUTION,
+                    help=f"metres per pixel (default {CHM_RESOLUTION})")
     ap.add_argument("--buffer", type=int, default=DEFAULT_BUFFER_PX,
                     help="crop buffer around a canopy bbox, pixels (default 2)")
     ap.add_argument("--source", default="raw", choices=["raw", "trimmed"])
     args = ap.parse_args()
 
     for path in args.csv:
-        build_canopy_map(path, plot_dir=args.plot_dir, cell_size=args.cell_size,
+        build_canopy_map(path, plot_dir=args.plot_dir, cell_size=args.chm_resolution,
                          buffer_px=args.buffer, source=args.source)
 
 

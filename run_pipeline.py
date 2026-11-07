@@ -26,8 +26,8 @@ Example (mirrors the documented per-stage commands):
     python run_pipeline.py plots \\
         --radius 7.315 --seed 42 \\
         --points-per-metre 4096 --max-attempts 10 \\
-        --stem-cell-size 0.05 --stem-threshold 0.25 \\
-        --canopy-cell-size 0.05 \\
+        --stem-resolution 0.05 --stem-section 0.25 \\
+        --chm-resolution 0.05 \\
         --max-density 5000 --spatial --density cube --plot-l 30 --tree-l 30
 
 Parameters not given fall back to the defaults below, which match that example.
@@ -91,7 +91,7 @@ def _run(script, args, dry_run=False):
 
 ENV_KEYS = {
     "seed", "dtm",
-    "gen_cell_size", "gen_bumpiness", "gen_relief",
+    "dtm_resolution", "gen_bumpiness", "gen_relief",
     "ground_density", "ground_noise",
     "shrub_cover", "shrub_cell_size", "shrub_width_min", "shrub_width_max",
     "grass_cover", "grass_candidate_density", "canopy_attenuation",
@@ -124,9 +124,9 @@ def run_pipeline(plotdir, *,
                  limit=None, generator="sst",
                  points_per_metre=4096, max_attempts=10,
                  branch_radius_frac=0.10, tolerance=0.0,
-                 stem_cell_size=0.05, stem_threshold=0.25, bbox_padding=1,
-                 canopy_cell_size=0.05, canopy_buffer=2, canopy_source="trimmed",
-                 dtm=None, generate_dtm=False, gen_cell_size=0.25,
+                 stem_resolution=0.05, stem_section=0.25, bbox_padding=1,
+                 chm_resolution=0.05, canopy_buffer=2, canopy_source="trimmed",
+                 dtm=None, generate_dtm=False, dtm_resolution=0.25,
                  gen_bumpiness=0.5, gen_relief=10.0,
                  ground_density=1.0, ground_noise=0.0,
                  terrain_source="trimmed",
@@ -135,6 +135,7 @@ def run_pipeline(plotdir, *,
                  occupied_voxel_size=0.1, occupied_voxel_threshold=1,
                  grass_cover=0.6, grass_candidate_density=200.0,
                  canopy_attenuation=0.3,
+                 rotation_step=30.0,
                  max_density=5000, spatial=True, density="none",
                  plot_l=30, plot_z=None, tree_l=30, tree_z=None,
                  norm_source="understory", drop_trimmed=False,
@@ -197,12 +198,13 @@ def run_pipeline(plotdir, *,
     stages.append(("assemble_plot.py", lambda c: [
         c, "--seed", seed, "--plot-radius", radius,
         "--branch-radius-frac", branch_radius_frac, "--tolerance", tolerance,
+        "--rotation-step", rotation_step,
         *_assemble_shape]))
     stages.append(("stem_map.py", lambda c: [
-        c, "--cell-size", stem_cell_size, "--threshold", stem_threshold,
+        c, "--stem-resolution", stem_resolution, "--stem-section", stem_section,
         "--bbox-padding", bbox_padding]))
     stages.append(("canopy_map.py", lambda c: [
-        c, "--cell-size", canopy_cell_size, "--buffer", canopy_buffer,
+        c, "--chm-resolution", chm_resolution, "--buffer", canopy_buffer,
         "--source", canopy_source]))
     stages.append(("restructure.py", lambda c: [c]))
 
@@ -221,7 +223,7 @@ def run_pipeline(plotdir, *,
             return common + ["--dtm", dtm_p]
         if generate_dtm or env:
             return common + ["--generate-dtm",
-                             "--gen-cell-size", env.get("gen_cell_size", gen_cell_size),
+                             "--dtm-resolution", env.get("dtm_resolution", dtm_resolution),
                              "--gen-bumpiness", env.get("gen_bumpiness", gen_bumpiness),
                              "--gen-relief", env.get("gen_relief", gen_relief)]
         # no topography source: the None topography (spec Section 3.3) --
@@ -246,9 +248,7 @@ def run_pipeline(plotdir, *,
                 "--grass-candidate-density",
                 env.get("grass_candidate_density", grass_candidate_density),
                 "--canopy-attenuation",
-                env.get("canopy_attenuation", canopy_attenuation),
-                "--occupied-voxel-size", occupied_voxel_size,
-                "--occupied-voxel-threshold", occupied_voxel_threshold]
+                env.get("canopy_attenuation", canopy_attenuation)]
         if "--dtm" in terr:             # terrain used a provided DTM
             args += ["--dtm", terr[terr.index("--dtm") + 1]]
         return args
@@ -359,12 +359,18 @@ def main():
     # assemble_plot
     ap.add_argument("--branch-radius-frac", type=float, default=0.10)
     ap.add_argument("--tolerance", type=float, default=0.0)
+    ap.add_argument("--rotation-step", type=float, default=30.0,
+                    help="rotation quantization in degrees; a multiple of it "
+                         "is drawn from [0, 360) per tree (default 30)")
     # stem_map
-    ap.add_argument("--stem-cell-size", type=float, default=0.05)
-    ap.add_argument("--stem-threshold", type=float, default=0.25)
+    ap.add_argument("--stem-resolution", type=float, default=0.05,
+                    help="stem map cell size, m (spec STEM_RESOLUTION)")
+    ap.add_argument("--stem-section", type=float, default=0.25,
+                    help="DBH z-band half-thickness, m (spec STEM_SECTION)")
     ap.add_argument("--bbox-padding", type=int, default=1)
     # canopy_map
-    ap.add_argument("--canopy-cell-size", type=float, default=0.05)
+    ap.add_argument("--chm-resolution", type=float, default=0.05,
+                    help="CHM cell size, m (spec CHM_RESOLUTION)")
     ap.add_argument("--canopy-buffer", type=int, default=2)
     ap.add_argument("--canopy-source", default="trimmed", choices=["raw", "trimmed"])
     # terrain (always runs; the None topography is a flat plane)
@@ -374,7 +380,8 @@ def main():
     ap.add_argument("--generate-dtm", action="store_true",
                     help="synthesize a per-plot DTM instead of providing one; "
                          "enables the terrain step")
-    ap.add_argument("--gen-cell-size", type=float, default=0.25)
+    ap.add_argument("--dtm-resolution", type=float, default=0.25,
+                    help="generated/flat DTM cell size, m (spec DTM_RESOLUTION)")
     ap.add_argument("--gen-bumpiness", type=float, default=0.5)
     ap.add_argument("--gen-relief", type=float, default=10.0)
     ap.add_argument("--ground-density", type=float, default=1.0,
@@ -394,7 +401,8 @@ def main():
     ap.add_argument("--grass-candidate-density", type=float, default=200.0)
     ap.add_argument("--canopy-attenuation", type=float, default=0.3)
     ap.add_argument("--occupied-voxel-size", type=float, default=0.1,
-                    help="voxel edge (m) for shrub voxel-count volume (default 0.1)")
+                    help="voxel edge (m) for foliage / neighbor-class volume "
+                         "accounting in build_info (default 0.1)")
     ap.add_argument("--occupied-voxel-threshold", type=int, default=1,
                     help="min points for an occupied voxel (default 1)")
     # normalize
@@ -441,12 +449,13 @@ def main():
         seed=args.seed, limit=args.limit, generator=args.generator,
         points_per_metre=args.points_per_metre, max_attempts=args.max_attempts,
         branch_radius_frac=args.branch_radius_frac, tolerance=args.tolerance,
-        stem_cell_size=args.stem_cell_size, stem_threshold=args.stem_threshold,
+        rotation_step=args.rotation_step,
+        stem_resolution=args.stem_resolution, stem_section=args.stem_section,
         bbox_padding=args.bbox_padding,
-        canopy_cell_size=args.canopy_cell_size, canopy_buffer=args.canopy_buffer,
+        chm_resolution=args.chm_resolution, canopy_buffer=args.canopy_buffer,
         canopy_source=args.canopy_source,
         dtm=args.dtm, generate_dtm=args.generate_dtm,
-        gen_cell_size=args.gen_cell_size, gen_bumpiness=args.gen_bumpiness,
+        dtm_resolution=args.dtm_resolution, gen_bumpiness=args.gen_bumpiness,
         gen_relief=args.gen_relief, ground_density=args.ground_density,
         ground_noise=args.ground_noise, terrain_source=args.terrain_source,
         understory=args.understory, shrub_cover=args.shrub_cover,

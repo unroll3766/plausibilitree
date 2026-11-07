@@ -4,7 +4,7 @@ Stage 5: a canopy height model (CHM) raster of the placed plot, plus per-tree 3D
 canopy bounding boxes, convex hulls, crops, masks, and a total canopy volume.
 
 ```
-python canopy_map.py plot_11519.csv --cell-size 0.01
+python canopy_map.py plot_11519.csv --chm-resolution 0.01
 ```
 
 ```
@@ -27,7 +27,7 @@ points of the placed scene `plot_placement/<PLOT_UID>_raw.laz`, so it is the top
 surface of the whole plot. Since every tree sits with its base at z = 0 and
 placement only shifts x-y, the value is height above ground directly. Written as
 single-band float32 GeoTIFF (DEFLATE-compressed, geotransform embedded, same
-writer as the stem map). Default cell size 1 cm (`--cell-size`). Each cell
+writer as the stem map). Default cell size 0.05 m (`--chm-resolution`). Each cell
 holds the max z of the points in it, and the raster max equals the cloud's
 max z.
 
@@ -86,7 +86,7 @@ the hull is the tighter solid the task defines around the branch points.
 ## Two things to be aware of
 
 **Volume is resolution-independent.** It comes from the 3D points and hulls, not
-the raster, so it does not change with `--cell-size` (confirmed 4786.0 m³ at 1 cm
+the raster, so it does not change with `--chm-resolution` (confirmed 4786.0 m³ at 1 cm
 and 5 cm). Only the raster and pixel bboxes scale with cell size.
 
 **Convex hulls overestimate real canopy volume.** A hull wraps the outermost

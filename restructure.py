@@ -46,7 +46,7 @@ from rasterio.transform import from_origin
 
 import layout
 from las import read_points_las, read_canonical_las
-from stem_map import BREAST_HEIGHT_M, DEFAULT_THRESHOLD, STEM_CLASS
+from stem_map import BREAST_HEIGHT_M, STEM_SECTION, STEM_CLASS
 from canopy_map import BRANCH_CLASS, canopy_hull
 import schema
 
@@ -270,7 +270,7 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
     # ---- plot-level instance masks (aligned to their feature rasters) -----
     if os.path.exists(stem_feat_flat):
         lab, (x0, y1, cell) = _stem_instance_mask(
-            stem_feat_flat, raw_pts, BREAST_HEIGHT_M, DEFAULT_THRESHOLD,
+            stem_feat_flat, raw_pts, BREAST_HEIGHT_M, STEM_SECTION,
             trees_dir=flat_it, plot_uid=plot_uid)
         _write_instance_geotiff(
             layout.plot_path(plot_dir, plot_uid, "stem_label_raw"),

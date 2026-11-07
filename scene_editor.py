@@ -71,7 +71,7 @@ DISPLAY_CAP = 120000        # scatter subsample cap; full clouds reach millions
 # control defaults, in panel order. Keys mirror the stage CLIs.
 DEFAULTS = {
     # terrain
-    "gen_cell_size": "1.0", "gen_bumpiness": "0.5", "gen_relief": "10.0",
+    "dtm_resolution": "1.0", "gen_bumpiness": "0.5", "gen_relief": "10.0",
     "ground_density": "1.0", "ground_noise": "0.0",
     # understory: shrubs
     "shrub_cover": "0.15", "shrub_cell_size": "2.0",
@@ -144,7 +144,7 @@ def terrain_args(values, dtm_mode, dtm_path):
             raise ValueError("provided-DTM mode needs a .asc path")
         return args + ["--dtm", dtm_path]
     return args + ["--generate-dtm",
-                   "--gen-cell-size", values["gen_cell_size"],
+                   "--dtm-resolution", values["dtm_resolution"],
                    "--gen-bumpiness", values["gen_bumpiness"],
                    "--gen-relief", values["gen_relief"]]
 
@@ -191,7 +191,7 @@ def run_stage(script, args, log):
 # env-sidecar export (schema shared with replicate.py)
 # ---------------------------------------------------------------------------
 
-ENV_KEYS = ["seed", "gen_cell_size", "gen_bumpiness", "gen_relief",
+ENV_KEYS = ["seed", "dtm_resolution", "gen_bumpiness", "gen_relief",
             "ground_density", "ground_noise",
             "shrub_cover", "shrub_cell_size", "shrub_width_min",
             "shrub_width_max", "grass_cover", "grass_candidate_density",
@@ -292,7 +292,7 @@ class SceneEditor(tk.Tk):
         ttk.Radiobutton(row, text="provided .asc", variable=self.dtm_mode,
                         value="provided").pack(side=tk.LEFT, padx=(10, 0))
         row = ttk.Frame(ter); row.pack(fill=tk.X, pady=2)
-        self._field(row, "gen_cell_size", "cell (m)")
+        self._field(row, "dtm_resolution", "cell (m)")
         self._field(row, "gen_bumpiness", "bump")
         self._field(row, "gen_relief", "relief (m)")
         row = ttk.Frame(ter); row.pack(fill=tk.X, pady=2)

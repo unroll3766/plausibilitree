@@ -5,10 +5,10 @@ For every shrub in a plot this writes, under individual_shrubs/<tag>/:
   las/<tag>_raw.las          the shrub's own points only
   las/<tag>_understory.las   the shrub + surrounding context (crop of the scene)
   deep_learning/volume/labels/<tag>_volume.json
-        shrub_id, height/width, and three volumes:
+        shrub_id, height/width, and the sampled-shape volumes:
           primitive  -- nominal ellipsoid (4/3)pi(w/2)^2(h/2)
-          mesh       -- actual jittered primitive mesh volume
-          voxel      -- occupied-voxel count * occupied_voxel_size^3
+          mesh       -- actual jittered primitive mesh volume (the shrub
+                        volume per the notes.md ruling; never voxel-based)
   deep_learning/canopy_map/...  crown CHM + bbox/hull (foliage-style, from shrub pts)
   deep_learning/stem_map/...    breast-height (DBH-band) cross-section (may be empty)
 
@@ -26,7 +26,7 @@ import numpy as np
 import layout
 import schema
 from las import read_canonical_las, export_canonical_las
-from stem_map import RasterGrid, _write_geotiff, BREAST_HEIGHT_M, DEFAULT_THRESHOLD
+from stem_map import RasterGrid, _write_geotiff, BREAST_HEIGHT_M, STEM_SECTION
 from canopy_map import canopy_hull
 
 
@@ -34,26 +34,9 @@ def _shrub_uid(sid):
     return f"{int(sid):03d}"
 
 
-def voxel_volume(xyz, voxel_size, threshold):
-    """Occupied-voxel volume: count voxels holding >= threshold points.
-
-    Returns (volume_m3, n_occupied, n_total_nonempty). A voxel is occupied when
-    it contains at least `threshold` of the given points; volume is that count
-    times voxel_size**3.
-    """
-    if len(xyz) == 0 or voxel_size <= 0:
-        return 0.0, 0, 0
-    keys = np.floor(xyz / voxel_size).astype(np.int64)
-    # unique voxel -> point count
-    _, counts = np.unique(keys, axis=0, return_counts=True)
-    occ = int((counts >= threshold).sum())
-    return occ * (voxel_size ** 3), occ, int(len(counts))
-
-
 def build_shrub_outputs(plot_dir, plot_uid, shrub_geom,
-                        occupied_voxel_size=0.1, occupied_voxel_threshold=1,
                         canopy_cell_size=0.25, stem_cell_size=0.25,
-                        dbh_height=BREAST_HEIGHT_M, dbh_threshold=DEFAULT_THRESHOLD,
+                        dbh_height=BREAST_HEIGHT_M, dbh_threshold=STEM_SECTION,
                         verbose=False):
     """Write per-shrub outputs from the plot understory cloud.
 
@@ -111,9 +94,7 @@ def build_shrub_outputs(plot_dir, plot_uid, shrub_geom,
              "height_above_ground": cols["height_above_ground"][in_box]},
             level="tree")
 
-        # ---- volume JSON: primitive + mesh + voxel ----
-        vvol, vocc, vtot = voxel_volume(xyz[mine], occupied_voxel_size,
-                                        occupied_voxel_threshold)
+        # ---- volume JSON: sampled shape (primitive + mesh) ----
         vol_doc = {
             "shrub_id": int(s),
             "n_points": n_pts,
@@ -124,13 +105,6 @@ def build_shrub_outputs(plot_dir, plot_uid, shrub_geom,
             "volume_m3": {
                 "primitive": geom["primitive_volume_m3"],
                 "mesh": geom["mesh_volume_m3"],
-                "voxel": vvol,
-            },
-            "voxel_volume_params": {
-                "occupied_voxel_size_m": occupied_voxel_size,
-                "occupied_voxel_threshold": occupied_voxel_threshold,
-                "n_occupied_voxels": vocc,
-                "n_nonempty_voxels": vtot,
             },
         }
         vol_out = layout.shrub_path(plot_dir, plot_uid, uid, "volume_label")

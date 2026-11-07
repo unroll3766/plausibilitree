@@ -883,3 +883,51 @@ Known notes: report sidecar for CSV lists now carries `plot_center`
 (extension to the notes.md report: parameters + counts + proportion);
 scene_editor's GUI was not exercised (no display). Column order in the CSV
 form is canonical (Z before DBH), but every consumer reads by name.
+
+### 2026-11-07 — W19: rotation stepping + variable renames (commit <pin>)
+
+Owner rulings applied: placement rotation quantized "in steps of N" with
+ROTATION_STEP default 30 degrees (12 orientations); shrub volume from the
+sampled shape, not voxels.
+
+**Code**:
+- `assemble_plot.py`: rotation drawn from the discrete grid
+  rng.integers(0, 360/step) * step degrees (asserted to divide 360; default
+  30); `--rotation-step` CLI, `rotation_step_deg` recorded in the scene
+  JSON, fanned out by `run_pipeline.py --rotation-step`.
+- Vocabulary renames (defaults unchanged): run_pipeline/stem_map
+  `--cell-size`+`--threshold` -> `--stem-resolution`+`--stem-section`
+  (constants STEM_RESOLUTION/STEM_SECTION), canopy `--cell-size` ->
+  `--chm-resolution` (CHM_RESOLUTION, now defined in canopy_map instead of
+  borrowed from stem_map), terrain `--gen-cell-size` -> `--dtm-resolution`
+  (parameter dtm_resolution), env-sidecar key `gen_cell_size` ->
+  `dtm_resolution` (replicate.py, run_pipeline.py, scene_editor.py).
+  Importers (restructure, shrub_outputs) updated.
+- Shrub volume: `shrub_outputs.py` writes volume_m3 {primitive, mesh} only
+  (mesh = the actual jittered primitive, the shrub volume per the ruling;
+  voxel entry and voxel_volume_params removed); understory's
+  --occupied-voxel flags removed (they served only the shrub voxel
+  estimate); run_pipeline's --occupied-voxel flags remain, fanning to
+  build_info only (foliage + neighbor-class accounting; the FOLIAGE_VOXEL/
+  GRASS_VOXEL split is W16).
+- Spec corrected first (doc-first): the earlier Section 9 note claiming
+  the code used STEM_CELL_SIZE-style constants was wrong — the knobs are
+  per-script CLI flags.
+
+**Checks** (exit-0 gated):
+- `conda run -n ssf python check.py` -> exit 0 (28 files).
+- `conda run -n ssf python tests/run_all.py` -> exit 0: placement suite
+  with a new standing section 7 (rotation grid: every recorded rotation a
+  multiple of 30 deg in [0, 360); all 12 orientations across seeds
+  2000-2007), plus the pre-existing determinism/replay/chirality checks
+  all passing on the quantized draw; cross-artifact suite runs the full
+  pipeline through the renamed flags (stem/canopy 5 cm, DTM 0.25,
+  45-shrub understory), all invariants PASS.
+- Shrub volume schema: invariant-suite fixture (--keep) shows per-shrub
+  *_volume.json = {primitive, mesh} only.
+
+Known notes: same-seed fixture values shifted vs pre-W19 runs (the draw
+mechanism changed from uniform float to integer grid draws — expected, and
+per-seed determinism is preserved); scene_editor's GUI was not exercised
+(no display); CLI flag renames are breaking — old spellings are not
+aliased (checked no other caller in-repo).

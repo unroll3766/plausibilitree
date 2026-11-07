@@ -43,7 +43,7 @@ means fixed):
 |---|---|---|
 | DTM bumpiness | 0.2 : 0.8 | `gen_bumpiness` |
 | DTM relief | 3 : 15 m | `gen_relief` |
-| DTM cell size | fixed 1.0 | `gen_cell_size` |
+| DTM cell size | fixed 1.0 | `dtm_resolution` |
 | Ground density | 0.5 : 2.0 pts/cell | `ground_density` |
 | Ground noise | 0 : 0.03 m | `ground_noise` |
 | Shrub cover | 0.05 : 0.35 | `shrub_cover` |

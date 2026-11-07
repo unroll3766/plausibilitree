@@ -61,7 +61,8 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
       diameters are sampled from GUI ranges and completed via the same
       crown-width / taper allometry as fia_helper.
 - [ ] **Plot assembly** (`assemble_plot.py`): random z-rotation per tree about
-      its own base, placement from table X/Y, merged raw scene LAS.
+      its own base, quantized in `--rotation-step` degree steps (default 30),
+      placement from table X/Y, merged raw scene LAS.
 - [ ] **Collision trimming**: skeleton segment-segment distances with branch
       radii; trim rules (branch loses to trunk, shorter branch/stem loses,
       seeded and UID-based tiebreaks); the whole distal subtree is trimmed;
@@ -87,8 +88,8 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
       colored by semantic code, and export the settings as an env sidecar in
       the replicate schema.
 - [ ] **Per-shrub outputs** (`shrub_outputs.py`): shrub raw/understory clouds,
-      volume JSONs (primitive / mesh / occupied-voxel), per-shrub canopy and
-      stem maps.
+      volume JSONs (primitive / mesh, the sampled-shape volumes), per-shrub
+      canopy and stem maps.
 
 ## 3. Labels and outputs for ML/DL
 

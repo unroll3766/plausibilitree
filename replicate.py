@@ -58,7 +58,7 @@ import tree_list
 # keys written into each env sidecar; run_pipeline.py reads exactly these
 ENV_KEYS = [
     "seed",
-    "gen_cell_size", "gen_bumpiness", "gen_relief",
+    "dtm_resolution", "gen_bumpiness", "gen_relief",
     "ground_density", "ground_noise",
     "shrub_cover", "shrub_cell_size", "shrub_width_min", "shrub_width_max",
     "grass_cover", "grass_candidate_density", "canopy_attenuation",
@@ -67,7 +67,7 @@ ENV_KEYS = [
 
 # default draw ranges: uniform over (min, max); equal values = fixed
 DEFAULT_RANGES = {
-    "gen_cell_size": (1.0, 1.0),
+    "dtm_resolution": (1.0, 1.0),
     "gen_bumpiness": (0.2, 0.8),
     "gen_relief": (3.0, 15.0),
     "ground_density": (0.5, 2.0),
@@ -107,7 +107,7 @@ def draw_env(rng, ranges, dtm_files=None):
 
     env = {
         "seed": int(rng.integers(1, 2**31 - 1)),
-        "gen_cell_size": u("gen_cell_size"),
+        "dtm_resolution": u("dtm_resolution"),
         "gen_bumpiness": u("gen_bumpiness"),
         "gen_relief": u("gen_relief"),
         "ground_density": u("ground_density"),
@@ -246,7 +246,7 @@ def main():
                          "instead of synthesizing terrain")
     r = ap.add_argument_group("draw ranges", "uniform [min:max]; a single "
                                                 "value is fixed")
-    r.add_argument("--gen-cell-size", default=None, help="default 1.0:1.0")
+    r.add_argument("--dtm-resolution", default=None, help="default 1.0:1.0")
     r.add_argument("--bumpiness", default=None,
                    help="DTM bumpiness, default 0.2:0.8")
     r.add_argument("--relief", default=None, help="DTM relief (m), default 3:15")
@@ -270,7 +270,7 @@ def main():
     args = ap.parse_args()
 
     range_args = {
-        "gen_cell_size": args.gen_cell_size,
+        "dtm_resolution": args.dtm_resolution,
         "gen_bumpiness": args.bumpiness,
         "gen_relief": args.relief,
         "ground_density": args.ground_density,

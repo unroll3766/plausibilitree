@@ -92,8 +92,8 @@ def stem_discs_in_band(skel, z_lo, z_hi, n_samples=9):
     return discs
 
 BREAST_HEIGHT_M = 1.37       # DBH reference height (matches generate_trees.py)
-DEFAULT_CELL_SIZE = 0.05     # metres per pixel
-DEFAULT_THRESHOLD = 0.25     # half-thickness of the z-band, metres
+STEM_RESOLUTION = 0.05       # metres per pixel (spec STEM_RESOLUTION)
+STEM_SECTION = 0.25          # half-thickness of the DBH z-band, metres (spec STEM_SECTION)
 STEM_CLASS = schema.SEM_TREE       # trunk; stem map also includes SEM_BRANCH (2)
 STEM_CLASSES = (schema.SEM_TREE, schema.SEM_BRANCH)   # all woody stem
 
@@ -192,9 +192,9 @@ class RasterGrid:
 # ---------------------------------------------------------------------------
 
 def build_stem_map(csv_path, plot_dir=None,
-                   cell_size=DEFAULT_CELL_SIZE,
+                   cell_size=STEM_RESOLUTION,
                    dbh_height=BREAST_HEIGHT_M,
-                   threshold=DEFAULT_THRESHOLD,
+                   threshold=STEM_SECTION,
                    bbox_padding=1,
                    source="raw",
                    verbose=True):
@@ -456,19 +456,20 @@ def main():
     ap = argparse.ArgumentParser(description="Breast-height stem map raster for a plot")
     ap.add_argument("csv", nargs="+", help="plot table csv(s)")
     ap.add_argument("-d", "--plot-dir", default=None)
-    ap.add_argument("-c", "--cell-size", type=float, default=DEFAULT_CELL_SIZE,
-                    help="metres per pixel (default 0.01 = 1 cm)")
+    ap.add_argument("--stem-resolution", type=float, default=STEM_RESOLUTION,
+                    help=f"metres per pixel (default {STEM_RESOLUTION})")
     ap.add_argument("--dbh-height", type=float, default=BREAST_HEIGHT_M)
-    ap.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD,
-                    help="half-thickness of the z-band in metres (default 0.10)")
+    ap.add_argument("--stem-section", type=float, default=STEM_SECTION,
+                    help=f"half-thickness of the DBH z-band in metres "
+                         f"(default {STEM_SECTION})")
     ap.add_argument("--bbox-padding", type=int, default=1,
                     help="pixels of padding on each side of a tree bbox (default 1)")
     ap.add_argument("--source", default="raw", choices=["raw", "trimmed"])
     args = ap.parse_args()
 
     for path in args.csv:
-        build_stem_map(path, plot_dir=args.plot_dir, cell_size=args.cell_size,
-                       dbh_height=args.dbh_height, threshold=args.threshold,
+        build_stem_map(path, plot_dir=args.plot_dir, cell_size=args.stem_resolution,
+                       dbh_height=args.dbh_height, threshold=args.stem_section,
                        bbox_padding=args.bbox_padding, source=args.source)
 
 
