@@ -104,17 +104,17 @@ adds facts specific to this repository.
 - Point clouds: LAZ (LAS 1.4, point format 0) with the canonical
   extra-bytes dimensions of spec Section 8.3; artifacts go into the
   per-plot layout of spec Section 8.2.
-- Semantic codes (design target per notes.md): 0 ground, 1 trunk,
-  2 branch, 3 foliage, 8 shrub, 9 grass.
+- Semantic codes: 0 ground (also "no class needed"; ground/noise are the
+  traditional LAS classification's job), 1 trunk, 2 branch, 3 foliage,
+  8 shrub, 9 grass.
 - All stochastic draws derive from recorded seeds (spec principle 6):
   never use global random state in pipeline stages — take a seeded
   Generator.
 
 ## Register snapshot (2026-11-07)
-- Closed: W1-W4, W7, W11-W13, W17, W19.
+- Closed: W1-W4, W7, W11-W14, W17, W19.
 - Open: W5 (UTM internals + EPSG export), W6 (single plot cloud, opt-in
   derived stages, 2-band stem map), W8 (HELIOS++), W9 (polygon mesh),
-  W10 (downed woody debris), and the notes.md alignment round: W14
-  (semantic codes + per-point trimmed), W15 (element-graph skeleton),
-  W16 (info JSON schemas + FOLIAGE_VOXEL/GRASS_VOXEL split), W18
-  (parameter dict bounds).
+  W10 (downed woody debris), and the notes.md alignment round: W15
+  (element-graph skeleton), W16 (info JSON schemas + FOLIAGE_VOXEL/
+  GRASS_VOXEL split), W18 (parameter dict bounds).

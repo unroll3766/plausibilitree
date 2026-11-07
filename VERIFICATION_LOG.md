@@ -959,3 +959,40 @@ expected, each observed):
 - Confirmed in passing: tests/fixture.py runs `generate_dtm=True`, so the
   armed cross-artifact suite already executes the renamed
   --generate-dtm/--dtm-resolution terrain path on a rugged DTM.
+
+### 2026-11-07 — W14: notes.md semantic codes; trimmed dimension withdrawn (commit <pin>)
+
+Owner rulings applied: semantic 0 = ground and doubles as "no semantic
+class needed" — ground and noise are the traditional LAS classification's
+job, so the separate unassigned and noise semantic codes are gone (the
+interim 255/7 proposal is withdrawn; 255 was invalid for int8 anyway);
+no per-point `trimmed` dimension in final clouds — trimmed points are
+removed, structural record only (the earlier W14 reinstatement of the
+trimmed dim is itself withdrawn).
+
+**Code**: schema.py only — SEM_GROUND 0, SEM_SHRUB 8, SEM_GRASS 9;
+SEM_UNASSIGNED/SEM_NOISE deleted (their only consumers were the constant
+definitions and the default fill, now SEM_GROUND). All ~50 name-based
+consumers inherit; writers/readers iterate schema.PLOT_FIELDS. The
+hardcoded numeric sites found and updated: tests' understory masks
+(grass 6->0/9, understory pair [4,5]->[8,9], ground 6->0). colorize/
+normalize pass values through generically (palette by observed ids).
+
+**Docs**: spec Sections 3.2/3.4/7.5/8.3 + W14 row closed, registry
+rulings; README_schema code table + stage bullets; CHECKLIST Section 0;
+AGENTS conventions + register snapshot.
+
+**Checks** (exit-0 gated):
+- `conda run -n ssf python check.py` -> exit 0 (28 files; no dangling
+  SEM_UNASSIGNED/SEM_NOISE references).
+- `conda run -n ssf python tests/run_all.py` -> exit 0; new standing
+  invariants in cross-suite section F (understory semantic domain subset
+  {0,1,2,3,8,9}; shrubs carry 8; grass carries 9; ground carries 0) pass
+  on fixture data; the armed run's normalize output reads
+  semantic_code=[0, 1, 2, 3, 8, 9] from the on-disk plot cloud.
+
+**Regeneration caveat**: clouds generated before this change carry the
+old codes (4/5/6) — no migration; regenerate.
+
+**Not verified**: scene_editor's GUI colorization paths (no display);
+they read semantic_code generically per code review.

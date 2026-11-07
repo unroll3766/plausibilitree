@@ -99,7 +99,7 @@ seeded 50/50 mirror draw across the vertical plane through the tree's
 base, applied with the rotation at plot assembly. The parameter dictionary
 is JSON (`data/functional_groups.json`, Section 8.6).
 
-### 3.2 Collision trimming — **[partial]**
+### 3.2 Collision trimming — **[implemented]**
 
 Uses the per-tree skeletons to find intersections between different trees.
 For each tree, in ascending order of TREE_UID:
@@ -117,12 +117,12 @@ skeleton, so branches use `BRANCH_RADIUS_FRAC * branch_length`
 (`MIN_BRANCH_RADIUS` floor) as their collision radius; trunks use their taper
 radii; a `COLLISION_TOLERANCE` may relax both.
 
-Trimmed points are flagged per point on the `trimmed` dimension
-(Section 8.3) and removed from the cloud at trim time (final clouds carry
-surviving points only, reading `trimmed` = 0). Trimming is additionally
-recorded structurally: the trimmed tree skeletons carry `node_trimmed`
-flags, and the scene JSON records per-tree removed-point counts. The
-per-point `trimmed` dimension is not yet implemented in the code (item W14).
+Trimmed points are removed from the cloud at trim time (final clouds carry
+surviving points only). Trimming is recorded structurally: the trimmed
+tree skeletons carry `node_trimmed` flags, and the scene JSON records
+per-tree removed-point counts. Per the owner's ruling (2026-11-07) there
+is no per-point `trimmed` dimension — removed points leave no trace in the
+final clouds.
 
 ### 3.3 Topography — **[implemented]**
 
@@ -163,8 +163,7 @@ is identical).
 - **Shrubs first.** Each shrub is procedurally generated and placed at random
   within cover/pattern constraints; tree proximity is enforced via canopy
   attenuation. Any shrub point intersecting a tree point is removed.
-  Shrubs are labelled with `shrub_id` and the shrub semantic code (target 8
-  per notes.md; the code writes 4 today, item W14).
+  Shrubs are labelled with `shrub_id` and the shrub semantic code (8).
 - **Grass next.** Any grass point intersecting a tree point or a shrub point
   is removed. Grass carries no per-plant identity (semantics only).
 
@@ -533,9 +532,10 @@ table.
   compression via lazrs) as **LAS 1.4**, point format 0 — **[implemented]**
   (formats 0-5 remain valid in 1.4, so only the version tag changed;
   merged-file point counts are no longer uint32-capped). The added columns
-  notes.md lists (`tree_ID`, `semantic`, `branch_ID`, `branch_order`,
-  `trimmed`) map to the Section 8.3 dimensions; the per-point `trimmed`
-  column is pending (item W14).
+  notes.md lists (`tree_ID`, `semantic`, `branch_ID`, `branch_order`) map
+  to the Section 8.3 dimensions; `trimmed` is not implemented — trimmed
+  points are removed and recorded structurally only (owner ruling
+  2026-11-07, Section 3.2).
 
 ## 8. Data structures
 
@@ -592,7 +592,7 @@ parameter dictionary is JSON
     textual/        shrub info JSONs         (understory stage)
 ```
 
-### 8.3 Point cloud dimensions — **[partial]**
+### 8.3 Point cloud dimensions — **[implemented]**
 
 x, y, z plus:
 
@@ -605,13 +605,12 @@ x, y, z plus:
 | branch_code | int8 | 0 not-tree; 1 trunk; 2+ = branch element code |
 | branch_id | int32 | branch element identity within the plot (0 = unassigned) |
 | height_above_ground | float32 | z minus DTM at (x, y) |
-| trimmed | uint8 | 1 = point flagged for trim removal, 0 otherwise |
 
-Semantic codes (per notes.md): 0 ground, 1 trunk, 2 branch stem, 3 foliage,
-8 shrub, 9 grass. Under this scheme the codes the code uses today for
-unassigned (0) and noise (9) are taken; they need new values (interim
-proposal until notes.md rules: unassigned = 255, noise = 7; code still
-writes 0/4/5/6/9 today, item W14).
+Semantic codes (per notes.md, owner ruling 2026-11-07): 0 ground, 1 trunk,
+2 branch stem, 3 foliage, 8 shrub, 9 grass. Code 0 doubles as "no semantic
+class needed" — ground and noise are the traditional LAS classification's
+job (classification 2 ground, 7 noise); there are no separate unassigned
+or noise semantic codes.
 
 ### 8.4 Info JSONs — **[partial]**
 
@@ -803,7 +802,7 @@ matches the design).
 | W11 | Design defaults | align code defaults with Section 9: PLOT_RADIUS 7.315, DTM_CELL_SIZE 0.25, CANOPY_CELL_SIZE 0.05, STEM_CELL_SIZE 0.05 | closed |
 | W12 | LAS 1.4 writer | switch the canonical writer to LAS version 1.4 (point format 0 + extra bytes unchanged; Section 7.5) | closed |
 | W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | closed (tree-list part reversed; see W17) |
-| W14 | notes.md semantic codes + per-point trimmed | reinstate the notes.md semantic codes (0 ground, 8 shrub, 9 grass; new codes needed for unassigned/noise since 0 and 9 are taken) and the per-point `trimmed` dimension across schema, writers and stages (Sections 3.2, 3.4, 7.5, 8.3) | open |
+| W14 | notes.md semantic codes | semantic codes per notes.md: 0 ground (doubling as "no class needed" — ground/noise are the traditional LAS classification's job, so no separate unassigned/noise codes), 8 shrub, 9 grass (Sections 3.4, 8.3). The per-point `trimmed` dimension was withdrawn from the design (owner ruling 2026-11-07): trimmed points are removed, structural record only | closed |
 | W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | open |
 | W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_*; requires computing basal area and understory volume totals (Section 8.4) | open |
 | W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | closed |
@@ -902,3 +901,12 @@ Registry of resolved decisions (for provenance):
   env-sidecar key dtm_resolution), and shrub volume JSONs carry
   primitive + mesh only. W16 inherits the FOLIAGE_VOXEL / GRASS_VOXEL
   split of build_info's shared occupied-voxel accounting.
+- Owner rulings closing W14 (2026-11-07): semantic code 0 = ground and
+  doubles as "no semantic class needed" — ground and noise are the
+  traditional LAS classification's job, so there are no separate
+  unassigned or noise semantic codes (the earlier interim proposal of
+  255/7 is withdrawn; 255 was invalid for int8 anyway). The per-point
+  `trimmed` dimension is out of the design for good: trimmed points are
+  removed and recorded structurally (skeleton node_trimmed flags, scene
+  JSON counts) only. W14 closed with codes 0/1/2/3/8/9 in code and the
+  standing suites asserting the mapping.

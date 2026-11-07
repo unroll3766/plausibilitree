@@ -43,14 +43,16 @@ terrain/understory chain, whose per-tree crops are built from the plot cloud).
 
 | code | meaning |
 |---|---|
-| 0 | unassigned |
+| 0 | ground — also "no class needed" (ground/noise are the LAS classification's job) |
 | 1 | tree (trunk stem) |
 | 2 | branch (branch/fork stem) |
 | 3 | foliage |
-| 4 | shrub |
-| 5 | grass |
-| 6 | ground |
-| 9 | noise (reserved; nothing emits it yet) |
+| 8 | shrub |
+| 9 | grass |
+
+There are no separate unassigned or noise semantic codes: a point that
+needs no object identity is 0, and noise is the traditional LAS
+classification's concern (classification 7).
 
 ## LAS classification (uint8)
 
@@ -82,10 +84,10 @@ foliage (semantic 3) carries the branch element's code. Non-tree points
 - **assemble_plot** — resolves trunk (1) vs branch/fork (2) from the skeleton,
   sets `branch_code = order + 1`, assigns `branch_id`. **Trimming removes the
   collision points** (no flag): the trimmed cloud has fewer points than raw.
-- **terrain** — adds ground points (semantic 6, class 2), sets `classification`
+- **terrain** — adds ground points (semantic 0, class 2), sets `classification`
   by height above ground, fills `height_above_ground`. Tree `semantic_code`
   passes through unchanged.
-- **understory** — appends shrubs (semantic 4) and grass (semantic 5) with
+- **understory** — appends shrubs (semantic 8) and grass (semantic 9) with
   `shrub_id` on shrubs; classifies them by height.
 - **normalize** — its per-voxel categorical ratio columns come from
   `branch_code` (raw/trimmed source) or `semantic_code` (terrain/understory

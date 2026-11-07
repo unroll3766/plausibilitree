@@ -188,7 +188,7 @@ def run_checks(fixroot, plot_dir):
         os.path.join(place, "las", f"{uid_tag}_understory.laz"), level="plot")
     sem = ucols["semantic_code"]
     hag = ucols["height_above_ground"].astype(float)
-    ground = sem == 6
+    ground = sem == 0
     check("understory cloud finite",
           np.all(np.isfinite(uxyz)) and np.all(np.isfinite(hag)))
     check("ground HAG == 0 exactly (this run draws no ground noise)",
@@ -206,7 +206,7 @@ def run_checks(fixroot, plot_dir):
         gz = float(dtm.sample([row["X"]], [row["Y"]])[0])
         check(f"tree {uid} lowest point on DTM at its (X,Y)",
               abs(zmin - gz) < 1.5e-3, f"{zmin:.4f} vs {gz:.4f}")
-    under = np.isin(sem, [4, 5])
+    under = np.isin(sem, [8, 9])
     check("shrub+grass HAG >= -1.5 mm (per-point draping)",
           float(hag[under].min()) >= -1.5e-3,
           f"min {hag[under].min():.4f}")
@@ -215,8 +215,14 @@ def run_checks(fixroot, plot_dir):
         check("ground on the DTM (2.5 mm = xy-quant x slope + z scale)",
               np.abs(gz - uxyz[ground][:, 2]).max() < 2.5e-3)
 
-    print("== F. understory domains ==")
-    grass = sem == 5
+    print("== F. understory domains (notes.md semantic codes, W14) ==")
+    check("understory semantic domain is the notes.md set",
+          set(np.unique(sem)).issubset({0, 1, 2, 3, 8, 9}),
+          str(sorted(set(np.unique(sem)))))
+    check("shrubs carry semantic 8", int((sem == 8).sum()) > 0)
+    check("grass carries semantic 9", int((sem == 9).sum()) > 0)
+    check("ground carries semantic 0", int((sem == 0).sum()) > 0)
+    grass = sem == 9
     check("grass z above ground", float(uxyz[grass][:, 2].min()) > -0.01)
     check("all points within 1.5x plot radius",
           np.hypot(*uxyz[:, :2].T).max() <= 1.5 * scene["plot_radius_m"])

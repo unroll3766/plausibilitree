@@ -12,8 +12,9 @@ Point rows are always x, y, z, plus these extra dims. Two schemas:
   TREE  : the above + branch_id
 
 Semantic code (int8):
-  0 unassigned, 1 tree(trunk stem), 2 branch(branch stem), 3 foliage,
-  4 shrub, 5 grass, 6 ground, 9 noise
+  0 ground (also "no class needed" — ground/noise are the traditional LAS
+  classification's job, so there are no separate unassigned/noise codes),
+  1 tree(trunk stem), 2 branch(branch stem), 3 foliage, 8 shrub, 9 grass
 LAS classification (uint8): 2 ground, 3 low veg, 4 med veg, 5 high veg, 7 noise
 Branch code (int8): 0 not-tree, 1 trunk, 2 connected-to-trunk, 3 connected-to-2,
   ... (== the old branch_order + 1 on tree points)
@@ -36,14 +37,15 @@ from __future__ import annotations
 import numpy as np
 
 # ---- semantic codes -------------------------------------------------------
-SEM_UNASSIGNED = 0
+# 0 doubles as "no semantic class needed": ground and noise are the
+# traditional LAS classification's job (Section 8.3), so there are no
+# separate unassigned or noise semantic codes.
+SEM_GROUND = 0
 SEM_TREE = 1        # trunk stem
 SEM_BRANCH = 2      # branch stem
 SEM_FOLIAGE = 3
-SEM_SHRUB = 4
-SEM_GRASS = 5
-SEM_GROUND = 6
-SEM_NOISE = 9
+SEM_SHRUB = 8
+SEM_GRASS = 9
 
 # ---- LAS classification codes --------------------------------------------
 LAS_GROUND = 2
@@ -60,7 +62,7 @@ BRANCH_NONE = 0     # not a tree point
 _PLOT_DIMS = [
     ("tree_id",             np.int32,   0),
     ("shrub_id",            np.int32,   0),
-    ("semantic_code",       np.int8,    SEM_UNASSIGNED),
+    ("semantic_code",       np.int8,    SEM_GROUND),
     ("classification",      np.uint8,   0),
     ("branch_code",         np.int8,    BRANCH_NONE),
     ("branch_id",           np.int32,   0),

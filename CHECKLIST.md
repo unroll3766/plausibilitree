@@ -7,8 +7,9 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
 ## 0. Core vocabulary (build first — everything depends on it)
 
 - [ ] **Canonical per-point schema** (`schema.py`): x/y/z plus 7 extra dims —
-      `tree_id` (i32), `shrub_id` (i32), `semantic_code` (i8: 0 unassigned,
-      1 trunk, 2 branch stem, 3 foliage, 4 shrub, 5 grass, 6 ground, 9 noise),
+      `tree_id` (i32), `shrub_id` (i32), `semantic_code` (i8: 0 ground / no
+      class needed, 1 trunk, 2 branch stem, 3 foliage, 8 shrub, 9 grass;
+      no separate unassigned/noise codes — LAS classification handles them),
       `classification` (u8: 2 ground, 3/4/5 low/med/high veg, 7 noise),
       `branch_code` (i8, branch order + 1), `branch_id` (i32),
       `height_above_ground` (f32). One schema for plot and tree clouds; dims

@@ -31,3 +31,9 @@ Re-entries only when behavior changes. Long-form narrative lives in
   sidecar round-trip executed (dtm_resolution key) through a full
   run_pipeline on a legacy SST replicate (1 ok, exit 0); scene JSON
   records rotation_step_deg 30.0 with rotations on the grid.
+- 2026-11-07 — W14 semantic codes (notes.md values): schema 0 ground
+  (doubles as "no class needed"; no separate unassigned/noise codes —
+  LAS classification handles them), 8 shrub, 9 grass; check.py exit 0;
+  tests/run_all.py exit 0 with new standing invariants (understory
+  domain subset {0,1,2,3,8,9}, shrubs=8, grass=9, ground=0); observed
+  plot cloud reads semantic_code=[0,1,2,3,8,9].
