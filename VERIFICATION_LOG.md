@@ -1169,3 +1169,36 @@ record per se.
   (scene "branch_order_encoding" now names las_field branch_code and
   points at the skeleton fields). check.py exit 0; run_all.py re-run exit 0
   (210 PASS, 0 FAIL).
+
+### 2026-11-10 — W16 closed: info JSON schema per notes.md (commit a5a686c)
+
+- Plot and tree info JSONs now carry the notes.md field names as
+  top-level keys; the old tree_characteristics / vegetation_characteristics
+  nestings are gone. Extension data (plot uid/coord-system/units, canopy
+  hull total, shrub primitive reference, realized grass cover,
+  neighborhoods) lives in separate meta/canopy/grass/shrubs/neighborhood
+  blocks. BOUNDING_BOX is the notes.md 6-float form
+  [x_min, y_min, z_min, x_max, y_max, z_max].
+- Shrub/grass/object volumes: VOL_SHRUB sums the per-shrub mesh volumes
+  (sampled shape, as ruled), VOL_GRASS voxelizes at GRASS_VOXEL,
+  VOL_FOLIAGE at FOLIAGE_VOXEL -- the shared --occupied-voxel-size knob
+  split into --foliage-voxel/--grass-voxel with a shared
+  --voxel-threshold (build_info CLI + run_pipeline flags; the invariant
+  suite asserts VOL_SHRUB against an independent mesh recompute).
+- Path fields resolve against the plot dir and the suite checks they
+  exist: CHM_PATH (canopy_map_raw.tif), STEM_PATH (stem_map_raw.tif),
+  PLAUSIBILITREE_CONFIGURATION (scene JSON; notes.md's
+  "CONFIGURAITION" spelling corrected, owner-approved). PLOT_CENTER is
+  present only when the FIA input carried lat/lon/elev (absent in the
+  local fixture); DTM_PATH rides along when a plot DTM exists.
+- TREE_Z = mean height-above-ground of the tree's points from the
+  understory cloud (fallback: centroid z above the tree cloud's lowest
+  point); TREE_X/TREE_Y stay the tree-list base position, TREE_DBH the
+  taper diameter at 1.37 m, TREE_HT the skeleton height; VOL_TREE =
+  trunk + branch + foliage (suite asserts the identity).
+- Verification: check.py exit 0; tests/run_all.py exit 0 (221 PASS,
+  0 FAIL); a --keep run of the invariant suite was inspected by eye
+  (plot 11839: NUM_TREES 6, NUM_SHRUBS 45, PLOT_AREA = pi r^2 exact,
+  VOL_TREES 114.013 == sum of tree VOL_TREE 69.299 + ...), then removed.
+  The first full-suite run caught a residual dict-style bbox index in
+  _shrub_neighborhood (fixed; suite then green end to end).
