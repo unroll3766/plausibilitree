@@ -28,6 +28,7 @@ Exit 0 = all checks passed.
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import math
 import os
@@ -142,12 +143,10 @@ def run_checks(fixroot, plot_dir):
                                   np.hypot(*(pts - (a_ + t[:, None] * dv)).T))
         check(f"{uid} stem points hug the skeleton (max {dmin.max():.3f} m)",
               dmin.max() < 1.0)
-        bb = ti["meta"]["bounding_box"]
+        bb = ti["BOUNDING_BOX"]
         check(f"{uid} info bbox == cloud bounds (1 mm)",
-              np.allclose([bb["x_min"], bb["y_min"], bb["z_min"]],
-                          xyz.min(axis=0), atol=1e-3)
-              and np.allclose([bb["x_max"], bb["y_max"], bb["z_max"]],
-                              xyz.max(axis=0), atol=1e-3))
+              np.allclose(bb[:3], xyz.min(axis=0), atol=1e-3)
+              and np.allclose(bb[3:], xyz.max(axis=0), atol=1e-3))
         zmax_poly = max(float(np.asarray(pl, dtype=float)[:, 2].max())
                         for pl in sk["trunk"]["polylines"])
         check(f"{uid} trunk z-extent == height_m",
@@ -156,8 +155,7 @@ def run_checks(fixroot, plot_dir):
               float(xyz[:, 2].max()) <= sk["height_m"] + 1.5)
         r_bh = sk["base_radius_m"] * (1 - 1.37 / sk["height_m"])
         check(f"{uid} info dbh == 2 x taper radius at 1.37 m",
-              abs(ti["tree_characteristics"]["dbh_m"]
-                  - 2 * max(r_bh, 1e-3)) < 1e-9)
+              abs(ti["TREE_DBH"] - 2 * max(r_bh, 1e-3)) < 1e-9)
         check(f"{uid} tree-cloud semantics in 1/2/3",
               set(np.unique(cols["semantic_code"])) <= {1, 2, 3})
 
@@ -172,7 +170,7 @@ def run_checks(fixroot, plot_dir):
         vol = sum(frustum_volume(np.asarray(pl, dtype=float),
                                  sk["base_radius_m"], sk["height_m"])
                   for pl in sk["trunk"]["polylines"])
-        reported = ti["tree_characteristics"]["volume_m3"]["trunk"]
+        reported = ti["VOL_TRUNK"]
         check(f"{uid} trunk frustum volume {vol:.3f} == info {reported:.3f}",
               abs(vol - reported) < 1e-3)
 
@@ -225,12 +223,50 @@ def run_checks(fixroot, plot_dir):
     check("ground carries semantic 0", int((sem == 0).sum()) > 0)
     pi = json.load(open(os.path.join(
         place, "textual", f"{uid_tag}_info.json")))
-    sh = pi["vegetation_characteristics"]["shrubs"]
-    check(f"plot info counts its shrubs (n={sh['n_shrubs']}, "
-          f"total {sh['total_volume_m3']:.2f} m3)",
-          sh["n_shrubs"] > 0 and sh["total_volume_m3"] > 0.0)
-    check("shrub totals come from the sampled shape (mesh), never voxels",
-          set(sh) == {"n_shrubs", "total_volume_m3", "primitive_reference_m3"})
+    check("plot info carries the notes.md required keys (W16)",
+          {"NUM_TREES", "BASAL_AREA", "NUM_SHRUBS", "VOL_TREES", "VOL_TRUNK",
+           "VOL_BRANCH", "VOL_FOLIAGE", "VOL_SHRUB", "VOL_GRASS",
+           "PLOT_SHAPE", "PLOT_AREA", "BOUNDING_BOX", "CHM_PATH",
+           "STEM_PATH", "PLAUSIBILITREE_CONFIGURATION"} <= set(pi))
+    check(f"plot info NUM_TREES == table rows ({pi['NUM_TREES']})",
+          pi["NUM_TREES"] == len(table))
+    tree_infos = [json.load(open(os.path.join(
+        treed(str(r["TREE_UID"])), "textual",
+        f"{uid_tag}_{r['TREE_UID']}_info.json")))
+        for _, r in table.iterrows()]
+    ba = sum(np.pi * (t["TREE_DBH"] / 2.0) ** 2 for t in tree_infos)
+    check("plot info BASAL_AREA == sum of per-tree taper basal areas",
+          abs(pi["BASAL_AREA"] - ba) < 1e-9)
+    check("plot info VOL_TREES == sum of per-tree VOL_TREE",
+          abs(pi["VOL_TREES"] - sum(t["VOL_TREE"] for t in tree_infos))
+          < 1e-9)
+    check("VOL_TREE == trunk + branch + foliage in every tree info",
+          all(abs(t["VOL_TREE"] - t["VOL_TRUNK"] - t["VOL_BRANCH"]
+                  - t["VOL_FOLIAGE"]) < 1e-12 for t in tree_infos))
+    check(f"plot info counts its shrubs (n={pi['NUM_SHRUBS']}, "
+          f"total {pi['VOL_SHRUB']:.2f} m3)",
+          pi["NUM_SHRUBS"] > 0 and pi["VOL_SHRUB"] > 0.0)
+    check("tree info carries the notes.md required keys (W16)",
+          {"TREE_UID", "TREE_DBH", "TREE_HT", "TREE_X", "TREE_Y", "TREE_Z",
+           "VOL_TREE", "VOL_TRUNK", "VOL_BRANCH", "VOL_FOLIAGE",
+           "BOUNDING_BOX"}
+          <= set(tree_infos[0]))
+    shrub_mesh = sum(
+        (json.load(open(fp)).get("volume_m3", {}) or {}).get("mesh") or 0.0
+        for fp in glob.glob(os.path.join(
+            plot_dir, "individual_shrubs", f"{uid_tag}_shrub_*",
+            "deep_learning", "volume", "labels", "*_volume.json")))
+    check("VOL_SHRUB == recomputed sum of per-shrub mesh volumes "
+          "(sampled shape, never voxels)",
+          abs(pi["VOL_SHRUB"] - shrub_mesh) < 1e-9)
+    check("VOL_GRASS is a non-negative occupied-voxel volume",
+          pi["VOL_GRASS"] >= 0.0)
+    check("PLOT_AREA == pi r^2 for the circular fixture",
+          abs(pi["PLOT_AREA"] - np.pi * scene["plot_radius_m"] ** 2) < 1e-9)
+    for key in ("CHM_PATH", "STEM_PATH", "PLAUSIBILITREE_CONFIGURATION"):
+        check(f"{key} points at an existing file",
+              pi[key] is not None
+              and os.path.exists(os.path.join(plot_dir, pi[key])))
     grass = sem == 9
     check("grass z above ground", float(uxyz[grass][:, 2].min()) > -0.01)
     check("all points within 1.5x plot radius",

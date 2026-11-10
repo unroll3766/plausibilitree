@@ -179,15 +179,15 @@ Interaction rules (collision trimming against debris, shrub/grass removal
 against debris points, semantic codes, volume accounting) will be specified
 as part of W10.
 
-### 3.6 Info JSONs — **[partial]**
+### 3.6 Info JSONs — **[implemented]**
 
 After all clouds exist, plot-level and tree-level info JSONs are written
-(Section 8.4): trunk (frustum sum along the skeleton with taper radii),
-branch (cylinder per branch element), foliage (occupied-voxel volume),
-canopy (convex-hull volume of foliage) — one post-trim value each, no
-pre-trim variants (Section 3.2). The notes.md field names and totals
-(NUM_TREES, BASAL_AREA, VOL_SHRUB, VOL_GRASS, ...) are pending (item
-W16).
+(Section 8.4) under the notes.md field names: trunk (frustum sum along
+the skeleton with taper radii), branch (cylinder per branch element),
+foliage (occupied-voxel volume at FOLIAGE_VOXEL), grass (occupied-voxel
+volume at GRASS_VOXEL), canopy (convex-hull volume of foliage; spec
+extension) — one post-trim value each, no pre-trim variants
+(Section 3.2).
 
 ## 4. Core outputs
 
@@ -633,46 +633,55 @@ class needed" — ground and noise are the traditional LAS classification's
 job (classification 2 ground, 7 noise); there are no separate unassigned
 or noise semantic codes.
 
-### 8.4 Info JSONs — **[partial]**
+### 8.4 Info JSONs — **[implemented]**
 
-Plot info (`<PLOT_UID>_info.json`), required attributes (per notes.md):
+Plot info (`<PLOT_UID>_info.json`), required attributes (per notes.md;
+top-level keys, no nesting):
 
 | Attribute | Type | Description |
 |---|---|---|
 | NUM_TREES | int | number of trees contained in the plot |
 | NUM_SHRUBS | int | number of shrubs contained in the plot |
 | BASAL_AREA | float | basal area of the plot's trees, m² (sum of pi * (DBH/2)²) |
-| PLOT_SHAPE | string | CIRCLE or RECTANGLE |
-| PLOT_AREA | float | plot area, m² |
-| BOUNDING_BOX | 6 floats | 3D bounding box of the point cloud; EPSG:4326/5773 when the plot center is known, else local metres |
+| PLOT_SHAPE | string | "circle" or "rectangle" |
+| PLOT_AREA | float | plot area, m² (pi * r² or length * width, from the scene JSON) |
+| BOUNDING_BOX | 6 floats | [x_min, y_min, z_min, x_max, y_max, z_max]; EPSG:4326/5773 when the plot center is known, else local metres |
 | VOL_TREES | float | sum of every tree's volume |
 | VOL_TRUNK | float | sum of trunk volumes (from the tree/skeleton JSONs) |
 | VOL_BRANCH | float | sum of branch volumes (from the tree/skeleton JSONs) |
 | VOL_FOLIAGE | float | sum of foliage volumes (voxelized at FOLIAGE_VOXEL) |
 | VOL_SHRUB | float | sum of shrub volumes (from the per-shrub JSONs) |
 | VOL_GRASS | float | volume of all grass points (voxelized at GRASS_VOXEL) |
-| CHM_PATH | string | relative path to the generated canopy height map |
-| STEM_PATH | string | relative path to the generated stem map |
-| configuration record path | string | relative path to the JSON recording the settings used |
+| CHM_PATH | string | relative path to the generated canopy height map; null when the stage did not run |
+| STEM_PATH | string | relative path to the generated stem map; null when the stage did not run |
+| PLAUSIBILITREE_CONFIGURATION | string | relative path to the JSON recording the settings used (the scene JSON). notes.md's spelling is "PLAUSIBILITREE_CONFIGURAITION"; the corrected spelling is used (owner-approved 2026-11) |
 
-Optional: PLOT_CENTER (lon, lat, elev in EPSG:4326/5773).
+Optional: PLOT_CENTER (lon, lat, elev in EPSG:4326/5773, present only
+when the FIA input carried the pass-through columns) and DTM_PATH
+(relative path to the plot DTM, present only when it was generated).
 
 Tree info (per tree), required attributes (per notes.md): TREE_UID,
 TREE_DBH (may differ from the tree list DBH), TREE_HT (may differ from the
-tree list HT), TREE_X, TREE_Y, TREE_Z (position; X/Y match the tree list,
-Z often varies from it), VOL_TREE (trunk + branch + foliage), VOL_TRUNK,
-VOL_BRANCH, VOL_FOLIAGE, BOUNDING_BOX. Optional: TREE_CENTER_REAL (lon,
-lat, elev; base-of-tree elevation).
+tree list HT), TREE_X, TREE_Y (base position; match the tree list),
+TREE_Z (centroid height above the tree's base: mean height-above-ground
+of the tree's points from the understory cloud, falling back to the
+centroid height above the lowest point of the tree cloud when no
+understory cloud exists; varies from the tree list z), VOL_TREE (trunk +
+branch + foliage), VOL_TRUNK, VOL_BRANCH, VOL_FOLIAGE, BOUNDING_BOX (6
+floats, same form as the plot info). Optional: TREE_CENTER_REAL (lon,
+lat, elev; base-of-tree elevation) — pending EPSG export (item W5), so
+absent in current output.
 
-Current code (fields beyond the notes.md set are retained as extensions
-where useful): the plot info writes plot_uid, plot_shape, n_trees,
-n_shrubs, bounding box, volumes {trunk, branch, foliage, canopy}
-(single post-trim values, Section 3.2), heights (voxel counts / percentiles), vegetation
-characteristics (percent cover, per-shrub mesh-volume totals, grass cover
-and volume, basal_area_m2) and `meta`;
-BASAL_AREA and the notes.md field names (NUM_TREES, VOL_*) are still
-pending — item W16.
-Shrub info analogous per shrub.
+Fields beyond the notes.md set are retained as extensions: `meta`
+(plot_uid / tree_uid, coordinate_system, units), `canopy` (per-plot
+total or per-tree convex-hull volume, crown major/minor axes for trees),
+`grass` (realized percent cover, plot info only), `shrubs`
+(primitive-volume analytic reference, plot info only), and per-tree /
+per-shrub `neighborhood` voxel-compaction records (extension volumes
+measured at FOLIAGE_VOXEL so all class proportions share one basis).
+The old tree_characteristics / vegetation_characteristics nestings are
+gone. Shrub info is unchanged (notes.md defines no per-shrub info
+schema): meta + shrub_characteristics + neighborhood.
 
 Volume methods: trunk = frustum sum along skeleton centerlines with taper
 radii; branch = cylinder per branch (pi r^2 L); foliage = occupied-voxel
@@ -680,7 +689,10 @@ volume at FOLIAGE_VOXEL; grass at GRASS_VOXEL; shrub = sampled-shape
 volume — the actual (jittered) primitive mesh that produced the shrub's
 points (per the notes.md ruling, never occupied-voxel; the nominal
 ellipsoid (4/3) pi (w/2)^2 (h/2) is the analytic reference); canopy =
-convex-hull volume of foliage (spec extension).
+convex-hull volume of foliage (spec extension). FOLIAGE_VOXEL and
+GRASS_VOXEL are separate knobs (--foliage-voxel, --grass-voxel; both
+default 0.1 per notes.md) with a shared occupancy threshold
+(--voxel-threshold, default 1).
 
 ### 8.5 Scene JSON — **[implemented]**
 
@@ -826,7 +838,7 @@ matches the design).
 | W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | closed (tree-list part reversed; see W17) |
 | W14 | notes.md semantic codes | semantic codes per notes.md: 0 ground (doubling as "no class needed" — ground/noise are the traditional LAS classification's job, so no separate unassigned/noise codes), 8 shrub, 9 grass (Sections 3.4, 8.3). The per-point `trimmed` dimension was withdrawn from the design (owner ruling 2026-11-07): trimmed points are removed, structural record only | closed |
 | W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | closed (per-element trimmed flags on trimmed variants ride with W16) |
-| W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_* — adopt the notes.md field names over the current tree_characteristics/vegetation_characteristics nesting; split build_info's shared occupied-voxel accounting into FOLIAGE_VOXEL / GRASS_VOXEL (Section 8.4) | open |
+| W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_* — adopt the notes.md field names over the current tree_characteristics/vegetation_characteristics nesting; split build_info's shared occupied-voxel accounting into FOLIAGE_VOXEL / GRASS_VOXEL (Section 8.4) | closed |
 | W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | closed |
 | W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | open |
 | W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | closed (FOLIAGE_VOXEL/GRASS_VOXEL split deferred to W16) |
@@ -960,3 +972,19 @@ Registry of resolved decisions (for provenance):
   call. A latent bug also fixed here: the plot info's shrub totals read
   a shrub_index.json no stage writes (always zero); they now sum the
   per-shrub mesh volumes.
+- Ninth code-alignment round (2026-11): W16 closed — the plot and tree
+  info JSONs carry the notes.md field names as top-level keys (NUM_TREES,
+  BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS,
+  PLOT_SHAPE, PLOT_AREA, BOUNDING_BOX as 6 floats, CHM_PATH/STEM_PATH,
+  PLAUSIBILITREE_CONFIGURATION; per-tree TREE_UID/DBH/HT/X/Y/Z and
+  VOL_TREE/TRUNK/BRANCH/FOLIAGE), the extension fields moved out of the
+  old tree_characteristics/vegetation_characteristics nestings into
+  meta/canopy/grass/shrubs/neighborhood blocks, and build_info's shared
+  occupied-voxel knob split into FOLIAGE_VOXEL and GRASS_VOXEL
+  (--foliage-voxel/--grass-voxel, shared --voxel-threshold; neighborhood
+  extension proportions measure at FOLIAGE_VOXEL). TREE_Z = mean
+  height-above-ground of the tree's points (understory cloud), with the
+  tree-cloud fallback documented in Section 8.4. Owner-approved
+  deviation: the config-record field is spelled
+  PLAUSIBILITREE_CONFIGURATION (notes.md's "CONFIGURAITION" is a typo).
+  Optional DTM_PATH rides along when a plot DTM exists.

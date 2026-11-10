@@ -132,7 +132,7 @@ def run_pipeline(plotdir, *,
                  terrain_source="trimmed",
                  understory=False, shrub_cover=0.15, shrub_cell_size=2.0,
                  shrub_width_min=0.8, shrub_width_max=1.6,
-                 occupied_voxel_size=0.1, occupied_voxel_threshold=1,
+                 foliage_voxel=0.1, grass_voxel=0.1, voxel_threshold=1,
                  grass_cover=0.6, grass_candidate_density=200.0,
                  canopy_attenuation=0.3,
                  rotation_step=30.0,
@@ -266,8 +266,9 @@ def run_pipeline(plotdir, *,
 
     # info JSONs (plot + per-tree) are always built last, after every cloud,
     # skeleton and map exists. Replaces the old per-tree/plot volume JSONs.
-    info_args = ["--occupied-voxel-size", occupied_voxel_size,
-                 "--occupied-voxel-threshold", occupied_voxel_threshold]
+    info_args = ["--foliage-voxel", foliage_voxel,
+                 "--grass-voxel", grass_voxel,
+                 "--voxel-threshold", voxel_threshold]
     stages.append(("build_info.py", lambda c: [c, *info_args]))
 
     ok, failed = [], []
@@ -398,10 +399,13 @@ def main():
     ap.add_argument("--grass-cover", type=float, default=0.6)
     ap.add_argument("--grass-candidate-density", type=float, default=200.0)
     ap.add_argument("--canopy-attenuation", type=float, default=0.3)
-    ap.add_argument("--occupied-voxel-size", type=float, default=0.1,
-                    help="voxel edge (m) for foliage / neighbor-class volume "
+    ap.add_argument("--foliage-voxel", type=float, default=0.1,
+                    help="FOLIAGE_VOXEL: voxel edge (m) for foliage volume "
                          "accounting in build_info (default 0.1)")
-    ap.add_argument("--occupied-voxel-threshold", type=int, default=1,
+    ap.add_argument("--grass-voxel", type=float, default=0.1,
+                    help="GRASS_VOXEL: voxel edge (m) for grass volume "
+                         "accounting in build_info (default 0.1)")
+    ap.add_argument("--voxel-threshold", type=int, default=1,
                     help="min points for an occupied voxel (default 1)")
     # normalize
     ap.add_argument("--max-density", type=int, default=5000)
@@ -457,8 +461,9 @@ def main():
         ground_noise=args.ground_noise, terrain_source=args.terrain_source,
         understory=args.understory, shrub_cover=args.shrub_cover,
         shrub_width_min=args.shrub_width_min, shrub_width_max=args.shrub_width_max,
-        occupied_voxel_size=args.occupied_voxel_size,
-        occupied_voxel_threshold=args.occupied_voxel_threshold,
+        foliage_voxel=args.foliage_voxel,
+        grass_voxel=args.grass_voxel,
+        voxel_threshold=args.voxel_threshold,
         shrub_cell_size=args.shrub_cell_size, grass_cover=args.grass_cover,
         grass_candidate_density=args.grass_candidate_density,
         canopy_attenuation=args.canopy_attenuation,

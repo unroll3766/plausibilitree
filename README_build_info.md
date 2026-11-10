@@ -12,51 +12,66 @@ individual_trees/<plot>_<uid>/textual/<plot>_<uid>_info.json   (one per tree)
 
 ## Plot-level schema
 
+notes.md field names at the top level (spec 8.4), extension blocks below them:
+
 ```
-meta: plot_uid, coordinate_system, units, plot_shape, plot_center, bounding_box
-vegetation_characteristics:
-  trees:
-    n_trees, basal_area_m2
-    total_volume_m3                        = trunk + branch + foliage
-    trunk_volume_m3
-    branch_volume_m3
-    foliage_volume_m3
-    canopy_volume_m3
-  shrubs:
-    n_shrubs, total_volume_m3, primitive_reference_m3
-  grass:
-    percent_cover, total_volume_m3
+NUM_TREES                      int
+BASAL_AREA                     float, m^2 (sum of pi * (TREE_DBH/2)^2)
+NUM_SHRUBS                     int
+VOL_TREES                      float, sum of every tree's VOL_TREE
+VOL_TRUNK  VOL_BRANCH  VOL_FOLIAGE   float, sums over tree info JSONs
+VOL_SHRUB                      float, sum of per-shrub mesh volumes
+VOL_GRASS                      float, occupied-voxel at GRASS_VOXEL
+PLOT_SHAPE                     "circle" | "rectangle"
+PLOT_AREA                      float, m^2 (pi*r^2 or length*width)
+BOUNDING_BOX                   [x_min, y_min, z_min, x_max, y_max, z_max]
+CHM_PATH                       relative path, null if the stage did not run
+STEM_PATH                      relative path, null if the stage did not run
+PLAUSIBILITREE_CONFIGURATION   relative path to the scene JSON (settings record)
+PLOT_CENTER                    optional [lon, lat, elev]; present only when the
+                               FIA input carried the pass-through columns
+DTM_PATH                       optional relative path; present only when a plot
+                               DTM was generated
+meta: plot_uid, coordinate_system, units
+canopy: convex_hull_volume_m3         (plot-total foliage hull volume)
+shrubs: primitive_reference_m3        (analytic reference; VOL_SHRUB is the mesh)
+grass: percent_cover                  (realized; measured from the cloud)
 ```
 
-`meta.plot_center` is `{lat, lon, elev_m}`, read from the scene JSON's
-`plot_lat`/`plot_lon`/`plot_elev` (see README_assembly.md's "Scene metadata"),
-which are themselves a straight pass-through of the FIA input's LAT/LON/ELEV
-by `fia_helper.py` (README_fia_helper.md). All three are `null` if the FIA
-input didn't carry them. This is plot-center metadata, not per-tree — tree-
-and shrub-level info JSONs don't repeat it.
+`PLOT_CENTER` is read from the scene JSON's `plot_lat`/`plot_lon`/`plot_elev`
+(see README_assembly.md), a straight pass-through of the FIA input's
+LAT/LON/ELEV by `fia_helper.py`. notes.md's spelling of the configuration
+field is "PLAUSIBILITREE_CONFIGURAITION"; the corrected spelling is used
+(owner-approved).
 
 ## Tree-level schema
 
 ```
-meta: tree_uid, plot_uid, coordinate_system, units, bounding_box
-tree_characteristics:
-  center [x, y], dbh_m, height_m
-  canopy:
-    convex_hull_volume_m3
-    major_axis {length_m, orientation_deg}
-    minor_axis {length_m, orientation_deg}
-  volume_m3:
-    trunk
-    branch
-    foliage
-neighborhood:
-  n_other_trees_in_bbox, n_shrubs_in_bbox
-  target_voxel_volume_m3
-  proportion_target_vs_other_trees
-  proportion_target_vs_shrubs
-  proportion_target_vs_grass
-  proportion_target_vs_all_other_veg
+TREE_UID    string              TREE_HT   float, m
+TREE_DBH    float, m (taper)    TREE_X    float, m (base, matches tree list)
+TREE_Z      float, m            TREE_Y    float, m (base, matches tree list)
+VOL_TREE    = VOL_TRUNK + VOL_BRANCH + VOL_FOLIAGE
+VOL_TRUNK   VOL_BRANCH   VOL_FOLIAGE    float, m^3
+BOUNDING_BOX                  [x_min, y_min, z_min, x_max, y_max, z_max]
+meta: plot_uid, coordinate_system, units
+canopy: convex_hull_volume_m3, major_axis, minor_axis
+neighborhood: (unchanged; see below)
 ```
+
+`TREE_Z` is the centroid height above the tree's base: the mean
+height-above-ground of the tree's points in the understory cloud, falling
+back to the centroid height above the lowest point of the tree cloud when
+no understory cloud exists. `TREE_CENTER_REAL` (notes.md optional) is
+absent until EPSG export lands (register item W5).
+
+`canopy.major_axis` / `canopy.minor_axis` are `{length_m, orientation_deg}`
+(crown hull in x-y; major = longest chord, minor = widest span
+perpendicular to it).
+
+## Shrub-level schema
+
+Unchanged (notes.md defines no per-shrub info schema): `meta` +
+`shrub_characteristics` + `neighborhood`, as before.
 
 ## How each value is derived
 
@@ -71,15 +86,16 @@ is the taper radius at the branch's base height; trimmed branches are physically
 absent from the skeleton.
 
 **Foliage volume** — occupied-voxel volume of the foliage points
-(`semantic_code == 3`): voxelize at `occupied_voxel_size`, count voxels holding
-`>= occupied_voxel_threshold` points, times the voxel cell volume, over the
+(`semantic_code == 3`): voxelize at `--foliage-voxel` (FOLIAGE_VOXEL), count voxels holding
+`>= --voxel-threshold` points, times the voxel cell volume, over the
 surviving (trimmed) cloud.
 
 **Canopy volume** — convex-hull volume of the foliage points, read from the
 per-tree `canopy_convex_hull.json` (single post-trim value).
 
-**Total volume (plot trees)** — `trunk + branch + foliage` (canopy is a separate
-envelope measure and is reported alongside, not summed into the total).
+**Total volume (VOL_TREE / VOL_TREES)** — `trunk + branch + foliage`
+(canopy is a separate envelope measure and is reported alongside, not
+summed into the total).
 
 **Basal area** — `sum over trees of pi * (dbh/2)^2`, in m^2 per plot. DBH is the
 taper diameter at breast height (1.37 m).
@@ -90,12 +106,13 @@ vertices; the **minor axis** is the widest extent of the hull measured
 perpendicular to the major direction. Lengths in metres; orientation in degrees
 CCW from +x in the local frame (minor = major +/- 90 deg by construction).
 
-**Shrub total volume** — sums each of the three per-shrub methods (primitive,
-mesh, voxel) from the shrub index. NaN mesh values (non-watertight meshes) are
-skipped.
+**Shrub total volume (VOL_SHRUB)** — sums the per-shrub mesh volumes from
+the shrub JSONs (sampled shape per the notes.md ruling; never voxels). The
+nominal primitive (ellipsoid) volumes are the `shrubs.primitive_reference_m3`
+extension.
 
-**Grass** — `total_volume_m3` is the occupied-voxel volume of grass points.
-`percent_cover` is the **realized** cover: the fraction of plot footprint cells
+**Grass (VOL_GRASS)** — occupied-voxel volume of grass points at
+`--grass-voxel` (GRASS_VOXEL); `grass.percent_cover` is the **realized** cover: the fraction of plot footprint cells
 (0.5 m) that contain any grass point. This is measured from the cloud, not the
 input `grass_cover` parameter, because the generator uses that parameter only as
 a thinning weight (modulated by the vigor field and canopy attenuation), so the
@@ -103,8 +120,9 @@ realized cover differs from the input.
 
 **Neighborhood** — within the target tree's bounding box: counts of other trees
 and shrubs, and volume proportions `target / (target + other)`. All volumes here
-(target and every neighbour class) are occupied-voxel volumes at the same voxel
-params, so the proportions are on one consistent basis. `target_voxel_volume_m3`
+(target and every neighbour class) are occupied-voxel volumes at
+FOLIAGE_VOXEL / the shared threshold, so the proportions are on one
+consistent basis. `target_voxel_volume_m3`
 is the target tree's own occupied-voxel volume inside its bbox, exposed so the
 proportions are interpretable. A proportion is `null` when both volumes are zero.
 
@@ -119,9 +137,11 @@ removed material anywhere.
 
 Set on `build_info.py` (and surfaced through `run_pipeline.py`):
 
-- `--occupied-voxel-size` (default 0.1) — voxel edge (m) for foliage/grass/
-  neighborhood voxel volumes.
-- `--occupied-voxel-threshold` (default 1) — min points for an occupied voxel.
+- `--foliage-voxel` (default 0.1) — FOLIAGE_VOXEL: voxel edge (m) for
+  foliage and neighborhood voxel volumes.
+- `--grass-voxel` (default 0.1) — GRASS_VOXEL: voxel edge (m) for the
+  grass voxel volume.
+- `--voxel-threshold` (default 1) — min points for an occupied voxel.
 - `--coord-system` (default `local`), `--units` (default `meters`) — recorded in
   `meta`.
 

@@ -92,8 +92,8 @@ their `semantic_code` categories (shrub, grass, ground) alongside trunk/branch/
 foliage — see README_understory.md's "Feeding normalize" for the schema union
 rules.
 
-`--occupied-voxel-size`/`--occupied-voxel-threshold` are used by `build_info.py`
-(foliage and neighbor-class volume accounting), which always runs last
+`--foliage-voxel`/`--grass-voxel`/`--voxel-threshold` are used by `build_info.py`
+(FOLIAGE_VOXEL and GRASS_VOXEL volume accounting), which always runs last
 (after every cloud/skeleton/map, including terrain/understory when present)
 to emit the plot- and tree-level `*_info.json` files — see
 README_build_info.md.
@@ -129,7 +129,7 @@ parentheses.
   `--shrub-width-min (0.8)`, `--shrub-width-max (1.6)`, `--grass-cover (0.6)`,
   `--grass-candidate-density (200.0)`, `--canopy-attenuation (0.3)`
 - build_info (always runs, last):
-  `--occupied-voxel-size (0.1)`, `--occupied-voxel-threshold (1)`
+  `--foliage-voxel (0.1)`, `--grass-voxel (0.1)`, `--voxel-threshold (1)`
 - normalize: `--max-density (5000)`, `--spatial (on; --no-spatial to disable)`,
   `--density (none; square|cube|none)`, `--plot-l (30)`, `--tree-l (30)`,
   `--plot-z`, `--tree-z` (square only), `--norm-source (understory)`

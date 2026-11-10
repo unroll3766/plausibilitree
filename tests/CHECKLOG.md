@@ -65,3 +65,11 @@ Re-entries only when behavior changes. Long-form narrative lives in
   (tree 001 trunk 52.93 -> 50.60 m across 7 runs; graph 174 -> 7),
   subsets internally consistent; branch_order las_field doc drift fixed
   (real field is branch_code); re-run run_all.py exit 0, 210 PASS.
+- 2026-11-10 — W16 info-JSON schema: build_info emits notes.md top-level
+  fields (plot NUM_TREES/BASAL_AREA/NUM_SHRUBS/VOL_*/PLOT_SHAPE/PLOT_AREA/
+  CHM_PATH/STEM_PATH/PLAUSIBILITREE_CONFIGURATION; tree TREE_UID/DBH/HT/
+  X/Y/Z/VOL_*), BOUNDING_BOX as 6 floats, FOLIAGE_VOXEL/GRASS_VOXEL split
+  (--foliage-voxel/--grass-voxel/--voxel-threshold, run_pipeline wired) —
+  run_all.py exit 0 (221 PASS, 0 FAIL); invariant suite re-derives
+  BASAL_AREA, VOL_TREES, VOL_SHRUB (per-shrub mesh sum), PLOT_AREA and
+  resolves CHM/STEM/config paths.
