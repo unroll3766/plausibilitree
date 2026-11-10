@@ -39,6 +39,7 @@ import os
 
 import numpy as np
 
+import georef
 import layout
 import schema
 from las import read_canonical_las
@@ -160,6 +161,19 @@ def _bbox(xyz):
             float(hi[0]), float(hi[1]), float(hi[2])]
 
 
+def _bbox_geo(bbox, anchor):
+    """BOUNDING_BOX in EPSG:4326/5773 for an anchored plot (spec Section 10):
+    [lon_min, lat_min, elev_min, lon_max, lat_max, elev_max], elev = the
+    anchor's plot-center height + local z (the anchor height defaults to
+    0 when the input carried no elevation)."""
+    if bbox is None:
+        return None
+    lon0, lat0 = georef.local_to_deg(anchor, bbox[0], bbox[1])
+    lon1, lat1 = georef.local_to_deg(anchor, bbox[3], bbox[4])
+    ez = float(anchor.get("elev") or 0.0)
+    return [lon0, lat0, ez + bbox[2], lon1, lat1, ez + bbox[5]]
+
+
 def _dbh(skel):
     """Diameter at breast height from the taper model (metres)."""
     base_r = float(skel.get("base_radius_m", 0.0))
@@ -223,7 +237,7 @@ def _tree_centroid_z(plot_cloud, tree_id, xyz_tree):
 
 def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
                     foliage_voxel, voxel_threshold, tree_id=None,
-                    plot_cloud=None):
+                    plot_cloud=None, anchor=None):
     tag = layout.tree_tag(plot_uid, uid)
     raw_las = layout.tree_path(plot_dir, plot_uid, uid, "raw_las", create=False)
     trim_las = layout.tree_path(plot_dir, plot_uid, uid, "trimmed_las", create=False)
@@ -255,6 +269,16 @@ def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
     vol_branch = branch_volume(skel)
     vol_foliage = voxel_volume(fol_src, foliage_voxel, voxel_threshold)
 
+    bbox = _bbox(xyz_all)
+    if anchor is not None:
+        bbox = _bbox_geo(bbox, anchor) if bbox is not None else None
+        base_z = float(xyz_all[:, 2].min()) if len(xyz_all) else 0.0
+        lon, lat = georef.local_to_deg(anchor, base_xy[0], base_xy[1])
+        tree_center_real = [lon, lat,
+                            float(anchor.get("elev") or 0.0) + base_z]
+    else:
+        tree_center_real = None
+
     info = {
         # notes.md required fields (spec 8.4)
         "TREE_UID": uid,
@@ -267,7 +291,7 @@ def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
         "VOL_TRUNK": vol_trunk,
         "VOL_BRANCH": vol_branch,
         "VOL_FOLIAGE": vol_foliage,
-        "BOUNDING_BOX": _bbox(xyz_all),
+        "BOUNDING_BOX": bbox,
         # extensions
         "meta": {
             "plot_uid": plot_uid,
@@ -279,6 +303,8 @@ def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
             **(axes or {"major_axis": None, "minor_axis": None}),
         },
     }
+    if tree_center_real is not None:
+        info["TREE_CENTER_REAL"] = tree_center_real
     return info, xyz_all
 
 
@@ -400,7 +426,7 @@ def _relpath_if_exists(path, plot_dir):
 
 def build_plot_info(plot_dir, plot_uid, skels, tree_infos, coord_system, units,
                     foliage_voxel, grass_voxel, voxel_threshold,
-                    plot_cloud=None):
+                    plot_cloud=None, anchor=None):
     xyz_all = plot_cloud[0] if plot_cloud else np.zeros((0, 3))
     scene = _scene(plot_dir, plot_uid)
 
@@ -453,7 +479,8 @@ def build_plot_info(plot_dir, plot_uid, skels, tree_infos, coord_system, units,
         "VOL_GRASS": grass_vol,
         "PLOT_SHAPE": scene.get("plot_shape", "circle"),
         "PLOT_AREA": _plot_area(scene),
-        "BOUNDING_BOX": _bbox(xyz_all),
+        "BOUNDING_BOX": (_bbox_geo(_bbox(xyz_all), anchor)
+                         if anchor is not None else _bbox(xyz_all)),
         "CHM_PATH": chm_path,
         "STEM_PATH": stem_path,
         "PLAUSIBILITREE_CONFIGURATION": config_path,
@@ -535,13 +562,15 @@ def build_info(csv_path, plot_dir=None, *, coord_system="local", units="meters",
     skels = _skeletons(plot_dir, plot_uid)
     # one decode of the plot cloud for the whole build (see _load_plot_cloud)
     plot_cloud = _load_plot_cloud(plot_dir, plot_uid)
+    anchor = georef.load_anchor(plot_dir, plot_uid)
 
     # per-tree info
     tree_infos = {}
     for tid, (uid, sk) in skels.items():
         info, xyz_all = build_tree_info(
             plot_dir, plot_uid, uid, sk, coord_system, units,
-            foliage_voxel, voxel_threshold, tree_id=tid, plot_cloud=plot_cloud)
+            foliage_voxel, voxel_threshold, tree_id=tid, plot_cloud=plot_cloud,
+            anchor=anchor)
         nb = _neighborhood(plot_dir, plot_uid, uid,
                            info["BOUNDING_BOX"], plot_cloud,
                            foliage_voxel, voxel_threshold,
@@ -559,7 +588,7 @@ def build_info(csv_path, plot_dir=None, *, coord_system="local", units="meters",
     plot_info = build_plot_info(plot_dir, plot_uid, skels, tree_infos,
                                 coord_system, units,
                                 foliage_voxel, grass_voxel, voxel_threshold,
-                                plot_cloud)
+                                plot_cloud, anchor=anchor)
     pout = os.path.join(plot_dir, layout.PLOT_PLACEMENT, "textual",
                         f"{plot_uid}_info.json")
     os.makedirs(os.path.dirname(pout), exist_ok=True)

@@ -99,8 +99,10 @@ adds facts specific to this repository.
 
 ## Conventions
 - Units: local coordinates and all local sizes in metres; geospatial
-  ingest/export in EPSG:4326 (elevations EPSG:5773). Internal UTM
-  conversion is planned but not implemented (spec Section 10, item W5).
+  ingest/export in EPSG:4326 (elevations EPSG:5773). Anchored plots
+  carry a UTM anchor in the scene geo block and get georeferenced
+  GeoTIFF exports (spec Section 10; georef.py); unanchored plots
+  stay CRS-less local (W5 closed).
 - Point clouds: LAZ (LAS 1.4, point format 0) with the canonical
   extra-bytes dimensions of spec Section 8.3; artifacts go into the
   per-plot layout of spec Section 8.2.
@@ -112,11 +114,10 @@ adds facts specific to this repository.
   Generator.
 
 ## Register snapshot (2026-11-07)
-- Closed: W1-W4, W7, W11-W19 (notes.md alignment round W14-W19 complete).
-- Open: W5 (UTM internals + EPSG export), W6 (single plot cloud, opt-in
-  derived stages, 2-band stem map), W8 (HELIOS++), W9 (polygon mesh),
-  W10 (downed woody debris), W20 (param editor: derive a dictionary
-  from a tree list).
+- Closed: W1-W7, W11-W19 (notes.md alignment round W14-W19 complete).
+- Open: W6 (single plot cloud, opt-in derived stages, 2-band stem map),
+  W8 (HELIOS++), W9 (polygon mesh), W10 (downed woody debris), W20 (param
+  editor: derive a dictionary from a tree list).
 - Owner ruling (2026-11-07): no record of trimmed points or branches is
   kept anywhere — no flags, no summaries, no counts, no collision logs,
   no pre-trim volume variants. The trimmed skeleton/cloud *is* the

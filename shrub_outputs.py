@@ -23,6 +23,7 @@ import os
 
 import numpy as np
 
+import georef
 import layout
 import schema
 from las import read_canonical_las, export_canonical_las
@@ -140,6 +141,7 @@ def _shrub_canopy_map(plot_dir, plot_uid, uid, pts, cell_size):
     """Crown CHM + convex-hull/bbox JSON for a single shrub."""
     if len(pts) < 1:
         return
+    anchor = georef.load_anchor(plot_dir, plot_uid)
     x, y, z = pts[:, 0], pts[:, 1], pts[:, 2]
     grid = RasterGrid(x.min(), y.min(), x.max(), y.max(), cell_size)
     # CHM feature: max height per cell
@@ -150,11 +152,11 @@ def _shrub_canopy_map(plot_dir, plot_uid, uid, pts, cell_size):
     chm.reshape(-1)[flat[order]] = z[order].astype(np.float32)
     x0, y0 = grid.x_min, grid.y_max
     _write_geotiff(layout.shrub_path(plot_dir, plot_uid, uid, "canopy_feature_raw"),
-                   chm, x0, y0, grid.cell)
+                   chm, x0, y0, grid.cell, anchor=anchor)
     # label mask: cells with any shrub point
     mask = (chm > 0).astype(np.uint8)
     _write_geotiff(layout.shrub_path(plot_dir, plot_uid, uid, "canopy_label_raw"),
-                   mask, x0, y0, grid.cell)
+                   mask, x0, y0, grid.cell, anchor=anchor)
     # bbox + hull JSON
     bbox = {"x_min": float(x.min()), "x_max": float(x.max()),
             "y_min": float(y.min()), "y_max": float(y.max()),
@@ -190,8 +192,9 @@ def _shrub_stem_map(plot_dir, plot_uid, uid, pts, cell_size, dbh_height, thresho
     feat = grid.counts(x[band], y[band]) if band.any() else \
         np.zeros((grid.height, grid.width), dtype=np.uint16)
     x0, y0 = grid.x_min, grid.y_max
+    anchor = georef.load_anchor(plot_dir, plot_uid)
     _write_geotiff(layout.shrub_path(plot_dir, plot_uid, uid, "stem_feature_raw"),
-                   feat, x0, y0, grid.cell)
+                   feat, x0, y0, grid.cell, anchor=anchor)
     mask = (feat > 0).astype(np.uint8)
     _write_geotiff(layout.shrub_path(plot_dir, plot_uid, uid, "stem_label_raw"),
-                   mask, x0, y0, grid.cell)
+                   mask, x0, y0, grid.cell, anchor=anchor)

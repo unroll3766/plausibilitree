@@ -40,6 +40,7 @@ import os
 import numpy as np
 import pandas as pd
 
+import georef
 from las import read_points_las, read_canonical_las
 import layout
 import schema
@@ -102,21 +103,29 @@ STEM_CLASSES = (schema.SEM_TREE, schema.SEM_BRANCH)   # all woody stem
 # GeoTIFF I/O
 # ---------------------------------------------------------------------------
 
-def _write_geotiff(path, array, x_min, y_max, cell_size):
+def _write_geotiff(path, array, x_min, y_max, cell_size, anchor=None):
     """Write a single-band north-up GeoTIFF with rasterio.
 
     The transform places pixel (0, 0)'s upper-left corner at (x_min, y_max)
-    with y decreasing down the rows.
+    with y decreasing down the rows. Without an anchor the transform is the
+    local metre frame and the file carries no CRS; with one the raster is
+    georeferenced in EPSG:4326 (corner converted through the anchor, metre
+    cells converted to degrees at the plot latitude; pixel values are
+    unchanged -- spec Section 10).
     """
     import rasterio
     from rasterio.transform import from_origin
 
     array = np.ascontiguousarray(array)
-    transform = from_origin(x_min, y_max, cell_size, cell_size)
+    crs = None
+    if anchor is not None:
+        transform, crs = georef.geo_transform(anchor, x_min, y_max, cell_size)
+    else:
+        transform = from_origin(x_min, y_max, cell_size, cell_size)
     with rasterio.open(
         path, "w", driver="GTiff",
         height=array.shape[0], width=array.shape[1],
-        count=1, dtype=array.dtype, transform=transform,
+        count=1, dtype=array.dtype, transform=transform, crs=crs,
         compress="lzw",
     ) as dst:
         dst.write(array, 1)
@@ -213,6 +222,7 @@ def build_stem_map(csv_path, plot_dir=None,
         plot_dir = os.path.join(os.path.dirname(os.path.abspath(csv_path)), plot_uid)
     place_dir = os.path.join(plot_dir, "plot_placement")
     trees_dir = os.path.join(plot_dir, "individual_trees")
+    anchor = georef.load_anchor(plot_dir, plot_uid)
     os.makedirs(trees_dir, exist_ok=True)
 
     las_path = layout.cloud_file(place_dir, f"{plot_uid}_{source}")
@@ -244,7 +254,8 @@ def build_stem_map(csv_path, plot_dir=None,
 
     raster_name = f"{plot_uid}_raw_placement_stem_map.tif"
     raster_path = os.path.join(place_dir, raster_name)
-    _write_geotiff(raster_path, stem_map, grid.x_min, grid.y_max, grid.cell)
+    _write_geotiff(raster_path, stem_map, grid.x_min, grid.y_max, grid.cell,
+                   anchor=anchor)
 
     # per-tree stem geometry is ground truth from the skeleton (centerline +
     # taper), NOT the point cloud: the mask is the filled stem cross-section
@@ -283,7 +294,8 @@ def build_stem_map(csv_path, plot_dir=None,
             or gy_min < grid.y_max - grid.height * grid.cell):
         grid = RasterGrid(gx_min, gy_min, gx_max, gy_max, cell_size)
         stem_map = grid.counts(bx, by)
-        _write_geotiff(raster_path, stem_map, grid.x_min, grid.y_max, grid.cell)
+        _write_geotiff(raster_path, stem_map, grid.x_min, grid.y_max, grid.cell,
+                   anchor=anchor)
 
     for t in sorted(all_discs):
         discs = all_discs[int(t)]
@@ -364,10 +376,10 @@ def build_stem_map(csv_path, plot_dir=None,
         y0 = grid.y_max - r0 * grid.cell
         _write_geotiff(os.path.join(
             trees_dir, f"{plot_uid}_tree_{uid}_stem_map_bounding_box.tif"),
-            crop, x0, y0, grid.cell)
+            crop, x0, y0, grid.cell, anchor=anchor)
         _write_geotiff(os.path.join(
             trees_dir, f"{plot_uid}_tree_{uid}_stem_map_semantic_mask.tif"),
-            mask, x0, y0, grid.cell)
+            mask, x0, y0, grid.cell, anchor=anchor)
         n_written += 1
 
     # link from the plot scene JSON

@@ -47,6 +47,7 @@ import numpy as np
 import pandas as pd
 
 from las import export_points_las, read_points_las, export_canonical_las, read_canonical_las
+import georef
 import layout
 import schema
 import tree_list
@@ -808,6 +809,12 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
          "branch_id": np.concatenate(scene_bid)},
         level="plot")
 
+    # UTM anchor (spec Section 10): None when the plot carries no center
+    ga = georef.anchor_from_latlon(_first_numeric(df, "plot_lat"),
+                                  _first_numeric(df, "plot_lon"),
+                                  _first_numeric(df, "plot_elev"))
+    geo = georef.scene_record(ga) if ga else None
+
     scene = {
         "plot_uid": plot_uid,
         "n_trees": len(trees),
@@ -826,6 +833,7 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
         "rotations_deg": rotations,
         "reflections": reflections,
         "points_raw": int(len(raw)),
+        "geo": geo,
         "branch_id_encoding": {
             "las_field": "branch_id",
             "formula": "tree_id * {} + element_index + 1".format(ELEMENTS_PER_TREE),

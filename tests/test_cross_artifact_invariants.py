@@ -24,6 +24,9 @@ and whole-repo review entries):
   Hb. parameter dictionary: notes.md schema (A0/A1/TAPER + DBH/HT
      applicability bounds), withdrawn keys absent, bounds fall-through
      (W18)
+  K. georeferencing (spec Section 10, W5): an anchored mini plot's UTM
+     anchor, EPSG:4326 raster exports, compound-CRS DTM GeoTIFF and
+     geo info JSONs; the unanchored fixture stays CRS-less
   I. SCENE LINK AUDIT every relative path in the scene JSON resolves
 
 Exit 0 = all checks passed.
@@ -44,6 +47,7 @@ sys.path.insert(0, REPO)
 import numpy as np
 
 import fixture
+import layout
 import terrain as tmod
 from las import read_canonical_las
 from tree_list import trees_frame
@@ -414,6 +418,105 @@ def run_checks(fixroot, plot_dir):
             check(f"{uid} trimmed graph destinations stay internal",
                   all(c in {x["BRANCH_UID"] for x in tels}
                       for e in tels for c in e["DESTINATION"]))
+
+    print("== K. georeferencing (spec Section 10, W5) ==")
+    import georef
+    import rasterio
+    # the unanchored main fixture stays CRS-less and unanchored
+    with rasterio.open(os.path.join(place, "deep_learning", "stem_map",
+                                    "features",
+                                    f"{uid_tag}_stem_map_raw.tif")) as src:
+        check("unanchored fixture raster carries no CRS", src.crs is None)
+    check("unanchored fixture has no geo block",
+          "geo" not in scene or scene["geo"] is None)
+    check("unanchored fixture has no DTM GeoTIFF",
+          not os.path.exists(layout.plot_path(fixroot, uid_tag,
+                                              "dtm_tif", create=False)))
+    # anchored mini plot through the same pipeline
+    geowd, geo_cleanup = fixture.workdir(tag="inv_geo")
+    gd = fixture.build_geo_fixture(geowd)
+    try:
+        gplace = os.path.join(gd, "plot_placement")
+        gscene = json.load(open(os.path.join(gplace, "textual",
+                                            "plot_geo_scene.json")))
+        geo = gscene["geo"]
+        check("scene geo block: epsg 32610 / zone 10N / hemisphere N",
+              (geo["epsg"] == 32610 and geo["utm_zone"] == 10
+               and geo["utm_hemisphere"] == "N"), str(geo))
+        check("scene geo elev = plot-center EPSG:5773 height",
+              geo["elev_m"] == 1500.0)
+        anchor = georef.anchor_from_latlon(38.9, -120.6, 1500.0)
+        e1, n1 = georef.local_to_utm(anchor, 0, 0)
+        check("geo easting/northing == recomputed anchor",
+              abs(geo["easting_m"] - e1) < 1e-6
+              and abs(geo["northing_m"] - n1) < 1e-6)
+        # raster exports carry EPSG:4326 with degree pixel sizes
+        for key, cell in (("stem_feature_raw", 0.05),
+                          ("canopy_feature_raw", 0.05)):
+            with rasterio.open(layout.plot_path(gd, "plot_geo", key,
+                                                create=False)) as src:
+                check(f"{key} CRS is EPSG:4326", src.crs.to_epsg() == 4326)
+                cx, cy = georef.deg_cell_size(cell, 38.9)
+                check(f"{key} degree pixel sizes at plot latitude",
+                      abs(src.transform.a - cx) < 1e-12
+                      and abs(abs(src.transform.e) - cy) < 1e-12)
+                west, north = src.transform.c, src.transform.f
+                check(f"{key} corner is lon/lat near the plot center",
+                      abs(west + 120.6) < 1e-3 and abs(north - 38.9) < 1e-3,
+                      f"({west:.6f}, {north:.6f})")
+        shrub_tifs = [rp for rp in glob.glob(
+            os.path.join(gd, "individual_shrubs", "plot_geo_shrub_*",
+                         "deep_learning", "**", "*.tif"), recursive=True)]
+        check("anchored plot produced shrub raster exports",
+              len(shrub_tifs) > 0, f"{len(shrub_tifs)} tifs")
+        for rp in shrub_tifs[:4]:
+            with rasterio.open(rp) as src:
+                check(f"shrub raster CRS is EPSG:4326 ({os.path.basename(rp)})",
+                      src.crs is not None and src.crs.to_epsg() == 4326)
+        # DTM GeoTIFF: compound CRS + absolute heights
+        dtif = layout.plot_path(gd, "plot_geo", "dtm_tif", create=False)
+        check("DTM GeoTIFF written for the anchored plot",
+              os.path.exists(dtif))
+        with rasterio.open(dtif) as src:
+            check("DTM CRS is compound EPSG:9707",
+                  src.crs.to_epsg() == 9707, str(src.crs.to_epsg()))
+            band = src.read(1)
+            c = band[band != src.nodata]
+            check("DTM band carries absolute heights near 1500 m",
+                  1400 < float(c.min()) < 1600, f"min {float(c.min()):.1f}")
+        # info JSONs: geo bbox, TREE_CENTER_REAL, PLOT_CENTER
+        gpi = json.load(open(os.path.join(gplace, "textual",
+                                         "plot_geo_info.json")))
+        gbb = gpi["BOUNDING_BOX"]
+        check("plot info bbox is lon/lat/elev",
+              abs(gbb[0] + 120.6) < 1e-3 and abs(gbb[1] - 38.9) < 1e-3
+              and gbb[2] > 1400, str(gbb[:3]))
+        check("PLOT_CENTER echoes the tree list center",
+              gpi["PLOT_CENTER"] == [-120.6, 38.9, 1500.0])
+        gti = json.load(open(os.path.join(gd, "individual_trees",
+                                          "plot_geo_001", "textual",
+                                          "plot_geo_001_info.json")))
+        tcr = gti["TREE_CENTER_REAL"]
+        exp_lon, exp_lat = georef.local_to_deg(anchor, gti["TREE_X"],
+                                              gti["TREE_Y"])
+        check("tree info TREE_CENTER_REAL = plot center + base offset",
+              abs(tcr[0] - exp_lon) < 1e-9 and abs(tcr[1] - exp_lat) < 1e-9
+              and tcr[2] > 1400)
+        # anchor math round-trips within 1 mm; limits of agreement raise
+        for (x, y) in ((-12.0, -12.0), (12.0, 12.0), (0.0, 0.0)):
+            lon, lat = georef.local_to_deg(anchor, x, y)
+            a2 = georef.anchor_from_latlon(lat, lon)
+            e2, n2 = georef.local_to_utm(a2, 0, 0)
+            ee, nn = georef.local_to_utm(anchor, x, y)
+            check(f"local->deg->utm round-trip {x:.0f},{y:.0f} (1 mm)",
+                  abs(e2 - ee) < 1e-3 and abs(n2 - nn) < 1e-3)
+        try:
+            georef.anchor_from_latlon(95.0, 0.0)
+            check("lat 95 raises (limits of agreement)", False)
+        except ValueError:
+            check("lat 95 raises (limits of agreement)", True)
+    finally:
+        geo_cleanup()
 
 
 if __name__ == "__main__":

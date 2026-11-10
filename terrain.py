@@ -33,6 +33,7 @@ import os
 
 import numpy as np
 
+import georef
 import layout
 from las import read_points_las, export_points_las, export_canonical_las, read_canonical_las
 import schema
@@ -133,6 +134,29 @@ class DTM:
             f.write(f"NODATA_value {self.nodata}\n")
             for row in grid_ns:
                 f.write(" ".join(repr(float(v)) for v in row) + "\n")
+
+    def write_geotiff(self, anchor, path):
+        """Georeferenced DTM GeoTIFF for an anchored plot (spec Section 10).
+
+        Compound CRS EPSG:9707 (EPSG:4326 horizontal + NAVD88 height
+        EPSG:5773 vertical); the band carries absolute heights = DTM
+        height + the anchor's plot-center elevation (0 when the input
+        carried no elevation). Nodata cells stay nodata."""
+        import rasterio
+        from rasterio.crs import CRS
+
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        transform = georef.geo_transform(
+            anchor, self.xll, self.yll + self.height, self.cell)[0]
+        band = np.flipud(self.grid) + float(anchor.get("elev") or 0.0)
+        band = np.where(self.grid == self.nodata, self.nodata, band)
+        with rasterio.open(
+            path, "w", driver="GTiff",
+            height=self.nrows, width=self.ncols, count=1, dtype="float32",
+            transform=transform, crs=CRS.from_epsg(georef.DTM_CRS_EPSG),
+            nodata=self.nodata, compress="lzw",
+        ) as dst:
+            dst.write(band.astype(np.float32), 1)
 
     def crop(self, x_min, y_min, x_max, y_max):
         """Return a new DTM covering [x_min,x_max] x [y_min,y_max].
@@ -375,6 +399,11 @@ def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=None,
         dtm_out = os.path.join(plot_dir, layout.PLOT_PLACEMENT, "textual",
                                f"{plot_uid}_dtm.asc")
         dtm.write_asc(dtm_out)
+        # EPSG:9707 DTM GeoTIFF rides along when the plot is anchored (W5)
+        anchor = georef.load_anchor(plot_dir, plot_uid)
+        if anchor is not None:
+            dtm.write_geotiff(
+                anchor, layout.plot_path(plot_dir, plot_uid, "dtm_tif"))
 
     # --- per-tree terrain clouds: tree + surrounding points in canopy bbox ---
     n_tree_files = _write_tree_terrain(plot_dir, plot_uid, all_pts, all_hag,

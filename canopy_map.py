@@ -42,6 +42,7 @@ import os
 import numpy as np
 import pandas as pd
 
+import georef
 from las import read_points_las, read_canonical_las
 import layout
 import schema
@@ -124,6 +125,7 @@ def build_canopy_map(csv_path, plot_dir=None,
         plot_dir = os.path.join(os.path.dirname(os.path.abspath(csv_path)), plot_uid)
     place_dir = os.path.join(plot_dir, "plot_placement")
     trees_dir = os.path.join(plot_dir, "individual_trees")
+    anchor = georef.load_anchor(plot_dir, plot_uid)
     os.makedirs(trees_dir, exist_ok=True)
 
     las_path = layout.cloud_file(place_dir, f"{plot_uid}_{source}")
@@ -141,7 +143,7 @@ def build_canopy_map(csv_path, plot_dir=None,
 
     raster_name = f"{plot_uid}_raw_placement_canopy_map.tif"
     _write_geotiff(os.path.join(place_dir, raster_name),
-                   chm, grid.x_min, grid.y_max, grid.cell)
+                   chm, grid.x_min, grid.y_max, grid.cell, anchor=anchor)
 
     # per-tree canopy geometry from foliage points (semantic 3) -- the leafy
     # envelope; branch stems (2) are inside it and excluded by design.
@@ -248,10 +250,10 @@ def build_canopy_map(csv_path, plot_dir=None,
         y0 = grid.y_max - br0 * grid.cell
         _write_geotiff(os.path.join(
             trees_dir, f"{plot_uid}_tree_{uid}_canopy_bounding_box.tif"),
-            crop, x0, y0, grid.cell)
+            crop, x0, y0, grid.cell, anchor=anchor)
         _write_geotiff(os.path.join(
             trees_dir, f"{plot_uid}_tree_{uid}_canopy_semantic_mask.tif"),
-            mask, x0, y0, grid.cell)
+            mask, x0, y0, grid.cell, anchor=anchor)
         n_written += 1
 
     # single post-trim canopy volume (spec 3.2: no record of trimmed

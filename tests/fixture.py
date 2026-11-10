@@ -83,3 +83,31 @@ def build_full_fixture(outdir: str, ppm: int = 64, seed: int = SEED) -> str:
     if rc not in (0, None):
         raise RuntimeError(f"fixture pipeline failed with exit code {rc}")
     return os.path.join(outdir, PLOT_UID)
+
+
+GEO_CENTER = {"lon": -120.6, "lat": 38.9, "elev": 1500.0}
+
+
+def build_geo_fixture(outdir: str, ppm: int = 32, seed: int = 7) -> str:
+    """A small georeferenced plot (anchored tree list, spec Section 10)
+    for the W5 geo-export checks. Returns the plot dir."""
+    trees = [{"TREE_UID": "001", "X": -3.0, "Y": 2.0,
+              "DBH": 0.45, "HT": 25.0, "TREE_CODE": "DF"},
+             {"TREE_UID": "002", "X": 4.0, "Y": -1.5,
+              "DBH": 0.35, "HT": 20.0, "TREE_CODE": "PP"},
+             {"TREE_UID": "003", "X": 1.0, "Y": 5.0,
+              "DBH": 0.30, "HT": 18.0, "TREE_CODE": "HW"}]
+    path = os.path.join(outdir, "plot_geo.json")
+    with open(path, "w") as f:
+        json.dump({"plot_uid": "plot_geo", "plot_shape": "circle",
+                   "plot_radius_m": 12.0, "plot_center": GEO_CENTER,
+                   "trees": trees}, f, indent=2)
+    from run_pipeline import run_pipeline
+    # shrub_cover/width raised so the shrub raster exports reliably engage
+    rc = run_pipeline(outdir, radius=12.0, seed=seed, points_per_metre=ppm,
+                      limit=1, generate_dtm=True, understory=True,
+                      shrub_cover=0.9, shrub_width_min=0.8,
+                      shrub_width_max=1.6)
+    if rc not in (0, None):
+        raise RuntimeError(f"geo fixture pipeline failed (exit {rc})")
+    return os.path.join(outdir, "plot_geo")

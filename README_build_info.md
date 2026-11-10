@@ -61,8 +61,12 @@ neighborhood: (unchanged; see below)
 `TREE_Z` is the centroid height above the tree's base: the mean
 height-above-ground of the tree's points in the understory cloud, falling
 back to the centroid height above the lowest point of the tree cloud when
-no understory cloud exists. `TREE_CENTER_REAL` (notes.md optional) is
-absent until EPSG export lands (register item W5).
+no understory cloud exists. When the plot is anchored (scene `geo` block,
+spec Section 10): BOUNDING_BOX becomes `[lon_min, lat_min, elev_min,
+lon_max, lat_max, elev_max]` (elev = plot-center height + local z, EPSG
+4326/5773) in both info levels, and each tree info gains the optional
+`TREE_CENTER_REAL [lon, lat, elev]` at its base (the bottom of the tree
+is the elevation, per notes.md). Unanchored plots keep local metres.
 
 `canopy.major_axis` / `canopy.minor_axis` are `{length_m, orientation_deg}`
 (crown hull in x-y; major = longest chord, minor = widest span

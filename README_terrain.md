@@ -115,3 +115,13 @@ Terrain slots between restructure and normalize: it is skipped when
 `--dtm`/`--generate-dtm` is absent, and errors cleanly (per plot, so one
 uncovered plot is skipped rather than sinking the batch) when the DTM is too
 small.
+
+## Georeferenced DTM GeoTIFF (W5)
+
+When the plot is anchored (a scene `geo` block exists), the generated
+plot DTM is additionally exported as
+`plot_placement/rasters/<PLOT_UID>_dtm.tif` — compound CRS EPSG:9707
+(horizontal EPSG:4326, vertical NAVD88 height EPSG:5773), with the band
+carrying absolute heights (DTM height + the plot-center elevation;
+0 offset when the input carried no elevation). The `.asc` grid remains
+the internal working format; unanchored plots get no GeoTIFF.

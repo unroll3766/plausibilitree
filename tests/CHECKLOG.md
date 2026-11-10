@@ -106,3 +106,13 @@ Re-entries only when behavior changes. Long-form narrative lives in
   genuine drift (README_understory described the retired
   --shrub-width-cell-frac width model) — fixed; other hits were
   cross-script references or explicit "replaced/does not exist" notes.
+- 2026-11-10 — W5 georeferencing: anchored mini plot through run_pipeline
+  (plot_center in a JSON tree list): scene geo block (EPSG 32610,
+  zone from center), stem/canopy/shrub GeoTIFFs in EPSG:4326 with degree
+  pixel sizes, DTM GeoTIFF compound EPSG:9707 with absolute heights, info
+  JSONs geo bbox + TREE_CENTER_REAL + PLOT_CENTER, unanchored fixture/demo
+  rasters stay CRS-less and skip the DTM GeoTIFF; run_all.py exit 0
+  (260 PASS, suite section K; two bugs found en route: dtm_tif layout key
+  landed in _TREE (KeyError in terrain), and load_anchor missed the
+  pre-restructure scene location — stem/canopy maps run before
+  restructure files the scene).

@@ -218,7 +218,12 @@ used and point counts — enough to reproduce the assembly. It also carries `plo
 the FIA input by `fia_helper.py` (see README_fia_helper.md), read back out of
 the plot table's `plot_lat`/`plot_lon`/`plot_elev` columns here and copied
 into the scene JSON unchanged. All three are `null` if the FIA input didn't
-have LAT/LON/ELEV to pass through. `build_info.py` reads them back out of the
+have LAT/LON/ELEV to pass through. When present they also produce the
+scene's `geo` block — the UTM anchor of the plot center (spec Section 10,
+`georef.py`: `utm` zone from the center, EPSG 326zz/327zz, and the
+placement origin `(0, 0)` as the anchor's local point) that every
+georeferenced export converts through; `geo` is an explicit `null` for
+unanchored plots. `build_info.py` reads them back out of the
 scene JSON into `plot_info.json`'s `meta.plot_center` (see
 README_build_info.md).
 

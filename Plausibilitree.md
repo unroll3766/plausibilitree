@@ -144,7 +144,10 @@ Every point receives `height_above_ground` = height above the DTM surface
 low veg (<= 0.5 m) = 3, medium veg (0.5-2 m) = 4, high veg (> 2 m) = 5.
 Each tree is dropped vertically so its lowest point sits on the DTM at its
 (X, Y); the DTM must cover the plot footprint (no tiling or stretching).
-The DTM is an ESRI ASCII grid (.asc) in metres.
+The DTM is an ESRI ASCII grid (.asc) in metres (internal working
+format); for plot-anchored runs the generated plot DTM is additionally
+exported as a GeoTIFF with compound CRS EPSG:9707 and absolute heights
+(Section 10).
 
 Implementation status: all three topography resolutions are implemented —
 DTM filepath (draped with a coverage check, no tiling/stretching), random
@@ -613,6 +616,7 @@ parameter dictionary is JSON
   plot_placement/
     las/            raw / trimmed / terrain / understory / normalized clouds
     textual/        scene JSON, manifest, plot info JSON, DTM crop
+    rasters/        plot DTM GeoTIFF (EPSG:9707; anchored plots only)
     deep_learning/  stem_map / canopy_map feature+label rasters    (derived)
   individual_trees/<PLOT_UID>_<TREE_UID>/
     textual/        generation, skeleton and info JSONs  (no sub-clouds;
@@ -654,7 +658,7 @@ top-level keys, no nesting):
 | BASAL_AREA | float | basal area of the plot's trees, m² (sum of pi * (DBH/2)²) |
 | PLOT_SHAPE | string | "circle" or "rectangle" |
 | PLOT_AREA | float | plot area, m² (pi * r² or length * width, from the scene JSON) |
-| BOUNDING_BOX | 6 floats | [x_min, y_min, z_min, x_max, y_max, z_max]; EPSG:4326/5773 when the plot center is known, else local metres |
+| BOUNDING_BOX | 6 floats | [x_min, y_min, z_min, x_max, y_max, z_max] in local metres when the plot is unanchored; [lon_min, lat_min, elev_min, lon_max, lat_max, elev_max] in EPSG:4326/5773 when the plot is anchored (Section 10; elev = anchor elev + local z) |
 | VOL_TREES | float | sum of every tree's volume |
 | VOL_TRUNK | float | sum of trunk volumes (from the tree/skeleton JSONs) |
 | VOL_BRANCH | float | sum of branch volumes (from the tree/skeleton JSONs) |
@@ -677,9 +681,10 @@ of the tree's points from the understory cloud, falling back to the
 centroid height above the lowest point of the tree cloud when no
 understory cloud exists; varies from the tree list z), VOL_TREE (trunk +
 branch + foliage), VOL_TRUNK, VOL_BRANCH, VOL_FOLIAGE, BOUNDING_BOX (6
-floats, same form as the plot info). Optional: TREE_CENTER_REAL (lon,
-lat, elev; base-of-tree elevation) — pending EPSG export (item W5), so
-absent in current output.
+floats, same form as the plot info). Optional: TREE_CENTER_REAL
+[lon, lat, elev] at the tree's base in EPSG:4326/5773 — written when the
+plot is anchored (Section 10; the bottom of the tree is the elevation
+per notes.md), absent otherwise.
 
 Fields beyond the notes.md set are retained as extensions: `meta`
 (plot_uid / tree_uid, coordinate_system, units), `canopy` (per-plot
@@ -798,7 +803,7 @@ stem/canopy/DTM knobs carry the notes.md names (--stem-resolution,
 W16 splits FOLIAGE_VOXEL / GRASS_VOXEL. Shrub volume
 is never voxel-based (sampled-shape ruling, Section 8.4).
 
-## 10. Coordinate reference policy — **[planned]**
+## 10. Coordinate reference policy — **[implemented]**
 
 - **Ingest and export geospatial:** EPSG:4326 (lat/lon) with elevations in
   EPSG:5773, universally, for consistency.
@@ -825,10 +830,41 @@ is never voxel-based (sampled-shape ruling, Section 8.4).
 - Limits of agreement: lat in [-90, 90], lon in [-180, 180], elevation in
   [-500, 5000] m (EPSG:5773).
 
-**[partial]**: the codebase today computes in a CRS-less local metre frame
-(rasters carry a local-metre geotransform with no CRS; the DTM is ASCII
-with an optional EPSG sidecar; no UTM conversion is performed). Internal
-UTM processing and EPSG:4326 exports are item W5.
+Implementation (item W5, `georef.py`):
+
+- **Anchor at assembly.** The scene JSON carries a `geo` block (an
+  explicit null when the plot carries no center — the un-georeferenced
+  marker):
+  epsg, utm_zone, utm_hemisphere, easting, northing, elev, local anchor
+  point (always `[0, 0]` — placement centers every shape on the origin)
+  and the source lat/lon. The UTM conversion is the `utm` library with
+  the zone derived from the plot center (EPSG 326zz north / 327zz
+  south); the limits of agreement are validated there and violations
+  raise. `elev` is the EPSG:5773 height of the plot center.
+- **Internals unchanged.** Local coordinates are metres offset from the
+  anchor's UTM position, so placement, trimming, DTM sampling and every
+  raster's pixel grid operate exactly as before — georeferencing only
+  adds metadata at the edges (same-seed clouds are identical with and
+  without a known plot center).
+- **GeoTIFF exports** (stem map, canopy map, per-tree / per-shrub
+  crops): when anchored, written with an EPSG:4326 transform whose
+  west/north corner comes from the anchor and whose pixel sizes are the
+  metre cells converted to degrees at the plot latitude (x by
+  1/cos(lat)); values (counts, masks, heights above ground) are
+  unchanged. Unanchored plots keep local-metre transforms and no CRS.
+- **DTM GeoTIFF**: a generated plot DTM is additionally exported as
+  `plot_placement/rasters/<PLOT_UID>_dtm.tif` with the compound CRS
+  EPSG:9707 (horizontal EPSG:4326, vertical NAVD88 height EPSG:5773;
+  z = anchor elev + DTM height, so the exported band carries absolute
+  heights). The ESRI ASCII `.asc` remains the internal working format;
+  the GeoTIFF is written only for anchored plots (unanchored plots are
+  un-georeferenced by design and keep the .asc only).
+- **Info JSONs** (Section 8.4): when anchored, BOUNDING_BOX becomes
+  [lon_min, lat_min, elev_min, lon_max, lat_max, elev_max] (elev = anchor
+  + local z, EPSG:4326/5773), each tree gains TREE_CENTER_REAL
+  [lon, lat, elev] at its base (plot center + (TREE_X, TREE_Y); bottom
+  of tree for elev per notes.md), and PLOT_CENTER is written from the
+  same anchor; unanchored output is local metres, exactly as before.
 
 ## 11. Code-to-design gap register
 
@@ -842,7 +878,7 @@ matches the design).
 | W2 | FIA helper placement controls | (a) implement expansion factor modifier; (b) minimum tree distance (generalize --allowed-overlap); (c) max tries and edge effects (spec Section 6.1). Replace the placeholder TPA rounding | closed |
 | W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it | closed |
 | W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings | closed |
-| W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved | open |
+| W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved | closed |
 | W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) | open |
 | W7 | Random reflection | add mirror reflection to placement draws | closed |
 | W8 | HELIOS++ stage | planned; needs scanner parameter design and voxel export | open |
@@ -1021,3 +1057,21 @@ Registry of resolved decisions (for provenance):
   extension. The rename is numerically inert — a full demo regeneration
   produced byte-identical clouds, rasters and skeletons (only the
   generation JSON timestamps moved).
+- Eleventh code-alignment round (2026-11-10): W5 closed — georef.py owns
+  the plot anchor (utm library, zone from the plot center; EPSG 326zz
+  north / 327zz south; limits of agreement validated), the scene JSON
+  carries the geo block (an explicit null for unanchored plots), and
+  internal geometry stays in local metres (offsets from the anchor's UTM
+  position, so placement/trimming/DTM/raster grids are unchanged and
+  same-seed clouds are identical either way). GeoTIFF exports (stem map,
+  canopy map, per-tree and per-shrub crops) convert to EPSG:4326 through
+  the anchor with degree pixel sizes at the plot latitude (pixel grids
+  and values unchanged); the generated plot DTM gains a
+  plot_placement/rasters GeoTIFF with compound CRS EPSG:9707 and
+  absolute heights; info JSONs write geographic BOUNDING_BOX values and
+  TREE_CENTER_REAL when anchored, and PLOT_CENTER from the same anchor.
+  Standing suite section K runs an anchored mini plot through the whole
+  pipeline (UTM anchor, raster CRS/degree cells, compound DTM, geo info
+  JSONs, round-trip precision, limits of agreement) and asserts the
+  unanchored fixture stays CRS-less. The committed demo regenerated
+  byte-identically except its scene geo:null marker.

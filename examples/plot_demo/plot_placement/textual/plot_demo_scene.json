@@ -37,6 +37,7 @@
     "004": false
   },
   "points_raw": 10496,
+  "geo": null,
   "branch_id_encoding": {
     "las_field": "branch_id",
     "formula": "tree_id * 100000 + element_index + 1",

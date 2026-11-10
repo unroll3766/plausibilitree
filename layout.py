@@ -108,6 +108,7 @@ _PLOT = {
                            "{tag}_stem_mask_raw.tif"),
     "stem_label_norm":    ("deep_learning/stem_map/labels",
                            "{tag}_stem_mask_normalized.tif"),
+    "dtm_tif":            ("rasters", "{tag}_dtm.tif"),
 
     "canopy_feature_raw": ("deep_learning/canopy_map/features",
                            "{tag}_canopy_map_raw.tif"),
