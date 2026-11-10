@@ -1261,3 +1261,29 @@ record per se.
   the rename). First full-suite run caught a misdirected check
   (source_row exists only for legacy requests); replaced with a
   direct-resolution check.
+
+### 2026-11-10 — W18 review pass: contract drift fixed (commit 5ee0bfd)
+
+- Consumer sweep: no code reads the withdrawn names outside the
+  intentional spots (fia_helper's LEGACY_PARAM_NAMES rename map and the
+  suite's ban-list); the remaining spec mentions are the rename's own
+  documentation and provenance history. resolve_tree_code has no code
+  callers beyond the contract docstring.
+- Behavior probes (all as specified): "202" resolves to DF in bounds
+  and to DEFAULT outside them; key-only resolution (no sizes) ignores
+  bounds; unknown codes fall to DEFAULT unconditionally. A legacy CSV
+  with CW_A0/CW_A1/TAPER_B and no bounds loads normalized to
+  A0/A1/TAPER and applies without size limits. The parameter editor
+  loads through the same normalization and samples correctly headless
+  (crown width from A0/A1, base diameter from TAPER);
+  fia_helper.crown_width vector lookups fall back to DEFAULT for
+  unknown groups.
+- Defect found and fixed: the core calls generation entries through
+  module.entry_for(code, dbh, ht), but entry_for was declared only on
+  the concrete SSTGenerator, not the GeneratorModule abstract contract
+  (which the rest of the pipeline is built against) — a second generator
+  module implementing the documented contract would have crashed the
+  core. entry_for is now an abstract method with the bounds semantics
+  in its docstring, and spec Section 7.1 documents it (with
+  resolve_tree_code kept as the key-resolution helper).
+- check.py exit 0; tests/run_all.py exit 0 (233 PASS, 0 FAIL).
