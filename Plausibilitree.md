@@ -319,7 +319,7 @@ Per-tree geo derivation from plot center plus local placement is not yet
 computed (item W5). A hand-authored tree list with positions replaces this
 helper entirely.
 
-### 6.2 Tree parameter editor — **[partial]**
+### 6.2 Tree parameter editor — **[partial]** (item W20)
 
 A tool for establishing generator parameters that produce realistic trees for
 a given tree code: load a tree-code parameter dictionary (or a tree list to
@@ -327,7 +327,7 @@ derive one), edit per code, sample trees from a row at chosen HT/DBH, inspect
 in a 3D viewer, save and export the dictionary as JSON. **[partial]**: JSON
 import/export is implemented (`param_editor.py`, default
 `data/functional_groups.json`; legacy CSVs open/save too); deriving a
-dictionary from a tree list is not.
+dictionary from a tree list is not (item W20).
 
 ### 6.3 Environment / vegetation parameter editor — **[implemented]**
 
@@ -502,7 +502,7 @@ the generation constant of +/-1% around the tree list values (the
 DBH_TOL/HT_TOL dictionary keys and their per-code proportional
 tolerances are gone from the schema).
 
-### 7.4 SST skeleton JSON — **[partial]**
+### 7.4 SST skeleton JSON — **[implemented]**
 
 Design target (per notes.md): a JSON where each element represents one
 portion of the generated tree — an element graph:
@@ -852,10 +852,11 @@ matches the design).
 | W12 | LAS 1.4 writer | switch the canonical writer to LAS version 1.4 (point format 0 + extra bytes unchanged; Section 7.5) | closed |
 | W13 | JSON interchange | all tool/stage interchange becomes JSON: tree list in/out of every stage, FIA helper outputs, generator parameter dictionary (CSV -> JSON), editor import/export | closed (tree-list part reversed; see W17) |
 | W14 | notes.md semantic codes | semantic codes per notes.md: 0 ground (doubling as "no class needed" — ground/noise are the traditional LAS classification's job, so no separate unassigned/noise codes), 8 shrub, 9 grass (Sections 3.4, 8.3). The per-point `trimmed` dimension was withdrawn from the design (owner ruling 2026-11-07): trimmed points are removed, structural record only | closed |
-| W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | closed (per-element trimmed flags on trimmed variants ride with W16) |
+| W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | closed (per-element trimmed flags on trimmed variants were to ride with W16, but the 2026-11-07 trim ruling removed trim flags entirely; trimmed skeletons subset the element graph with scrubbed DESTINATION and carry no trim records) |
 | W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_* — adopt the notes.md field names over the current tree_characteristics/vegetation_characteristics nesting; split build_info's shared occupied-voxel accounting into FOLIAGE_VOXEL / GRASS_VOXEL (Section 8.4) | closed |
 | W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | closed |
 | W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | closed |
+| W20 | Parameter editor: dictionary from a tree list | derive a parameter dictionary from a tree list (propose per-code parameters from the list's species/DBH/HT) so the editor's load path covers tree lists as well (Section 6.2) | open |
 | W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | closed (FOLIAGE_VOXEL/GRASS_VOXEL split deferred to W16) |
 
 Registry of resolved decisions (for provenance):

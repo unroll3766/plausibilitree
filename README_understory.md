@@ -26,7 +26,7 @@ Discrete jittered-ellipsoid shrubs, one mesh each. Grid the plot at
 `--shrub-cell-size`; exclude cells within `canopy_r + --shrub-margin` of any
 tree (cKDTree); keep the rest with probability `--shrub-cover`; per kept cell
 jitter a centre, sample height in `[--shrub-height-min, --shrub-height-max]`,
-width `= --shrub-width-cell-frac * cell_size`, build a warped icosphere,
+width in `[--shrub-width-min, --shrub-width-max]`, build a warped icosphere,
 sample `--points-per-shrub` points, drape onto the DTM. Because cells near
 canopies are excluded up front, shrubs sit in the gaps between trees.
 

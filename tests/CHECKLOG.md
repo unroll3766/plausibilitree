@@ -98,3 +98,11 @@ Re-entries only when behavior changes. Long-form narrative lives in
   Found+fixed: entry_for was missing from the GeneratorModule contract
   (core calls it; only SST implemented it) — added to the abstract class
   and spec 7.1. check.py + run_all.py exit 0 (233 PASS).
+- 2026-11-10 — Full-repo pass: git clean (main ahead 9, nothing pushed);
+  check.py + run_all.py exit 0 (233 PASS). Spec section markers vs
+  register cross-checked: 7.4's [partial] was stale (W15 closed it) —
+  fixed; 6.2's unimplemented tree-list derivation was untracked — added
+  register item W20. README-vs-CLI flag sweep across 12 scripts: one
+  genuine drift (README_understory described the retired
+  --shrub-width-cell-frac width model) — fixed; other hits were
+  cross-script references or explicit "replaced/does not exist" notes.
