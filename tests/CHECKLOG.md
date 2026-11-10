@@ -90,3 +90,11 @@ Re-entries only when behavior changes. Long-form narrative lives in
   suite section Hb asserts the schema + fall-through. Demo regen with the
   same seed: byte-identical LAZ/TIF/skeleton/scene/info artifacts — rename
   numerically inert (only generation.json timestamps moved, reverted).
+- 2026-11-10 — W18 review pass: resolution probes (202→DF in bounds; out of
+  bounds → DEFAULT; key-only ignores bounds; unknown → DEFAULT); legacy CSV
+  with CW_* / TAPER_B and no bounds renames to A0/A1/TAPER and applies
+  unlimited; param_editor headless load+sample works (A0 allometry,
+  TAPER extrapolation); fia_helper.crown_width vector fallback to DEFAULT.
+  Found+fixed: entry_for was missing from the GeneratorModule contract
+  (core calls it; only SST implemented it) — added to the abstract class
+  and spec 7.1. check.py + run_all.py exit 0 (233 PASS).

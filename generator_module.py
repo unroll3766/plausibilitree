@@ -11,6 +11,8 @@ Contract:
 
     module.load_param_dict(path)   -> tree code -> parameter dictionary
     module.resolve_tree_code(code) -> the dictionary key for a tree code
+    module.entry_for(code, dbh, ht) -> the resolved dictionary entry, gated
+        by the entry's applicability bounds when sizes are given (7.3)
     module.build(rng, DBH, HT, tree_code, params) -> TreeModel
     module.place(model, x, y)      -> TreeModel positioned in plot coords
 
@@ -68,6 +70,16 @@ class GeneratorModule:
     def resolve_tree_code(self, code: str) -> str:
         """A tree code -> the dictionary key (resolution order is the
         module's, documented in its section of the spec)."""
+        raise NotImplementedError
+
+    def entry_for(self, tree_code: str, dbh: float | None = None,
+                  ht: float | None = None) -> dict:
+        """The resolved dictionary entry for a tree code (Section 7.3).
+
+        With sizes given, a candidate entry only applies when the tree's
+        DBH/HT lie inside its applicability bounds (resolution order and
+        DEFAULT fallback are the module's); the core passes sizes so the
+        entry it records for a tree is the one the build will use."""
         raise NotImplementedError
 
     def build(self, rng: np.random.Generator, DBH: float, HT: float,

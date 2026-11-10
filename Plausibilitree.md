@@ -364,6 +364,10 @@ in `sst_generator.py`, selectable by name from the registry —
 - `load_param_dict(path)`: the parameter dictionary format (Section 8.6)
   mapping tree code -> parameters.
 - `resolve_tree_code(code)`: a tree code -> dictionary key.
+- `entry_for(code, dbh, ht)`: the resolved dictionary entry for a tree,
+  gated by the entry's applicability bounds when the tree's DBH/HT are
+  given (Section 7.3), so the entry the core records for a tree is the
+  one the build consumes.
 
 The core calls the module through this contract only: it seeds each tree
 from a stable hash of the plot seed + TREE_UID, hands the module a fresh
