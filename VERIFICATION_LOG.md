@@ -1202,3 +1202,34 @@ record per se.
   VOL_TREES 114.013 == sum of tree VOL_TREE 69.299 + ...), then removed.
   The first full-suite run caught a residual dict-style bbox index in
   _shrub_neighborhood (fixed; suite then green end to end).
+
+### 2026-11-10 — W16 review pass: consumer sweep + stale demo fixed (commit 0c6aefe)
+
+- Consumer grep: nothing in the codebase reads the old
+  tree_characteristics / vegetation_characteristics nestings or the
+  dict-style info bbox; terrain.py/understory.py's dict-style bbox reads
+  are canopy_bbox_json's own schema (bbox_world), unrelated to info
+  JSONs. The only remaining old-name mentions are the spec's W16 register
+  row (the gap description) and provenance entries.
+- Cross-writer check against the pre-W16 numbers (same inputs, old
+  committed demo): NUM_TREES, BASAL_AREA, VOL_TREES/TRUNK/BRANCH/FOLIAGE,
+  canopy hull and bbox were bit-identical under the rename; the DIFFs
+  found were all pre-W16-rounds staleness in the demo itself, not schema
+  bugs.
+- Root cause found and fixed: examples/plot_demo predated the W14/W19/
+  trim-removal rounds (semantic codes 4/5/6, raw-vs-trimmed volume pairs,
+  unquantized rotations, pre-W15 skeletons), so the new info writer was
+  reading artifacts it was never specified against (VOL_GRASS collapsed
+  to 0 because the old understory cloud has no semantic-9 points).
+  Regenerated with the documented examples/README command (seed 42,
+  radius 15, 256 ppm, --generate-dtm --understory; run_pipeline exit 0;
+  24 s). Post-regen checks: normalize reports codes [0,1,2,3,8,9];
+  scene/skeletons carry no trim records (only the raw/trimmed cloud-pair
+  paths); VOL_SHRUB == per-shrub mesh sum (0.4571); plot sums ==
+  per-tree values; VOL_TREE identity holds; BASAL_AREA == sum of
+  pi(TREE_DBH/2)^2; PLOT_AREA == pi r^2; CHM/STEM/config/DTM paths
+  resolve; TREE_Z in (0, TREE_HT]; element graphs present; PLOT_CENTER
+  correctly absent (no FIA lat/lon in the demo input); build_info --help
+  lists --foliage-voxel/--grass-voxel/--voxel-threshold.
+- No code changes in this pass; run_all.py's last green run (221 PASS)
+  still covers the unchanged code.
