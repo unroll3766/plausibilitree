@@ -5,9 +5,11 @@ sst_generator.py: the Simple Synth Tree generator module (spec Sections
 Everything SST-specific lives here behind the GeneratorModule interface:
 
 - the parameter dictionary is the functional-group table (Section 7.3;
-  per-tree DBH/HT tolerances HT_TOL/DBH_TOL, default +/-1%, bound the
-  realized size around the tree list values; crown width from the CW
-  allometry, base diameter from the TAPER_B extrapolation);
+  crown width from the A0/A1 allometry, base diameter from the TAPER
+  extrapolation; realized sizes drawn within the +/-1% generation
+  constant around the tree list values; per-code DBH/HT applicability
+  bounds gate entry resolution -- an out-of-bounds tree falls through
+  the resolution order to DEFAULT);
 - `build` translates an entry (or an explicit legacy SST row's frozen
   ranges) into treesim's model_params and calls gen_simtree at the tree
   base (tx = ty = 0) so the returned TreeModel is base-origin (Section 7.1);
@@ -55,7 +57,8 @@ _SCALAR_PARAMS = {
     "foliage_noise": "FP_RAND_HT",
 }
 
-DEFAULT_SIZE_TOL = 0.01        # +/- 1% (spec Sections 7.3 / 8.6)
+DEFAULT_SIZE_TOL = 0.01        # +/-1% generation constant bounding realized
+# sizes around the tree list values (spec Sections 7.3 / 8.6; W18)
 DEFAULT_POINTS_PER_METRE = 1024   # overridden by the core's budget setting
 # treesim offsets fork tops by up to 2.0*rand + 1.5 metres from the main stem
 MAX_FORK_OFFSET = 3.5
@@ -203,12 +206,58 @@ class SSTGenerator(GeneratorModule):
             pass
         return "DEFAULT"
 
-    def entry_for(self, tree_code: str) -> dict:
-        """The resolved dictionary entry for a tree code."""
-        key = self.resolve_tree_code(tree_code)
-        if key not in self.fg_db.index:
-            key = "DEFAULT"
-        row = self.fg_db.loc[key]
+    def _spcd_mapped(self, code: str) -> str | None:
+        """The SPCD map hit for a numeric code string, or None."""
+        try:
+            return self._spcd().get(int(float(code)))
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def _entry_applicable(row, dbh: float | None, ht: float | None) -> bool:
+        """Applicability bounds check (spec Section 7.3): both given sizes
+        must lie inside the entry's DBH/HT bounds. A missing or NaN bound
+        is unlimited; missing sizes are not checked (key-only resolution)."""
+        for value, lo_col, hi_col in ((dbh, "DBH_MIN", "DBH_MAX"),
+                                      (ht, "HT_MIN", "HT_MAX")):
+            if value is None:
+                continue
+            lo, hi = row.get(lo_col), row.get(hi_col)
+            try:
+                if lo is not None and np.isfinite(lo) and value < float(lo):
+                    return False
+                if hi is not None and np.isfinite(hi) and value > float(hi):
+                    return False
+            except TypeError:
+                continue
+        return True
+
+    def entry_for(self, tree_code: str, dbh: float | None = None,
+                  ht: float | None = None) -> dict:
+        """The resolved dictionary entry for a tree code (spec Section 7.3).
+
+        Candidate keys in resolution order: the code itself, then its
+        SPCD-mapped group, then DEFAULT. With sizes given, a candidate only
+        applies when the tree's DBH/HT lie inside its applicability bounds
+        (DBH_MIN/DBH_MAX, HT_MIN/HT_MAX; a missing bound is unlimited);
+        the first applicable candidate wins, and DEFAULT is the
+        unconditional last resort.
+        """
+        code = str(tree_code)
+        known = set(self.fg_db.index)
+        candidates = []
+        if code in known:
+            candidates.append(code)
+        for mapped in (self._spcd().get(code), self._spcd_mapped(code)):
+            if mapped is not None and mapped in known and mapped not in candidates:
+                candidates.append(mapped)
+        row = None
+        for key in candidates:
+            if self._entry_applicable(self.fg_db.loc[key], dbh, ht):
+                row = self.fg_db.loc[key]
+                break
+        if row is None:
+            row = self.fg_db.loc["DEFAULT"]
         out = {}
         for col, v in row.items():
             try:
@@ -223,19 +272,18 @@ class SSTGenerator(GeneratorModule):
                        points_per_metre: int) -> dict:
         """A dictionary entry + tree list sizes -> explicit model params.
 
-        Tolerances bound the realized size around the list values; crown
-        width and base diameter come from the entry's allometry
-        (Section 7.2)."""
-        ht_tol = entry.get("HT_TOL", DEFAULT_SIZE_TOL) or DEFAULT_SIZE_TOL
-        dbh_tol = entry.get("DBH_TOL", DEFAULT_SIZE_TOL) or DEFAULT_SIZE_TOL
-        ht_lo, ht_hi = HT * (1 - ht_tol), HT * (1 + ht_tol)
-        base_dia = _scalar_taper_base_diameter(DBH, HT, entry["TAPER_B"])
-        crown_w = _scalar_crown_width(DBH, entry["CW_A0"], entry["CW_A1"])
+        The realized-size ranges are drawn within the +/-1% generation
+        constant around the list values (the dictionary's tolerance keys
+        are gone, spec Section 8.6); crown width and base diameter come
+        from the entry's allometry (Section 7.2)."""
+        ht_lo, ht_hi = HT * (1 - DEFAULT_SIZE_TOL), HT * (1 + DEFAULT_SIZE_TOL)
+        base_dia = _scalar_taper_base_diameter(DBH, HT, entry["TAPER"])
+        crown_w = _scalar_crown_width(DBH, entry["A0"], entry["A1"])
 
         model_params = {
             "height_range": [ht_lo, ht_hi],
-            "diam_range": [base_dia * (1 - dbh_tol),
-                           base_dia * (1 + dbh_tol)],
+            "diam_range": [base_dia * (1 - DEFAULT_SIZE_TOL),
+                           base_dia * (1 + DEFAULT_SIZE_TOL)],
             "split_height_range": [entry["SPLIT_HT_LO"], entry["SPLIT_HT_HI"]],
             "split_prob": entry["SPLIT_PROB"],
             "num_branches": [int(entry["NUM_BRANCH_LO"]),

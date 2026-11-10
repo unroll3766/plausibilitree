@@ -21,6 +21,9 @@ and whole-repo review entries):
   F. understory domains and plot containment
   G. branch_code domain
   H. generation.json seed + realised records
+  Hb. parameter dictionary: notes.md schema (A0/A1/TAPER + DBH/HT
+     applicability bounds), withdrawn keys absent, bounds fall-through
+     (W18)
   I. SCENE LINK AUDIT every relative path in the scene JSON resolves
 
 Exit 0 = all checks passed.
@@ -291,6 +294,38 @@ def run_checks(fixroot, plot_dir):
               and "realised" in gj)
         check(f"{uid} generation.json carries per-attempt seeds + realised",
               ok)
+
+    print("== Hb. parameter dictionary (notes.md schema, W18) ==")
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fg = json.load(open(os.path.join(repo, "data", "functional_groups.json")))
+    check("every dictionary entry carries A0/A1/TAPER + DBH/HT bounds",
+          all({"A0", "A1", "TAPER", "DBH_MIN", "DBH_MAX",
+               "HT_MIN", "HT_MAX"} <= set(e) for e in fg.values()))
+    check("no withdrawn keys in the shipped dictionary (CW_*/TAPER_B/*_TOL)",
+          not any({"CW_A0", "CW_A1", "TAPER_B", "DBH_TOL", "HT_TOL"}
+                  & set(e) for e in fg.values()))
+    check("every entry's bounds are ordered",
+          all(e["DBH_MIN"] <= e["DBH_MAX"] and e["HT_MIN"] <= e["HT_MAX"]
+              for e in fg.values()))
+    import sst_generator as sst_mod
+    sst = sst_mod.SSTGenerator()
+    for _, row in table.iterrows():
+        uid = str(row["TREE_UID"])
+        entry = sst.entry_for(str(row["TREE_CODE"]), dbh=float(row["DBH"]),
+                              ht=float(row["HT"]))
+        check(f"{uid} resolved entry uses notes.md names",
+              "A0" in entry and "TAPER" in entry
+              and not {"CW_A0", "TAPER_B", "DBH_TOL", "HT_TOL"} & set(entry),
+              str(row["TREE_CODE"]))
+    check("in-bounds tree resolves to its own code entry",
+          sst.entry_for("DF", dbh=0.5, ht=30.0)["DESCRIPTION"]
+          == fg["DF"]["DESCRIPTION"])
+    check("out-of-bounds tree falls through to the DEFAULT entry",
+          sst.entry_for("DF", dbh=4.0, ht=30.0)["DESCRIPTION"]
+          == fg["DEFAULT"]["DESCRIPTION"])
+    check("DEFAULT always applies even outside its own bounds",
+          sst.entry_for("999", dbh=9.9, ht=999.0)["DESCRIPTION"]
+          == fg["DEFAULT"]["DESCRIPTION"])
 
     print("== I. scene link audit ==")
     links = []

@@ -392,7 +392,7 @@ input values; the deviations are recorded in the tree info JSON.
 Synthesis chain for one tree (H = HT, DBH in metres, DBH_HT = 1.37 m):
 
 1. **Trunk diameter profile.** DBH is measured at 1.37 m; the trunk swells
-   below that point. Base diameter, with b = TAPER_B:
+   below that point. Base diameter, with b = TAPER:
 
    d(0) = DBH * (H / (H - 1.37))^(1/b)
 
@@ -466,10 +466,10 @@ HT by the entry's allometry (Section 7.2).
 |---|---|---|
 | FUNC_GROUP | tree code this entry is keyed by | — |
 | A0, A1 | crown-width allometry (notes.md's a0/a1): CW (ft) = exp(A0 + A1 ln(DBH_in)), then to metres | widens the crown at a given DBH (A0) / makes big trees disproportionately wide (A1); wider crowns mean more collision trimming in dense plots |
-| TAPER_B | butt-swell exponent, Section 7.2 step 1 | reduces butt swell (base diameter closer to DBH); lowering it thickens the trunk base |
+| TAPER | butt-swell exponent of the taper function, Section 7.2 step 1 (notes.md: "taper function (base diameter)") | reduces butt swell (base diameter closer to DBH); lowering it thickens the trunk base |
 | DBH_MIN, DBH_MAX, HT_MIN, HT_MAX | applicability bounds on the trees this entry covers (notes.md: bounds on the tree's DBH / HT). A tree's list DBH/HT must lie inside them; the realized SST ranges are derived around the tree list values | a tree outside the bounds falls through the code resolution order (species -> functional group -> DEFAULT); wider bounds admit more trees to this entry |
 | SPLIT_PROB | probability the tree forks at all (0 = single straight stem) | more forked trees |
-| SPLIT_NUM_LO/HI | number of cascading trunk splits, drawn per tree (default 1:1 = single fork); spec extension, not in notes.md's parameter list | more levels of forking and bushier multi-leader crowns; each leader's crown is airier at the same point count, so raise the point budget for dense multi-leader crowns |
+| SPLIT_NUM_LO/HI | number of cascading trunk splits, drawn per tree (default 1:1 = single fork); confirmed spec extension (owner ruling 2026-11-10), not in notes.md's parameter list | more levels of forking and bushier multi-leader crowns; each leader's crown is airier at the same point count, so raise the point budget for dense multi-leader crowns |
 | SPLIT_HT_LO/HI | where each split happens, as a fraction of the stem being split | pushes splits higher up the stems |
 | NUM_BRANCH_LO/HI | nominal branch count, drawn per tree and split between the lower crown band and the upper crown/fork band | denser canopy and more foliage points |
 | MIN_CAN_HT_LO/HI | crown base: height of the lowest branch, as a fraction of H | raises the crown base (pruned-plantation look); more bare, visible stem |
@@ -485,13 +485,18 @@ SPLIT_PROB, high A0/A1, a low crown base, and SPLIT_NUM_LO/HI above
 1:1 for cascading multi-leader crowns. TOP_DIST and MID_DIST only change
 stem geometry, so they add variety without changing the crown.
 
-**[partial]**: keyed-by-code consumption is implemented at generation time
-(rows are expanded from the tree list's DBH/HT, with allometry-derived
-crown width and base diameter); the dictionary is serialized as JSON
-(`data/functional_groups.json`; legacy CSV tables still load). The code
-currently uses the CW_A0/CW_A1/TAPER_B naming and proportional
-DBH_TOL/HT_TOL size tolerances rather than notes.md's a0/a1, taper and
-DBH/HT applicability bounds (item W18).
+**[implemented]**: keyed-by-code consumption at generation time — rows
+are expanded from the tree list's DBH/HT, with allometry-derived crown
+width (A0/A1) and taper-derived base diameter (TAPER). The dictionary is
+serialized as JSON (`data/functional_groups.json`; legacy CSV tables
+still load — pre-W18 spellings CW_A0/CW_A1/TAPER_B are renamed at load).
+The per-code DBH_MIN/DBH_MAX/HT_MIN/HT_MAX applicability bounds are
+enforced at entry resolution: a tree list DBH/HT outside an entry's
+bounds falls through the resolution order (species -> functional group
+-> DEFAULT), and DEFAULT always applies. Realized sizes are drawn within
+the generation constant of +/-1% around the tree list values (the
+DBH_TOL/HT_TOL dictionary keys and their per-code proportional
+tolerances are gone from the schema).
 
 ### 7.4 SST skeleton JSON — **[partial]**
 
@@ -704,17 +709,23 @@ dict + vegetation settings.
 ### 8.6 Tree parameter dictionary
 
 Module-specific mapping tree code -> parameters, serialized as **JSON**
-— **[partial]**: `data/functional_groups.json`, one object keyed by
+— **[implemented]**: `data/functional_groups.json`, one object keyed by
 tree code whose values are that code's parameters (the Section 7.3
-columns: a0/a1 crown-width allometry, the taper function, DBH/HT
-applicability bounds, and the required SST parameters HT_LO, HT_HI,
-BASE_DIA_LO, BASE_DIA_HI, SPLIT_HT_LO/HI, SPLIT_PROB, NUM_BRANCH_LO/HI,
-MIN_CAN_HT_LO/HI, MAX_CAN_W, MAX_CAN_W_HT_LO/HI, TOP_DIST, MID_DIST,
-FP_RAND_HT, SPR_LO/HI per notes.md); the Section 6.2 helper edits it
-(legacy CSV tables still accepted). Height and diameter always originate
-in the tree list, never from this dictionary; the dictionary supplies
-each code's applicability bounds. The code's DBH_TOL/HT_TOL proportional
-tolerances are the deviation to close (item W18).
+columns: A0/A1 crown-width allometry, TAPER, the DBH_MIN/DBH_MAX /
+HT_MIN/HT_MAX applicability bounds, and the shape parameters
+SPLIT_HT_LO/HI, SPLIT_PROB, SPLIT_NUM_LO/HI (confirmed spec extension),
+NUM_BRANCH_LO/HI, MIN_CAN_HT_LO/HI, MAX_CAN_W_HT_LO/HI, TOP_DIST,
+MID_DIST, FP_RAND_HT, SPR_LO/HI). notes.md's required SST parameters
+HT_LO/HT_HI, BASE_DIA_LO/BASE_DIA_HI and MAX_CAN_W are derived at
+generation time from the tree list's DBH/HT (realized-size ranges within
+the +/-1% generation constant; crown width from the A0/A1 allometry) —
+they enter SST's model_params, never the per-code dictionary. The
+Section 6.2 helper edits it; legacy CSV tables are still accepted
+(pre-W18 spellings CW_A0/CW_A1/TAPER_B rename at load). Height and
+diameter always originate in the tree list, never from this dictionary;
+the dictionary supplies each code's applicability bounds, checked at
+entry resolution (Section 7.3). The DBH_TOL/HT_TOL proportional
+tolerance keys are withdrawn from the schema (W18 closed).
 
 ### 8.7 Topography dict
 
@@ -840,7 +851,7 @@ matches the design).
 | W15 | Element-graph skeleton | export the notes.md per-element skeleton graph (BRANCH_UID/ORDER/LENGTH/RADIUS/VOLUME, SOURCE/DESTINATION) from the polyline form (Section 7.4) | closed (per-element trimmed flags on trimmed variants ride with W16) |
 | W16 | Info JSON schema per notes.md | plot info: NUM_TREES, BASAL_AREA, NUM_SHRUBS, VOL_TREES/TRUNK/BRANCH/FOLIAGE/SHRUB/GRASS, CHM_PATH/STEM_PATH, config-record path, optional PLOT_CENTER; tree info: TREE_UID/DBH/HT/X/Y/Z/VOL_* — adopt the notes.md field names over the current tree_characteristics/vegetation_characteristics nesting; split build_info's shared occupied-voxel accounting into FOLIAGE_VOXEL / GRASS_VOXEL (Section 8.4) | closed |
 | W17 | CSV tree lists | tree lists are CSV-canonical per notes.md (FIA helper emits the placed tree list as .csv by default; JSON is the alternate); reverses W13's JSON-canonical tree lists (Sections 6.1, 8.1). The parameter dictionary stays JSON | closed |
-| W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | open |
+| W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | closed |
 | W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | closed (FOLIAGE_VOXEL/GRASS_VOXEL split deferred to W16) |
 
 Registry of resolved decisions (for provenance):
@@ -872,6 +883,9 @@ Registry of resolved decisions (for provenance):
 - DBH_TOL / HT_TOL in the parameter dictionary are proportional tolerances
   (default +/- 1%) bounding realized sizes around the tree list values;
   sizes themselves never come from the dictionary (Section 8.6).
+  [Superseded by the W18 closing: the tolerance keys are withdrawn from
+  the dictionary schema; the +/-1% is a generation-time constant, and the
+  dictionary carries DBH/HT applicability bounds instead.]
 - All interchange data (tree lists, parameter dictionaries, reports) is
   JSON; CSV is legacy (W13).
 - First code-alignment round (2026-11): W2, W11 and W12 closed — FIA
@@ -988,3 +1002,17 @@ Registry of resolved decisions (for provenance):
   deviation: the config-record field is spelled
   PLAUSIBILITREE_CONFIGURATION (notes.md's "CONFIGURAITION" is a typo).
   Optional DTM_PATH rides along when a plot DTM exists.
+- Tenth code-alignment round (2026-11-10): W18 closed — the parameter
+  dictionary carries the notes.md names (A0/A1 crown-width allometry,
+  TAPER; pre-W18 spellings CW_A0/CW_A1/TAPER_B rename at load, so legacy
+  CSV/JSON files still open), every entry gained DBH_MIN/DBH_MAX and
+  HT_MIN/HT_MAX applicability bounds enforced at entry resolution (a
+  tree list DBH/HT outside an entry's bounds falls through species ->
+  functional group -> DEFAULT, with DEFAULT the unconditional last
+  resort), and the DBH_TOL/HT_TOL tolerance keys are withdrawn from the
+  schema (realized sizes keep the +/-1% generation constant, now fixed
+  in sst_generator rather than per-entry). Owner rulings: the taper
+  parameter is named TAPER; SPLIT_NUM_LO/HI is a confirmed spec
+  extension. The rename is numerically inert — a full demo regeneration
+  produced byte-identical clouds, rasters and skeletons (only the
+  generation JSON timestamps moved).

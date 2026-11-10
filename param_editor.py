@@ -26,8 +26,8 @@ How a sample tree is drawn from a row:
   - A functional-group table has no heights or diameters (those come from
     inventory rows at fia_helper time), so the GUI samples HT and DBH from
     the ranges in the sampling fields and derives the rest exactly the way
-    fia_helper does: crown width from CW = exp(CW_A0 + CW_A1 * ln(DBH_in))
-    in feet, and base diameter from the TAPER_B extrapolation
+    fia_helper does: crown width from CW = exp(A0 + A1 * ln(DBH_in))
+    in feet, and base diameter from the TAPER extrapolation
     d(0) = DBH * (H / (H - 1.37)) ** (1/b).
   - If the CSV *does* carry HT_LO/HT_HI, BASE_DIA_LO/HI or MAX_CAN_W columns
     (e.g. a hand-built plot-style table), those columns win over the sampling
@@ -47,6 +47,8 @@ import argparse
 import json
 import os
 import time
+
+import fia_helper
 
 import numpy as np
 import pandas as pd
@@ -126,9 +128,9 @@ def load_table(path):
         df = pd.DataFrame.from_dict({k: dict(v) for k, v in obj.items()},
                                     orient="index")
         df.index.name = "FUNC_GROUP"
-        df = df.reset_index()
+        df = fia_helper.normalize_param_columns(df).reset_index()
     else:
-        df = pd.read_csv(path)
+        df = fia_helper.normalize_param_columns(pd.read_csv(path))
     if df.empty:
         raise RuntimeError(f"{path}: table has no rows")
     return df
@@ -193,19 +195,19 @@ def sample_tree_params(row, rng, sample_ht, sample_dbh):
         info["base_diam_m"] = p["diam_range"][0]
     else:
         dbh = float(rng.uniform(*sample_dbh))
-        taper = _f(row, "TAPER_B", 1.6)
+        taper = _f(row, "TAPER", 1.6)
         base = base_diameter_m(dbh, ht, taper)
         p["diam_range"] = [base, base]
         info["dbh_m"], info["base_diam_m"] = dbh, base
 
     if "MAX_CAN_W" in row.index:
         p["max_can_width"] = _f(row, "MAX_CAN_W")
-    elif "CW_A0" in row.index and "CW_A1" in row.index:
+    elif "A0" in row.index and "A1" in row.index:
         # representative dbh for the allometry: the drawn one, or the row's
         # own base diameter when the table supplies diameters directly
         dbh_for_cw = info.get("dbh_m", p["diam_range"][0])
-        p["max_can_width"] = crown_width_m(dbh_for_cw, _f(row, "CW_A0"),
-                                           _f(row, "CW_A1"))
+        p["max_can_width"] = crown_width_m(dbh_for_cw, _f(row, "A0"),
+                                           _f(row, "A1"))
     else:
         p["max_can_width"] = TREESIM_DEFAULTS["max_can_width"]
     info["crown_w_m"] = p["max_can_width"]

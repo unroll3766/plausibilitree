@@ -8,7 +8,7 @@ TREE_UID, X, Y, Z, DBH, HT, TREE_CODE); plot geometry lives in the sibling
 counts. `--format tree-list-json` emits the alternate canonical JSON object;
 `--format sst-csv` emits the legacy per-tree SST parameter table instead
 (frozen HT/BASE_DIA ranges plus per-group shape parameters). For what each parameter controls (the `CW_*`
-allometry, `TAPER_B`, crown shape ranges, etc.), see the parameter reference
+allometry, `TAPER`, crown shape ranges, etc.), see the parameter reference
 in [README_param_editor.md](README_param_editor.md).
 
 ```

@@ -82,8 +82,9 @@ def tree_requests(table_path: str, module, points_per_metre: int) -> tuple:
                          "X": float(t["X"]), "Y": float(t["Y"]),
                          "DBH": float(t["DBH"]), "HT": float(t["HT"]),
                          "TREE_CODE": code,
-                         "params": dict(module.entry_for(code),
-                                        points_per_metre=points_per_metre)})
+                         "params": dict(module.entry_for(
+                             code, float(t["DBH"]), float(t["HT"])),
+                             points_per_metre=points_per_metre)})
         return "tree-list", reqs
     df = pd.read_csv(table_path, dtype={"TREE_UID": str})
     if "successful_placement" in df.columns:

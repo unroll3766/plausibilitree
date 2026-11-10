@@ -83,3 +83,10 @@ Re-entries only when behavior changes. Long-form narrative lives in
   raw/trimmed cloud-pair paths), VOL_SHRUB == per-shrub mesh sum, plot
   info sums == per-tree values, paths resolve; new flags on build_info
   --help.
+- 2026-11-10 — W18 parameter dictionary: data/functional_groups.json uses
+  A0/A1/TAPER + DBH/HT applicability bounds; resolution falls through on
+  out-of-bounds sizes (DEFAULT last resort); tolerance keys withdrawn;
+  legacy CSV/JSON rename at load. run_all.py exit 0 (233 PASS); invariant
+  suite section Hb asserts the schema + fall-through. Demo regen with the
+  same seed: byte-identical LAZ/TIF/skeleton/scene/info artifacts — rename
+  numerically inert (only generation.json timestamps moved, reverted).

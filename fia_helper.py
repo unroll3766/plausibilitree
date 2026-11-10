@@ -70,12 +70,26 @@ PLOT_CENTER_COLUMNS = ["plot_lat", "plot_lon", "plot_elev"]
 # Functional groups
 # ---------------------------------------------------------------------------
 
+# pre-W18 dictionary spellings -> the notes.md names (spec Sections 7.3,
+# 8.6); legacy CSV/JSON files are accepted by renaming at load
+LEGACY_PARAM_NAMES = {"CW_A0": "A0", "CW_A1": "A1", "TAPER_B": "TAPER"}
+
+
+def normalize_param_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename legacy parameter-dictionary names to the notes.md names when
+    only the legacy spelling is present (Section 8.6)."""
+    ren = {old: new for old, new in LEGACY_PARAM_NAMES.items()
+           if old in df.columns and new not in df.columns}
+    return df.rename(columns=ren) if ren else df
+
+
 def load_func_group_db(path: str = DEFAULT_FG_DB) -> pd.DataFrame:
     """Load the functional-group parameter table, indexed by FUNC_GROUP.
 
     Serialized as JSON per the spec (Section 8.6): one object keyed by
     FUNC_GROUP whose values are that code's parameters. Legacy CSV tables
-    (one row per code) are still accepted."""
+    (one row per code) are still accepted; pre-W18 spellings rename at
+    load (see normalize_param_columns)."""
     if str(path).endswith(".json"):
         with open(path) as fh:
             obj = json.load(fh)
@@ -84,8 +98,8 @@ def load_func_group_db(path: str = DEFAULT_FG_DB) -> pd.DataFrame:
         df = pd.DataFrame.from_dict({k: dict(v) for k, v in obj.items()},
                                     orient="index")
         df.index.name = "FUNC_GROUP"
-        return df
-    db = pd.read_csv(path).set_index("FUNC_GROUP")
+        return normalize_param_columns(df)
+    db = normalize_param_columns(pd.read_csv(path).set_index("FUNC_GROUP"))
     if "DEFAULT" not in db.index:
         raise ValueError("functional group database must contain a DEFAULT row")
     return db
@@ -301,8 +315,8 @@ def crown_width(dbh_m: pd.Series, func_group: pd.Series,
     """
     if fg_db is None:
         fg_db = load_func_group_db()
-    a0 = _fg_param(func_group, fg_db, "CW_A0")
-    a1 = _fg_param(func_group, fg_db, "CW_A1")
+    a0 = _fg_param(func_group, fg_db, "A0")
+    a1 = _fg_param(func_group, fg_db, "A1")
     dbh_in = pd.to_numeric(dbh_m, errors="coerce") / IN_TO_M
     dbh_in = dbh_in.clip(lower=0.1)
     cw_ft = np.exp(a0 + a1 * np.log(dbh_in))
@@ -508,7 +522,7 @@ def dbh_to_base_diameter(dbh_m: pd.Series, ht_m: pd.Series,
     """
     if fg_db is None:
         fg_db = load_func_group_db()
-    b = _fg_param(func_group, fg_db, "TAPER_B")
+    b = _fg_param(func_group, fg_db, "TAPER")
     dbh = pd.to_numeric(dbh_m, errors="coerce")
     ht = pd.to_numeric(ht_m, errors="coerce")
     ratio = (ht / (ht - BREAST_HEIGHT_M)).where(ht > BREAST_HEIGHT_M + 0.1, 1.0)
