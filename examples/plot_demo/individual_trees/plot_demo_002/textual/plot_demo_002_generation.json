@@ -2,64 +2,74 @@
   "tree_uid": "002",
   "plot_uid": "plot_demo",
   "tree_id": 2,
+  "generator_module": "sst",
   "func_group": "HW",
   "x": 0.0,
   "y": 4.5,
-  "target_points": 3328,
-  "points_per_metre": 256,
-  "ht_hi_used_for_budget": 26.0,
-  "stem_frac_lambda": [
-    0.1,
-    0.3
+  "tree_list": {
+    "DBH": 0.5,
+    "HT": 26.0,
+    "TREE_CODE": "HW"
+  },
+  "attempts": [
+    {
+      "seed": 3476830959
+    }
   ],
-  "model_params": {
-    "height_range": [
-      24.0,
-      26.0
-    ],
-    "diam_range": [
-      0.4,
-      0.5
-    ],
-    "split_height_range": [
-      0.15,
-      0.4
-    ],
-    "num_branches": [
-      80,
-      160
-    ],
-    "min_can_height": [
-      0.15,
-      0.35
-    ],
-    "max_can_width_height": [
-      0.45,
-      0.75
-    ],
-    "split_prob": 0.7,
-    "max_can_width": 8.5,
-    "tree_top_dist": 3.5,
-    "tree_mid_dist": 0.8,
-    "foliage_noise": 0.7,
-    "num_splits": [
-      1,
-      5
-    ]
-  },
-  "rng": {
-    "library": "numpy.random (global)",
-    "seed": 3476830959,
-    "base_seed": 42,
-    "attempts": 1
-  },
   "realised": {
+    "height_m": 24.060185938101476,
+    "base_radius_m": 0.2449324790184273,
+    "fork": 2,
     "n_points": 3328,
-    "n_stem_points": 731,
-    "n_foliage_points": 2597,
-    "height_m": 25.956565025511946,
-    "base_radius_m": 0.2162800976084375,
-    "fork": 2
+    "n_stem_points": 697,
+    "n_foliage_points": 2631
+  },
+  "provenance": {
+    "model_params": {
+      "height_range": [
+        24.0,
+        26.0
+      ],
+      "diam_range": [
+        0.4,
+        0.5
+      ],
+      "split_height_range": [
+        0.15,
+        0.4
+      ],
+      "num_branches": [
+        80,
+        160
+      ],
+      "min_can_height": [
+        0.15,
+        0.35
+      ],
+      "max_can_width_height": [
+        0.45,
+        0.75
+      ],
+      "split_prob": 0.7,
+      "max_can_width": 8.5,
+      "tree_top_dist": 3.5,
+      "tree_mid_dist": 0.8,
+      "foliage_noise": 0.7,
+      "num_splits": [
+        1,
+        5
+      ]
+    },
+    "stem_frac_lambda": [
+      0.1,
+      0.3
+    ],
+    "target_points": 3328,
+    "points_per_metre": 256,
+    "ht_hi_used_for_budget": 26.0,
+    "base_dia_hi_used_for_budget": 0.5,
+    "excursion_m": 6.607389837395345,
+    "generator": "SimpleSynthTree / treesim.gen_simtree (skeleton patch)"
   },
   "outputs": {
     "las": "002_raw.laz",
@@ -92,6 +102,5 @@
     "SPR_HI": 0.3,
     "FUNC_GROUP": "HW"
   },
-  "generated_utc": "2026-10-19T23:35:33+00:00",
-  "generator": "SimpleSynthTree / treesim.gen_simtree (skeleton patch)"
+  "generated_utc": "2026-11-10T22:27:56+00:00"
 }

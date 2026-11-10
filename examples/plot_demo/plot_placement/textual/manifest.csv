@@ -1,5 +1,5 @@
-tree_uid,plot_uid,x,y,func_group,n_points,status,las,n_stem_points,height_m,n_branches,fork,seed
-001,plot_demo,-5.0,0.0,HW,2765,ok,001_raw.laz,575,23.091,224,2,1479731529
-002,plot_demo,0.0,4.5,HW,3328,ok,002_raw.laz,731,25.957,170,2,3476830959
-003,plot_demo,5.5,-3.0,DF,2560,ok,003_raw.laz,447,19.06,78,1,3191687781
-004,plot_demo,-1.5,-5.5,PP,1843,ok,004_raw.laz,497,16.486,87,1,676978114
+tree_uid,plot_uid,x,y,func_group,n_points,status,las,height_m,seed
+001,plot_demo,-5.0,0.0,HW,2765,ok,001_raw.laz,22.723,1479731529
+002,plot_demo,0.0,4.5,HW,3328,ok,002_raw.laz,24.06,3476830959
+003,plot_demo,5.5,-3.0,DF,2560,ok,003_raw.laz,19.2,3191687781
+004,plot_demo,-1.5,-5.5,PP,1843,ok,004_raw.laz,16.477,676978114

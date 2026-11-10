@@ -1,15 +1,23 @@
 {
   "plot_uid": "plot_demo",
-  "n_shrubs": 1,
+  "n_shrubs": 2,
   "shrubs": [
     {
       "shrub_id": 1,
       "shrub_uid": "001",
       "n_points": 300,
       "volume_m3": {
-        "primitive": 0.9572562914309644,
-        "mesh": 0.886357471806655,
-        "voxel": 0.23600000000000004
+        "primitive": 0.24797123015993108,
+        "mesh": 0.22835115191024682
+      }
+    },
+    {
+      "shrub_id": 2,
+      "shrub_uid": "002",
+      "n_points": 300,
+      "volume_m3": {
+        "primitive": 0.23890799789193568,
+        "mesh": 0.22873901947310912
       }
     }
   ]

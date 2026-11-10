@@ -2,26 +2,26 @@
   "plot_uid": "plot_demo",
   "tree_id": 1,
   "tree_uid": "001",
-  "n_branch_points": 2188,
+  "n_branch_points": 2078,
   "bbox_world": {
-    "x_min": -11.4003,
-    "x_max": -2.0032,
-    "y_min": -6.5744,
-    "y_max": 2.5407,
-    "z_min": 8.2861,
-    "z_max": 24.2572,
-    "dx": 9.397,
-    "dy": 9.115,
-    "dz": 15.971
+    "x_min": -9.7155,
+    "x_max": -1.3484,
+    "y_min": -5.2768,
+    "y_max": 2.2873,
+    "z_min": 6.3934,
+    "z_max": 24.0495,
+    "dx": 8.367,
+    "dy": 7.564,
+    "dz": 17.656
   },
-  "bbox_volume_m3": 1367.974524,
+  "bbox_volume_m3": 1117.412716,
   "bbox_pixel_buffered": {
     "col_min": 0,
-    "row_min": 48,
-    "col_max": 95,
-    "row_max": 143,
-    "width": 96,
-    "height": 96,
+    "row_min": 90,
+    "col_max": 169,
+    "row_max": 246,
+    "width": 170,
+    "height": 157,
     "buffer_px": 2
   }
 }

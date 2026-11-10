@@ -10,27 +10,33 @@
   "plot_elev": null,
   "bounds": {
     "min": [
-      -11.400298914126669,
-      -7.66833657582003,
-      0.024125646835658758
+      -9.715417303826458,
+      -8.208735707982479,
+      0.012472907592994187
     ],
     "max": [
-      7.7744441274065945,
-      7.595537482251658,
-      27.25760502537549
+      7.7678832886770826,
+      6.926526363291766,
+      25.36451353625847
     ]
   },
   "seed": 42,
   "branch_radius_frac": 0.1,
   "contact_tolerance_m": 0.0,
+  "rotation_step_deg": 30.0,
   "rotations_deg": {
-    "001": 278.624,
-    "002": 157.996,
-    "003": 309.095,
-    "004": 251.052
+    "001": 30.0,
+    "002": 270.0,
+    "003": 30.0,
+    "004": 240.0
+  },
+  "reflections": {
+    "001": true,
+    "002": false,
+    "003": true,
+    "004": false
   },
   "points_raw": 10496,
-  "points_flagged_trimmed": 23,
   "branch_id_encoding": {
     "las_field": "branch_id",
     "formula": "tree_id * 100000 + element_index + 1",
@@ -39,40 +45,17 @@
     "unassigned_value": 0
   },
   "branch_order_encoding": {
-    "las_field": "branch_order",
+    "las_field": "branch_code",
+    "skeleton_fields": [
+      "trunk.segments.branch_order",
+      "branches.branch_order"
+    ],
     "definition": "0 = main stem; a fork or a branch is parent order + 1 (fork = 1, branch on trunk = 1, branch on fork = 2)",
     "note": "current simulator produces orders 0, 1 and 2",
     "unassigned_value": 0
   },
-  "n_collisions": 2,
-  "collisions": [
-    {
-      "tree_a": "001",
-      "element_a": 276,
-      "kind_a": "branch",
-      "tree_b": "002",
-      "element_b": 104,
-      "kind_b": "branch",
-      "trimmed_tree": "001",
-      "trimmed_element": 276,
-      "elements_trimmed": 1,
-      "rule": "shorter_branch"
-    },
-    {
-      "tree_a": "001",
-      "element_a": 211,
-      "kind_a": "branch",
-      "tree_b": "004",
-      "element_b": 82,
-      "kind_b": "branch",
-      "trimmed_tree": "004",
-      "trimmed_element": 82,
-      "elements_trimmed": 1,
-      "rule": "shorter_branch"
-    }
-  ],
   "stem_map": {
-    "cell_size_m": 0.1,
+    "cell_size_m": 0.05,
     "dbh_height_m": 1.37,
     "band_half_thickness_m": 0.25,
     "bbox_padding_px": 1,
@@ -80,127 +63,127 @@
       1.12,
       1.62
     ],
-    "source_cloud": "plot_demo/plot_placement/plot_demo_raw.laz",
+    "source_cloud": "plot_demo/plot_placement/las/plot_demo_raw.laz",
     "raster_size": {
-      "width": 111,
-      "height": 105
+      "width": 217,
+      "height": 208
     },
     "n_trees_with_stem": 4,
     "bounding_boxes_inline": [
       {
         "tree_id": 1,
-        "n_stem_points": 4,
+        "n_stem_points": 16,
         "n_discs": 9,
         "stem_source": "skeleton",
         "padding_px": 1,
         "bbox_pixel": {
           "col_min": 0,
-          "row_min": 43,
-          "col_max": 5,
-          "row_max": 49,
-          "width": 6,
-          "height": 7
+          "row_min": 91,
+          "col_max": 8,
+          "row_max": 101,
+          "width": 9,
+          "height": 11
         },
         "bbox_pixel_tight": {
           "col_min": 0,
-          "row_min": 44,
-          "col_max": 4,
-          "row_max": 48,
-          "width": 5,
-          "height": 5
+          "row_min": 92,
+          "col_max": 7,
+          "row_max": 100,
+          "width": 8,
+          "height": 9
         },
         "bbox_world": {
-          "x_min": -5.1537,
-          "x_max": -4.5537,
-          "y_min": -0.3365,
-          "y_max": 0.3635
+          "x_min": -5.128,
+          "x_max": -4.678,
+          "y_min": -0.4158,
+          "y_max": 0.1342
         }
       },
       {
         "tree_id": 2,
-        "n_stem_points": 15,
+        "n_stem_points": 12,
         "n_discs": 9,
         "stem_source": "skeleton",
         "padding_px": 1,
         "bbox_pixel": {
-          "col_min": 48,
+          "col_min": 95,
           "row_min": 0,
-          "col_max": 54,
-          "row_max": 5,
-          "width": 7,
-          "height": 6
+          "col_max": 107,
+          "row_max": 10,
+          "width": 13,
+          "height": 11
         },
         "bbox_pixel_tight": {
-          "col_min": 49,
+          "col_min": 96,
           "row_min": 0,
-          "col_max": 53,
-          "row_max": 4,
-          "width": 5,
-          "height": 5
+          "col_max": 106,
+          "row_max": 9,
+          "width": 11,
+          "height": 10
         },
         "bbox_world": {
-          "x_min": -0.3537,
-          "x_max": 0.3463,
-          "y_min": 4.0635,
-          "y_max": 4.6635
+          "x_min": -0.378,
+          "x_max": 0.272,
+          "y_min": 4.1342,
+          "y_max": 4.6842
         }
       },
       {
         "tree_id": 3,
-        "n_stem_points": 27,
+        "n_stem_points": 34,
         "n_discs": 9,
         "stem_source": "skeleton",
         "padding_px": 1,
         "bbox_pixel": {
-          "col_min": 103,
-          "row_min": 72,
-          "col_max": 110,
-          "row_max": 79,
-          "width": 8,
-          "height": 8
+          "col_min": 206,
+          "row_min": 147,
+          "col_max": 216,
+          "row_max": 158,
+          "width": 11,
+          "height": 12
         },
         "bbox_pixel_tight": {
-          "col_min": 104,
-          "row_min": 73,
-          "col_max": 109,
-          "row_max": 78,
-          "width": 6,
-          "height": 6
+          "col_min": 207,
+          "row_min": 148,
+          "col_max": 216,
+          "row_max": 157,
+          "width": 10,
+          "height": 10
         },
         "bbox_world": {
-          "x_min": 5.1463,
-          "x_max": 5.9463,
-          "y_min": -3.3365,
-          "y_max": -2.5365
+          "x_min": 5.172,
+          "x_max": 5.722,
+          "y_min": -3.2658,
+          "y_max": -2.6658
         }
       },
       {
         "tree_id": 4,
-        "n_stem_points": 29,
+        "n_stem_points": 25,
         "n_discs": 9,
         "stem_source": "skeleton",
         "padding_px": 1,
         "bbox_pixel": {
-          "col_min": 34,
-          "row_min": 99,
-          "col_max": 39,
-          "row_max": 104,
-          "width": 6,
-          "height": 6
+          "col_min": 68,
+          "row_min": 199,
+          "col_max": 76,
+          "row_max": 207,
+          "width": 9,
+          "height": 9
         },
         "bbox_pixel_tight": {
-          "col_min": 35,
-          "row_min": 100,
-          "col_max": 38,
-          "row_max": 103,
-          "width": 4,
-          "height": 4
+          "col_min": 69,
+          "row_min": 200,
+          "col_max": 75,
+          "row_max": 206,
+          "width": 7,
+          "height": 7
         },
         "bbox_world": {
-          "x_min": -1.7537,
-          "x_max": -1.1537,
-          "y_min": -5.8365,
-          "y_max": -5.2365
+          "x_min": -1.728,
+          "x_max": -1.278,
+          "y_min": -5.7158,
+          "y_max": -5.2658
         }
       }
     ],
@@ -208,19 +191,17 @@
     "label": "plot_demo/plot_placement/deep_learning/stem_map/labels/plot_demo_stem_mask_raw.tif"
   },
   "canopy_map": {
-    "cell_size_m": 0.1,
+    "cell_size_m": 0.05,
     "buffer_px": 2,
-    "source_cloud": "plot_demo/plot_placement/plot_demo_trimmed.laz",
+    "source_cloud": "plot_demo/plot_placement/las/plot_demo_trimmed.laz",
     "raster_size": {
-      "width": 192,
-      "height": 153
+      "width": 350,
+      "height": 303
     },
     "n_trees_with_canopy": 4,
     "total_canopy_volume": {
-      "raw_m3": 1356.8836,
-      "method": "sum of per-tree convex hull volumes",
-      "trimmed_m3": 1356.8836,
-      "note": "trimmed excludes points flagged trimmed by the skeleton collision step"
+      "volume_m3": 1134.6608,
+      "method": "sum of per-tree convex hull volumes"
     },
     "feature": "plot_demo/plot_placement/deep_learning/canopy_map/features/plot_demo_canopy_map_raw.tif",
     "label": "plot_demo/plot_placement/deep_learning/canopy_map/labels/plot_demo_canopy_mask_raw.tif"
@@ -230,7 +211,6 @@
     "manifest": "plot_demo/plot_placement/textual/manifest.csv",
     "raw_las": "plot_demo/plot_placement/las/plot_demo_raw.laz",
     "trimmed_las": "plot_demo/plot_placement/las/plot_demo_trimmed.laz",
-    "volume": "plot_demo/plot_placement/deep_learning/volume/labels/plot_demo_volume.json",
     "stem_map_feature": "plot_demo/plot_placement/deep_learning/stem_map/features/plot_demo_stem_map_raw.tif",
     "stem_map_label": "plot_demo/plot_placement/deep_learning/stem_map/labels/plot_demo_stem_mask_raw.tif",
     "canopy_map_feature": "plot_demo/plot_placement/deep_learning/canopy_map/features/plot_demo_canopy_map_raw.tif",
@@ -279,18 +259,18 @@
     }
   },
   "terrain": {
-    "dtm": "generated 26.0x18.0 m (cell 1.0, bumpiness 0.5, relief 10.0)",
+    "dtm": "generated 20.2x17.2 m (cell 0.25, bumpiness 0.5, relief 10.0)",
     "dtm_generated": true,
-    "dtm_cell_m": 1.0,
+    "dtm_cell_m": 0.25,
     "dtm_extent_m": [
-      26.0,
-      18.0
+      20.25,
+      17.25
     ],
     "ground_density_per_cell": 1.0,
     "vertical_noise_m": 0.0,
     "source": "trimmed",
-    "n_ground_points": 293,
-    "n_veg_points": 10473,
+    "n_ground_points": 4234,
+    "n_veg_points": 10488,
     "classes": {
       "2": "ground",
       "3": "low_veg<=0.5m",
@@ -314,9 +294,9 @@
     ],
     "grass_patch_scale": 5.0,
     "canopy_attenuation": 0.3,
-    "n_shrubs": 1,
-    "n_shrub_points": 300,
-    "n_grass_points": 13499,
+    "n_shrubs": 2,
+    "n_shrub_points": 600,
+    "n_grass_points": 11666,
     "semantic_note": "shrubs -> semantic_code 4, grass -> 5, on top of the existing tree(1/2/3)/ground(6) codes; shrub_id >=1 on shrub points, 0 elsewhere",
     "plot_understory_las": "plot_demo/plot_placement/las/plot_demo_understory.laz"
   },
@@ -329,12 +309,12 @@
     "source": "understory",
     "categorical": "semantic_code",
     "run_categories": [
+      0,
       1,
       2,
       3,
-      4,
-      5,
-      6
+      8,
+      9
     ],
     "plot": {
       "L": null,

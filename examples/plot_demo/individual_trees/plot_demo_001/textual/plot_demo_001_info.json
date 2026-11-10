@@ -1,61 +1,45 @@
 {
+  "TREE_UID": "001",
+  "TREE_DBH": 0.3654446419096536,
+  "TREE_HT": 22.72330818228599,
+  "TREE_X": -5.0,
+  "TREE_Y": 0.0,
+  "TREE_Z": 16.02722388423647,
+  "VOL_TREE": 12.085556259857771,
+  "VOL_TRUNK": 1.4024213281125606,
+  "VOL_BRANCH": 8.63913493174521,
+  "VOL_FOLIAGE": 2.0440000000000005,
+  "BOUNDING_BOX": [
+    -9.715417303826458,
+    -5.277090658232271,
+    0.012472907592994187,
+    -1.3484173038264569,
+    2.2869093417677293,
+    24.049472907592992
+  ],
   "meta": {
-    "tree_uid": "001",
     "plot_uid": "plot_demo",
     "coordinate_system": "local",
-    "units": "meters",
-    "bounding_box": {
-      "x_min": -11.400298914126669,
-      "y_min": -6.574259590251465,
-      "z_min": 0.03484291419082901,
-      "x_max": -2.0032989141266686,
-      "y_max": 2.540740409748535,
-      "z_max": 24.25684291419083
-    }
+    "units": "meters"
   },
-  "tree_characteristics": {
-    "center": [
-      -5.0,
-      0.0
-    ],
-    "dbh_m": 0.39535289793382716,
-    "height_m": 23.090664357254003,
-    "canopy": {
-      "convex_hull_volume_m3": {
-        "raw": 501.67235,
-        "trimmed": 501.67235
-      },
-      "major_axis": {
-        "length_m": 10.23260030490784,
-        "orientation_deg": 156.68450799523515
-      },
-      "minor_axis": {
-        "length_m": 8.690575254594805,
-        "orientation_deg": 66.68450799523515
-      }
+  "canopy": {
+    "convex_hull_volume_m3": 446.081733,
+    "major_axis": {
+      "length_m": 8.45929382395481,
+      "orientation_deg": 19.50165044120336
     },
-    "volume_m3": {
-      "trunk": {
-        "raw": 2.2569404238471087,
-        "trimmed": 2.2569404238471087
-      },
-      "branch": {
-        "raw": 6.507595296906531,
-        "trimmed": 6.453526625618193
-      },
-      "foliage": {
-        "raw": 2.1500000000000004,
-        "trimmed": 2.1490000000000005
-      }
+    "minor_axis": {
+      "length_m": 7.538252639885263,
+      "orientation_deg": 109.50165044120337
     }
   },
   "neighborhood": {
     "n_other_trees_in_bbox": 2,
-    "n_shrubs_in_bbox": 0,
-    "target_voxel_volume_m3": 2.674000000000001,
-    "proportion_target_vs_other_trees": 0.940225035161744,
-    "proportion_target_vs_shrubs": 1.0,
-    "proportion_target_vs_grass": 0.4831074977416441,
-    "proportion_target_vs_all_other_veg": 0.4687116564417178
+    "n_shrubs_in_bbox": 1,
+    "target_voxel_volume_m3": 2.6330000000000005,
+    "proportion_target_vs_other_trees": 0.9578028373954165,
+    "proportion_target_vs_shrubs": 0.9488288288288289,
+    "proportion_target_vs_grass": 0.5738884045335658,
+    "proportion_target_vs_all_other_veg": 0.5433347090383821
   }
 }

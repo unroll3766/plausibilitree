@@ -1,62 +1,39 @@
 {
+  "NUM_TREES": 4,
+  "BASAL_AREA": 0.4710298815868449,
+  "NUM_SHRUBS": 2,
+  "VOL_TREES": 35.389757030701716,
+  "VOL_TRUNK": 5.13460241749332,
+  "VOL_BRANCH": 22.7881546132084,
+  "VOL_FOLIAGE": 7.467000000000001,
+  "VOL_SHRUB": 0.45709017138335595,
+  "VOL_GRASS": 10.529000000000002,
+  "PLOT_SHAPE": "circle",
+  "PLOT_AREA": 706.8583470577034,
+  "BOUNDING_BOX": [
+    -9.715417303826458,
+    -8.208735707982479,
+    0.05878223078419699,
+    7.767582696173543,
+    6.926264292017521,
+    32.5267822307842
+  ],
+  "CHM_PATH": "plot_placement/deep_learning/canopy_map/features/plot_demo_canopy_map_raw.tif",
+  "STEM_PATH": "plot_placement/deep_learning/stem_map/features/plot_demo_stem_map_raw.tif",
+  "PLAUSIBILITREE_CONFIGURATION": "plot_placement/textual/plot_demo_scene.json",
   "meta": {
     "plot_uid": "plot_demo",
     "coordinate_system": "local",
-    "units": "meters",
-    "plot_shape": {
-      "shape": "circle",
-      "radius_m": 15.0
-    },
-    "plot_center": {
-      "lat": null,
-      "lon": null,
-      "elev_m": null
-    },
-    "bounding_box": {
-      "x_min": -11.400298914126669,
-      "y_min": -7.66833657582003,
-      "z_min": 0.02611251327282236,
-      "x_max": 7.774701085873332,
-      "y_max": 7.595663424179971,
-      "z_max": 30.93511251327282
-    }
+    "units": "meters"
   },
-  "vegetation_characteristics": {
-    "trees": {
-      "n_trees": 4,
-      "basal_area_m2": 0.5094686308297733,
-      "total_volume_m3": {
-        "raw": 36.70967617020195,
-        "trimmed": 36.63633848213115
-      },
-      "trunk_volume_m3": {
-        "raw": 5.7932214497569445,
-        "trimmed": 5.7932214497569445
-      },
-      "branch_volume_m3": {
-        "raw": 22.957454720445003,
-        "trimmed": 22.887117032374206
-      },
-      "foliage_volume_m3": {
-        "raw": 7.959000000000001,
-        "trimmed": 7.956000000000001
-      },
-      "canopy_volume_m3": {
-        "raw": 1356.8836430000001,
-        "trimmed": 1356.8836430000001
-      }
-    },
-    "shrubs": {
-      "n_shrubs": 1,
-      "total_volume_m3": {
-        "primitive": 0.9572562914309644,
-        "mesh": 0.886357471806655,
-        "voxel": 0.23600000000000004
-      }
-    },
-    "grass": {
-      "percent_cover": 98.53896103896103,
-      "total_volume_m3": 12.079000000000002
-    }
-  }
+  "canopy": {
+    "convex_hull_volume_m3": 1134.6607569999999
+  },
+  "shrubs": {
+    "primitive_reference_m3": 0.4868792280518668
+  },
+  "grass": {
+    "percent_cover": 95.95687331536388
+  },
+  "DTM_PATH": "plot_placement/textual/plot_demo_dtm.asc"
 }

@@ -73,3 +73,13 @@ Re-entries only when behavior changes. Long-form narrative lives in
   run_all.py exit 0 (221 PASS, 0 FAIL); invariant suite re-derives
   BASAL_AREA, VOL_TREES, VOL_SHRUB (per-shrub mesh sum), PLOT_AREA and
   resolves CHM/STEM/config paths.
+- 2026-11-10 — W16 review pass: consumer grep clean (no code reads the old
+  tree_characteristics/vegetation_characteristics nestings or dict-style
+  bbox from info JSONs; terrain/understory reads are canopy_bbox_json's own
+  schema); the committed examples/plot_demo still predated W14/W19/trim
+  removal (old semantic codes 4/5/6, raw/trimmed volume pairs) —
+  regenerated with the README command (seed 42, exit 0): normalize reports
+  codes [0,1,2,3,8,9], no trim-record markers in scene/skeletons (only the
+  raw/trimmed cloud-pair paths), VOL_SHRUB == per-shrub mesh sum, plot
+  info sums == per-tree values, paths resolve; new flags on build_info
+  --help.
