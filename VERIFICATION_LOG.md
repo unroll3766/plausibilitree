@@ -1233,3 +1233,31 @@ record per se.
   lists --foliage-voxel/--grass-voxel/--voxel-threshold.
 - No code changes in this pass; run_all.py's last green run (221 PASS)
   still covers the unchanged code.
+
+### 2026-11-10 — W18 closed: parameter dictionary per notes.md (commit 3b078eb)
+
+- Dictionary schema: data/functional_groups.json now carries A0/A1/TAPER
+  (owner ruling: TAPER over TAPER_B) plus DBH_MIN/DBH_MAX, HT_MIN/HT_MAX
+  per code (DF/PP/TF/CE/RW/OK/SW/HW/DEFAULT; FIA-typical metre ranges).
+  DBH_TOL/HT_TOL are withdrawn; realized sizes keep the fixed +/-1%
+  generation constant in sst_generator (identical behavior, since no
+  shipped entry ever carried tolerance keys).
+- Applicability bounds enforced at entry resolution: species ->
+  functional group -> DEFAULT, first in-bounds candidate wins, DEFAULT
+  unconditional. generate_trees passes each tree's DBH/HT. Legacy
+  CSV/JSON files with pre-W18 spellings rename at load
+  (fia_helper.normalize_param_columns; param_editor uses the same), so
+  old tables still open.
+- SPLIT_NUM_LO/HI confirmed as a spec extension (owner ruling) — the
+  cascading-hardwood look and suite section J's forced-cascade builds
+  keep working.
+- Verification: check.py exit 0; run_all.py exit 0 (233 PASS, 0 FAIL)
+  with new invariant-section Hb (dictionary schema, withdrawn-key ban,
+  ordered bounds, per-tree resolved entries, in/out-of-bounds and
+  unknown-code resolution). Numerical inertness: regenerating the
+  committed demo (seed 42) produced byte-identical LAZ/TIF/skeleton/
+  scene/info files — only the four generation.json timestamps moved
+  (reverted; plot_demo.csv is a legacy frozen-range table unaffected by
+  the rename). First full-suite run caught a misdirected check
+  (source_row exists only for legacy requests); replaced with a
+  direct-resolution check.
