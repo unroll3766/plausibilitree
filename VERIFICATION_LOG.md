@@ -1287,3 +1287,33 @@ record per se.
   in its docstring, and spec Section 7.1 documents it (with
   resolve_tree_code kept as the key-resolution helper).
 - check.py exit 0; tests/run_all.py exit 0 (233 PASS, 0 FAIL).
+
+### 2026-11-10 — W5 closed: UTM anchors + EPSG:4326 exports (commit c82475e)
+
+- Design: georef.py anchors the plot at assembly (utm library, zone from
+  the plot center, EPSG 326zz/327zz, limits of agreement enforced:
+  lat 95 raises); internal geometry stays local metres (offsets from the
+  anchor's UTM position), so georeferencing only adds metadata at the
+  edges — same-seed clouds are identical with or without a center.
+- Exports verified on an anchored mini plot (plot_center in a JSON tree
+  list) run through the full pipeline: scene geo block (EPSG 32610,
+  easting/northing equal to an independently recomputed anchor);
+  stem/canopy and per-tree crops carry EPSG:4326 with the documented
+  degree pixel sizes at the plot latitude and a lon/lat NW corner
+  within 1e-3 deg of the center; per-shrub rasters also EPSG:4326; the
+  generated DTM exports as plot_placement/rasters/<UID>_dtm.tif with
+  compound CRS EPSG:9707 and an absolute-height band near the 1500 m
+  anchor elevation; info JSONs carry geo BOUNDING_BOX, PLOT_CENTER, and
+  TREE_CENTER_REAL at the tree base. The unanchored fixture and demo
+  stay CRS-less, keep no geo block (scene null) and gain no DTM GeoTIFF;
+  local->deg->utm round-trips hold within 1 mm (the utm library itself
+  lands ~0.1 mm).
+- Two bugs found and fixed during verification: the dtm_tif layout key
+  first landed in the tree-artifact dict (terrain KeyError), and
+  load_anchor missed the pre-restructure scene location (assemble writes
+  the scene to plot_placement/ root before restructure files it into
+  textual/ — the stem and canopy maps run in between, so their exports
+  came out CRS-less until fixed; both locations are now checked).
+- check.py exit 0; run_all.py exit 0 — 260 PASS, 0 FAIL with new suite
+  section K (anchored mini plot end to end + unanchored assertions).
+  Demo regeneration byte-identical except the scene's geo:null marker.
