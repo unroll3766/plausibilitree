@@ -112,11 +112,10 @@ adds facts specific to this repository.
   Generator.
 
 ## Register snapshot (2026-11-07)
-- Closed: W1-W4, W7, W11-W17, W19.
+- Closed: W1-W4, W7, W11-W19 (notes.md alignment round W14-W19 complete).
 - Open: W5 (UTM internals + EPSG export), W6 (single plot cloud, opt-in
   derived stages, 2-band stem map), W8 (HELIOS++), W9 (polygon mesh),
-  W10 (downed woody debris), W18 (parameter dict bounds: a0/a1 + taper
-  naming, DBH/HT applicability bounds).
+  W10 (downed woody debris).
 - Owner ruling (2026-11-07): no record of trimmed points or branches is
   kept anywhere — no flags, no summaries, no counts, no collision logs,
   no pre-trim volume variants. The trimmed skeleton/cloud *is* the
