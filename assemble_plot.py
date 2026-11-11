@@ -338,46 +338,50 @@ class TreeSkeleton:
 
     @property
     def order(self) -> np.ndarray:
-        """Branching order per element.
+        """Branching order per element (spec Section 7.4 split rule).
 
-        0 = the main stem. Order increments each time a new structure starts:
-        a fork (the apical stems above a split) is 1st order, a branch on the
-        main stem is 1st order, a branch on a fork is 2nd order, and so on.
-        Continuing along the same stem or fork keeps the same order.
-
-        Concretely, order = parent order + 1 for a branch or for the first
-        element of a non-main trunk polyline (a fork), and = parent order for
-        any element continuing along the polyline it started on. The main
-        stem's root has order 0.
-
-        Computed by walking the parent graph, so it is correct for arbitrary
-        branching/forking depth. The current simulator forks the main stem at
-        most once and hangs every branch directly off a stem, so in practice
-        orders run 0 (main stem), 1 (forks and trunk branches) and 2 (branches
-        on forks).
+        0 = the main stem, or the dominant continuation of a split: at a
+        split the daughter with the larger base radius keeps the parent
+        order (ties: the longer daughter, then the first-listed); the
+        other daughter is parent order + 1. A branch (side element) is
+        always its parent's order + 1. All sub-segments of a polyline
+        share that polyline's order, so the continuing stem keeps the
+        parent order along its whole length; a branch on a subordinate
+        (order >= 1) stem gets order 2 and higher.
         """
         if self._order is not None:
             return self._order
+
+        # per-polyline orders from the split log -- one rule with the
+        # element graph (sst_generator.element_graph). The SST taper
+        # gives both daughters the same base radius (they start at the
+        # split height), so the polyline length decides in practice.
+        segments = self.raw["trunk"]["segments"]
+        poly_order = {0: 0}
+        for k, sp in enumerate(self.raw.get("splits", [])):
+            parent = int(sp["parent_polyline"])
+
+            def _dominant(d, _segs=segments):
+                # sort key: smaller (more negative) = more dominant
+                z0 = float(_segs[d]["z_range"][0])
+                radius = (max(0.0, self.base_radius * (1.0 - z0 / self.height))
+                          if self.height > 0 else 0.0)
+                return (-radius, -float(_segs[d]["length_m"]), d)
+
+            keep, promote = sorted((2 * k + 1, 2 * k + 2), key=_dominant)
+            poly_order[keep] = poly_order[parent]
+            poly_order[promote] = poly_order[parent] + 1
+
         order = np.zeros(len(self.kind), dtype=np.int32)
-        cache: dict[int, int] = {}
-
-        def _o(i: int) -> int:
-            if i in cache:
-                return cache[i]
-            par = self.parent[i]
-            if par is None:                       # root of the main stem
-                val = 0
-            elif self.kind[i] == "branch":        # branch: new structure
-                val = _o(par) + 1
-            elif int(self.node[i]) == 0 and int(self.poly[i]) > 0:
-                val = _o(par) + 1                 # first element of a fork
-            else:                                 # continuing along a stem/fork
-                val = _o(par)
-            cache[i] = val
-            return val
-
         for i in range(len(self.kind)):
-            order[i] = _o(i)
+            if self.kind[i] == "trunk":
+                order[i] = poly_order.get(int(self.poly[i]), 0)
+            else:
+                par = self.parent[i]
+                # a branch hangs off a trunk sub-segment; its order is
+                # the parent polyline's order + 1
+                order[i] = (poly_order.get(int(self.poly[par]), 0) + 1
+                            if par is not None else 1)
         self._order = order
         return order
 
@@ -845,8 +849,11 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
             "las_field": "branch_code",
             "skeleton_fields": ["trunk.segments.branch_order",
                                 "branches.branch_order"],
-            "definition": "0 = main stem; a fork or a branch is parent order + "
-                          "1 (fork = 1, branch on trunk = 1, branch on fork = 2)",
+            "definition": "order (spec Section 7.4): 0 = main stem; at a "
+                          "split the daughter with the larger base radius "
+                          "keeps the parent order (ties: longer, then "
+                          "first-listed) and the other is parent + 1; a "
+                          "branch is parent order + 1",
             "note": "current simulator produces orders 0, 1 and 2",
             "unassigned_value": 0,
         },

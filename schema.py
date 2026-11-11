@@ -2,7 +2,7 @@
 schema.py: the canonical point-cloud column schema for the whole pipeline.
 
 One definition of the extra dimensions every cloud carries, so plot-level and
-tree-level clouds stay consistent from generation through normalization. A stage
+tree-level clouds stay consistent from generation through the derived stages. A stage
 that hasn't computed a given dim yet writes its zero/default fill (e.g. a raw
 cloud has shrub_id = 0 everywhere); the column still exists so the schema never
 changes shape across the chain.
@@ -16,8 +16,11 @@ Semantic code (int8):
   classification's job, so there are no separate unassigned/noise codes),
   1 tree(trunk stem), 2 branch(branch stem), 3 foliage, 8 shrub, 9 grass
 LAS classification (uint8): 2 ground, 3 low veg, 4 med veg, 5 high veg, 7 noise
-Branch code (int8): 0 not-tree, 1 trunk, 2 connected-to-trunk, 3 connected-to-2,
-  ... (== the old branch_order + 1 on tree points)
+Branch code (int8): 0 = a point on no branch, i.e. BRANCH_ORDER -1 per
+  notes.md (also all non-tree points); 1 = order-0 (trunk); 2+ = element
+  order + 1 (2 connected-to-trunk, 3 connected-to-a-2, ...). Orders follow
+  the spec Section 7.4 split rule: at a split the larger daughter keeps the
+  parent order, the other is parent + 1; a branch is parent + 1.
 
 tree_id / shrub_id / branch_id are all int32: each is a per-plot sequential
 count, so the id space must outgrow whatever a plot can actually produce.

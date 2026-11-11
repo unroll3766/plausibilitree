@@ -62,6 +62,17 @@ DEFAULT_SIZE_TOL = 0.01        # +/-1% generation constant bounding realized
 DEFAULT_POINTS_PER_METRE = 1024   # overridden by the core's budget setting
 # treesim offsets fork tops by up to 2.0*rand + 1.5 metres from the main stem
 MAX_FORK_OFFSET = 3.5
+DBH_HEIGHT_M = 1.37    # breast height (spec Section 9 DBH_HT; 1.37 default)
+
+
+def _realized_dbh(base_radius_m: float, height_m: float) -> float:
+    """Taper-implied diameter at breast height, in metres (0 when the tree
+    is shorter than the reference height). Matches build_info's TREE_DBH."""
+    h = float(height_m)
+    if h <= 0 or h <= DBH_HEIGHT_M:
+        return 0.0
+    return 2.0 * max(0.0, float(base_radius_m)
+                     * (1.0 - DBH_HEIGHT_M / h))
 
 
 def _scalar_taper_base_diameter(dbh_m: float, ht_m: float, b: float) -> float:
@@ -91,13 +102,17 @@ def _max_stem_excursion(skeleton: dict) -> float:
 def element_graph(skeleton: dict) -> list:
     """The notes.md element graph (spec Section 7.4) from the SST skeleton.
 
-    One order-0 element per trunk stem (stem 0 is the root; each split k
+    One element per trunk stem (stem 0 is the root; each split k
     appends daughter stems 2k+1 and 2k+2, both children of the split's
-    parent stem) and one order-1 element per branch, sourced to the stem
-    element recorded at generation. Elements carry no coordinates -- only
-    UIDs, parents, lengths, radii and cylinder volumes -- so they are
-    invariant under place()'s rotation and reflection and can be copied
-    verbatim into trimmed skeletons."""
+    parent stem) and one element per branch, sourced to the stem
+    element recorded at generation. Branch order follows the split rule
+    of spec Section 7.4: at a split the daughter with the larger base
+    radius keeps the parent's order (ties: the longer daughter, then
+    the first-listed), the other daughter is parent order + 1; a branch
+    is always its source stem's order + 1. Elements carry no coordinates
+    -- only UIDs, parents, lengths, radii and cylinder volumes -- so they
+    are invariant under place()'s rotation and reflection and can be
+    copied verbatim into trimmed skeletons."""
     def stem_uid(i: int) -> str:
         return f"T{i:02d}"
 
@@ -106,24 +121,46 @@ def element_graph(skeleton: dict) -> list:
     segments = skeleton["trunk"]["segments"]
     branches = skeleton["branches"]
 
+    def _taper_radius(seg: dict) -> float:
+        """Taper radius at a stem's base height (0 when there is no taper)."""
+        z_base = float(seg["z_range"][0])
+        return max(0.0, r0 * (1.0 - z_base / h)) if h > 0 else 0.0
+
     # stem index -> parent stem index (root trunk has none)
     parent_of = {}
     for k, sp in enumerate(skeleton.get("splits", [])):
         parent_of[2 * k + 1] = int(sp["parent_polyline"])
         parent_of[2 * k + 2] = int(sp["parent_polyline"])
 
+    # stem order per the split rule (spec Section 7.4): the dominant
+    # daughter keeps the parent's order, the other becomes parent + 1.
+    # Splits are processed in log order and each split's parent stem was
+    # created before its daughters, so the parent order is always
+    # already resolved. Dominant = larger base radius, then longer
+    # stem, then first-listed daughter; the global SST taper gives both
+    # daughters the same base radius (they start at the split height),
+    # so the stem length decides in practice today.
+    stem_order = {0: 0}
+    for k, _sp in enumerate(skeleton.get("splits", [])):
+        parent = parent_of[2 * k + 1]
+        keep, promote = sorted((2 * k + 1, 2 * k + 2),
+                               key=lambda d: (-_taper_radius(segments[d]),
+                                              -float(segments[d]["length_m"]),
+                                              d))
+        stem_order[keep] = stem_order[parent]
+        stem_order[promote] = stem_order[parent] + 1
+
     elements = []
     children = {i: [] for i in range(len(segments) + len(branches))}
     for i, seg in enumerate(segments):
-        z_base = float(seg["z_range"][0])
-        radius = max(0.0, r0 * (1.0 - z_base / h)) if h > 0 else 0.0
         length = float(seg["length_m"])
+        radius = _taper_radius(seg)
         parent = parent_of.get(i)
         if parent is not None:
             children[parent].append(i)
         elements.append({
             "BRANCH_UID": stem_uid(i),
-            "BRANCH_ORDER": 0,
+            "BRANCH_ORDER": stem_order.get(i, 0),
             "BRANCH_LENGTH": length,
             "BRANCH_RADIUS": radius,
             "BRANCH_VOLUME": float(np.pi) * radius ** 2 * length,
@@ -137,7 +174,7 @@ def element_graph(skeleton: dict) -> list:
         children[i].append(len(segments) + k)
         elements.append({
             "BRANCH_UID": f"B{k:03d}",
-            "BRANCH_ORDER": 1,
+            "BRANCH_ORDER": stem_order[i] + 1,
             "BRANCH_LENGTH": length,
             "BRANCH_RADIUS": radius,
             "BRANCH_VOLUME": float(np.pi) * radius ** 2 * length,
@@ -381,6 +418,13 @@ class SSTGenerator(GeneratorModule):
             skeleton=skeleton,
             realized={"height_m": float(skeleton["height_m"]),
                      "base_radius_m": float(skeleton["base_radius_m"]),
+                     # taper-implied diameter at breast height (matches
+                     # build_info's TREE_DBH) so generation.json reports
+                     # the realized DBH alongside base_radius_m
+                     # (2026-11 review, item 9)
+                     "dbh_m": _realized_dbh(
+                         float(skeleton["base_radius_m"]),
+                         float(skeleton["height_m"])),
                      "fork": int(skeleton["fork"]),
                      "n_points": int(len(pts)),
                      "n_stem_points": int((old_sem == 1).sum()),
