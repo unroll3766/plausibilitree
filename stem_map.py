@@ -103,8 +103,12 @@ STEM_CLASSES = (schema.SEM_TREE, schema.SEM_BRANCH)   # all woody stem
 # GeoTIFF I/O
 # ---------------------------------------------------------------------------
 
-def _write_geotiff(path, array, x_min, y_max, cell_size, anchor=None):
-    """Write a single-band north-up GeoTIFF with rasterio.
+def _write_geotiff(path, bands, x_min, y_max, cell_size, anchor=None):
+    """Write a 1- or 2-band north-up GeoTIFF with rasterio.
+
+    `bands` is one 2-D array or a list of same-shape 2-D arrays (band 1
+    first); all bands share one dtype (promoted across the stack) and one
+    transform.
 
     The transform places pixel (0, 0)'s upper-left corner at (x_min, y_max)
     with y decreasing down the rows. Without an anchor the transform is the
@@ -116,7 +120,15 @@ def _write_geotiff(path, array, x_min, y_max, cell_size, anchor=None):
     import rasterio
     from rasterio.transform import from_origin
 
-    array = np.ascontiguousarray(array)
+    if not isinstance(bands, list):
+        bands = [bands]
+    stack = [np.ascontiguousarray(b) for b in bands]
+    shape = stack[0].shape
+    assert all(b.shape == shape for b in stack), "raster bands must share one shape"
+    dtype = stack[0].dtype
+    for b in stack[1:]:
+        dtype = np.promote_types(dtype, b.dtype)
+    stack = [b.astype(dtype) for b in stack]
     crs = None
     if anchor is not None:
         transform, crs = georef.geo_transform(anchor, x_min, y_max, cell_size)
@@ -124,11 +136,12 @@ def _write_geotiff(path, array, x_min, y_max, cell_size, anchor=None):
         transform = from_origin(x_min, y_max, cell_size, cell_size)
     with rasterio.open(
         path, "w", driver="GTiff",
-        height=array.shape[0], width=array.shape[1],
-        count=1, dtype=array.dtype, transform=transform, crs=crs,
+        height=shape[0], width=shape[1],
+        count=len(stack), dtype=dtype, transform=transform, crs=crs,
         compress="lzw",
     ) as dst:
-        dst.write(array, 1)
+        for i, b in enumerate(stack, start=1):
+            dst.write(b, i)
 
 
 # ---------------------------------------------------------------------------
@@ -251,11 +264,15 @@ def build_stem_map(csv_path, plot_dir=None,
         grid = RasterGrid(xyz[:, 0].min(), xyz[:, 1].min(),
                           xyz[:, 0].max(), xyz[:, 1].max(), cell_size)
     stem_map = grid.counts(bx, by)                  # count of band points (may be 0)
+    # band 2 (raw stem map): 1 where a TREE point (tree_id != 0) lies in
+    # the slab (0 elsewhere) -- ground/shrub returns never set it
+    t_sel = btid != 0
+    stem_mask = (grid.counts(bx[t_sel], by[t_sel]) > 0).astype(np.uint16)
 
     raster_name = f"{plot_uid}_raw_placement_stem_map.tif"
     raster_path = os.path.join(place_dir, raster_name)
-    _write_geotiff(raster_path, stem_map, grid.x_min, grid.y_max, grid.cell,
-                   anchor=anchor)
+    _write_geotiff(raster_path, [stem_map, stem_mask],
+                   grid.x_min, grid.y_max, grid.cell, anchor=anchor)
 
     # per-tree stem geometry is ground truth from the skeleton (centerline +
     # taper), NOT the point cloud: the mask is the filled stem cross-section
@@ -294,8 +311,9 @@ def build_stem_map(csv_path, plot_dir=None,
             or gy_min < grid.y_max - grid.height * grid.cell):
         grid = RasterGrid(gx_min, gy_min, gx_max, gy_max, cell_size)
         stem_map = grid.counts(bx, by)
-        _write_geotiff(raster_path, stem_map, grid.x_min, grid.y_max, grid.cell,
-                   anchor=anchor)
+        stem_mask = (grid.counts(bx[t_sel], by[t_sel]) > 0).astype(np.uint16)
+        _write_geotiff(raster_path, [stem_map, stem_mask],
+                       grid.x_min, grid.y_max, grid.cell, anchor=anchor)
 
     for t in sorted(all_discs):
         discs = all_discs[int(t)]

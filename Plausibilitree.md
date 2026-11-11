@@ -229,14 +229,20 @@ Each is a separate stage over the core outputs, never part of the core run.
   sub-clouds are instead written directly by every core run (item W6).
 - **Stem map** **[implemented as an always-on stage]** — a 2-band raster of
   the breast-height slab (DBH_HT +/- STEM_SECTION, cell STEM_RESOLUTION),
-  both bands covering the whole plot: band 1 counts all points in the
-  slab; band 2 is a binary mask, 1 where a tree point lies in the slab, 0
-  elsewhere. Per-tree stem bounding boxes (JSON) accompany it.
-  **[partial]**: the implementation writes a single-band count raster and
-  expresses masks as per-tree cropped rasters (item W6).
-- **Canopy map (CHM)** **[implemented as an always-on stage]** — a canopy
-  raster at CHM_RESOLUTION (max height above ground per cell; foliage
-  presence), plus per-tree crown bounding boxes and convex hulls.
+  both bands covering the whole plot: band 1 (uint16) counts all points
+  in the slab; band 2 (uint16, 0/1) is a binary mask, 1 where a *tree*
+  point (`tree_id != 0`) lies in the slab, 0 elsewhere — so band 2 is
+  tree points only, never ground or shrub/shrub-and-grass returns.
+  Per-tree stem bounding boxes (JSON) accompany it. Per-tree instance
+  masks (integer `tree_id` labels, skeleton-derived) remain separate
+  per-tree rasters.
+- **Canopy map (CHM)** **[implemented as an always-on stage]** — a 2-band
+  raster at CHM_RESOLUTION: band 1 (float32) is the max height above
+  ground per cell over vegetation points (semantic codes 1, 2, 3, 8; grass
+  code 9 is ground cover and contributes nothing to a canopy height map),
+  0 where a cell holds no vegetation; band 2 (float32, 0/1) is 1 where a
+  foliage point (code 3) lies in the cell. Plus per-tree crown bounding
+  boxes and convex hulls.
 - **Normalization** **[partial]** — subsample / rescale / voxelize clouds for
   DL consumption.
 - **HELIOS++ scan simulation** — **[planned]**. Re-simulate acquisition with

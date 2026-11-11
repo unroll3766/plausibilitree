@@ -451,11 +451,19 @@ def run_checks(fixroot, plot_dir):
         check("geo easting/northing == recomputed anchor",
               abs(geo["easting_m"] - e1) < 1e-6
               and abs(geo["northing_m"] - n1) < 1e-6)
-        # raster exports carry EPSG:4326 with degree pixel sizes
-        for key, cell in (("stem_feature_raw", 0.05),
-                          ("canopy_feature_raw", 0.05)):
+        # raster exports carry EPSG:4326 with degree pixel sizes; both the
+        # stem map and the CHM are 2-band (counts/heights + binary mask)
+        for key, cell, dtype in (("stem_feature_raw", 0.05, "uint16"),
+                                 ("canopy_feature_raw", 0.05, "float32")):
             with rasterio.open(layout.plot_path(gd, "plot_geo", key,
                                                 create=False)) as src:
+                check(f"{key} is 2-band with {dtype} bands",
+                      src.count == 2 and set(src.dtypes) == {dtype},
+                      str((src.count, src.dtypes)))
+                b1, b2 = src.read(1), src.read(2)
+                check(f"{key} band 2 is binary and implies band 1 support",
+                      set(np.unique(b2).tolist()) <= {0, 1}
+                      and not np.any((b2 > 0) & (b1 <= 0)))
                 check(f"{key} CRS is EPSG:4326", src.crs.to_epsg() == 4326)
                 cx, cy = georef.deg_cell_size(cell, 38.9)
                 check(f"{key} degree pixel sizes at plot latitude",

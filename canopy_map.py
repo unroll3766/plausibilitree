@@ -136,14 +136,21 @@ def build_canopy_map(csv_path, plot_dir=None,
     sem = cols["semantic_code"].astype(int)
     tid = cols["tree_id"].astype(int)
 
-    # CHM over the extent of all points (the highest point per cell)
+    # CHM over the extent of all points; values from vegetation only
+    # (codes 1, 2, 3, 8 -- grass 9 is ground cover and never canopy)
     grid = RasterGrid(xyz[:, 0].min(), xyz[:, 1].min(),
                       xyz[:, 0].max(), xyz[:, 1].max(), cell_size)
-    chm = max_height_raster(grid, xyz[:, 0], xyz[:, 1], xyz[:, 2])
+    veg = np.isin(sem, (schema.SEM_TREE, schema.SEM_BRANCH,
+                        schema.SEM_FOLIAGE, schema.SEM_SHRUB))
+    chm = max_height_raster(grid, xyz[veg, 0], xyz[veg, 1], xyz[veg, 2])
+    # band 2: foliage-presence mask (1 where a code-3 point lies in the cell)
+    fol = sem == schema.SEM_FOLIAGE
+    foliage_mask = (grid.counts(xyz[fol, 0], xyz[fol, 1]) > 0).astype(np.float32)
 
     raster_name = f"{plot_uid}_raw_placement_canopy_map.tif"
     _write_geotiff(os.path.join(place_dir, raster_name),
-                   chm, grid.x_min, grid.y_max, grid.cell, anchor=anchor)
+                   [chm, foliage_mask],
+                   grid.x_min, grid.y_max, grid.cell, anchor=anchor)
 
     # per-tree canopy geometry from foliage points (semantic 3) -- the leafy
     # envelope; branch stems (2) are inside it and excluded by design.
