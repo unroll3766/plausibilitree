@@ -1,7 +1,7 @@
 """
 understory.py: add procedural shrubs and grass to a plot's terrain cloud.
 
-Runs after terrain.py, before normalize.py. Reads the plot terrain cloud
+Runs after terrain.py, as the final cloud-writing stage. Reads the plot terrain cloud
 (trees classified + ground, with height_above_ground / stem_foliage dims),
 generates a shrub layer and a grass layer via vegetation.py, drapes them onto
 the same DTM the terrain step used, and writes:
@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 
 import numpy as np
 
@@ -112,7 +113,9 @@ def build_understory(csv_path, plot_dir=None, *, dtm_path=None, seed=0,
         plot_bounds, shrub_cell_size, shrub_cover, shrub_height_range,
         shrub_width_range, tree_positions, tree_canopy_r,
         points_per_shrub=points_per_shrub, margin=shrub_margin,
-        dtm=dtm, seed=seed)
+        dtm=dtm, seed=seed,
+        plot_shape=scene.get("plot_shape", "circle"),
+        plot_radius=float(scene.get("plot_radius_m") or 0.0) or None)
 
     # --- grass ---
     g_pts = veg.gen_grass_layer(
@@ -139,6 +142,21 @@ def build_understory(csv_path, plot_dir=None, *, dtm_path=None, seed=0,
                 s_pts, s_ids = s_pts[keep], s_ids[keep]
             if len(g_pts):
                 g_pts = g_pts[_in_disc(g_pts)]
+
+    # --- no shrub record without points (spec 3.4) -------------------------
+    # Placement is footprint-constrained, so this should never fire; the
+    # explicit check keeps a placement/clipping regression from silently
+    # reviving 0-point shrub records (2026-11 review, items 6/7).
+    if shrub_geom:
+        alive = (set(int(s) for s in np.unique(s_ids))
+                 if len(s_pts) else set())
+        dead = sorted(int(s) for s in shrub_geom if int(s) not in alive)
+        if dead:
+            sys.stderr.write(
+                f"{plot_uid}: dropping {len(dead)} zero-point shrub(s), no "
+                f"record written: ids {dead}\n")
+            for s in dead:
+                shrub_geom.pop(int(s), None)
 
     # --- assemble new points with the canonical schema ---
     def _hag(pts):
@@ -214,11 +232,11 @@ def build_understory(csv_path, plot_dir=None, *, dtm_path=None, seed=0,
             "grass_height_range": list(grass_height_range),
             "grass_patch_scale": grass_patch_scale,
             "canopy_attenuation": canopy_attenuation,
-            "n_shrubs": int(len(s_centers)),
+            "n_shrubs": int(len(shrub_geom)),
             "n_shrub_points": int(len(s_pts)),
             "n_grass_points": int(len(g_pts)),
-            "semantic_note": ("shrubs -> semantic_code 4, grass -> 5, on top of "
-                              "the existing tree(1/2/3)/ground(6) codes; shrub_id "
+            "semantic_note": ("shrubs -> semantic_code 8, grass -> 9, on top of "
+                              "the existing tree(1/2/3)/ground(0) codes; shrub_id "
                               ">=1 on shrub points, 0 elsewhere"),
             "plot_understory_las": layout.plot_rel(plot_dir, plot_uid, "understory_las"),
         }
@@ -226,7 +244,7 @@ def build_understory(csv_path, plot_dir=None, *, dtm_path=None, seed=0,
             json.dump(scene, f, indent=2)
 
     if verbose:
-        print(f"{plot_uid}: understory +{len(s_pts):,} shrub ({len(s_centers)} "
+        print(f"{plot_uid}: understory +{len(s_pts):,} shrub ({len(shrub_geom)} "
               f"shrubs) +{len(g_pts):,} grass -> {len(all_xyz):,} total")
     return out
 

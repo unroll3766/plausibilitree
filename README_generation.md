@@ -53,8 +53,9 @@ actually used is recorded in each `_generation.json`, so any single tree can
 be regenerated in isolation.
 
 `_generation.json` carries the full `model_params` dict, the point budget, the
-realised geometry, the source plot-table row, and the seed — enough to rebuild
-the tree without the plot table.
+realised geometry (height, base radius and the taper-implied `dbh_m` at DBH
+height — 2026-11 review item 9), the source plot-table row, and the seed —
+enough to rebuild the tree without the plot table.
 
 ## Skeleton format
 

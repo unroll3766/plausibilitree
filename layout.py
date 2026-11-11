@@ -1,9 +1,8 @@
 """
 layout.py: the canonical output directory layout for a plot.
 
-Every path in the restructured output is defined here exactly once, so the
-structure can evolve (e.g. when the normalized variants are populated later)
-without hunting through the stage scripts. Nothing writes files here; these
+Every path in the restructured output is defined here exactly once, so
+the structure can evolve without hunting through the stage scripts. Nothing writes files here; these
 functions only build paths and, by default, create the parent directory.
 
 Layout (per plot):
@@ -12,21 +11,19 @@ Layout (per plot):
       individual_trees/
         PLOT_UID_TREE_UID/
           textual/          generation + skeleton JSONs
-          las/              raw / trimmed / normalized clouds
+          las/              raw / trimmed clouds
           deep_learning/
             volume/labels/          per-tree volume JSON
             stem_map/features|labels
             canopy_map/features|labels   (+ per-tree bbox & hull JSONs)
       plot_placement/
         textual/            manifest.csv, scene JSON
-        las/                raw / trimmed / normalized clouds
+        las/                raw / trimmed clouds
         deep_learning/
           volume/labels/            plot volume JSON
           stem_map/features|labels
           canopy_map/features|labels
 
-"normalized" outputs are part of the layout but are not produced yet; their
-path keys exist so callers can address them when that step is added.
 
 Clouds are canonically LAZ: filenames end in `.laz` and laspy compresses /
 decompresses transparently through the `lazrs` backend. The path helpers
@@ -56,27 +53,18 @@ _TREE = {
     "trimmed_las":        ("las", "{tag}_trimmed.laz"),
     "terrain_las":        ("las", "{tag}_terrain.laz"),
     "understory_las":     ("las", "{tag}_understory.laz"),
-    "normalized_las":     ("las", "{tag}_normalized.laz"),
 
     "volume_label":       ("deep_learning/volume/labels", "{tag}_volume.json"),
 
     "stem_feature_raw":   ("deep_learning/stem_map/features",
                            "{tag}_stem_bounding_box_raw.tif"),
-    "stem_feature_norm":  ("deep_learning/stem_map/features",
-                           "{tag}_stem_bounding_box_normalized.tif"),
     "stem_label_raw":     ("deep_learning/stem_map/labels",
                            "{tag}_stem_mask_raw.tif"),
-    "stem_label_norm":    ("deep_learning/stem_map/labels",
-                           "{tag}_stem_mask_normalized.tif"),
 
     "canopy_feature_raw": ("deep_learning/canopy_map/features",
                            "{tag}_canopy_bounding_box_raw.tif"),
-    "canopy_feature_norm":("deep_learning/canopy_map/features",
-                           "{tag}_canopy_bounding_box_normalized.tif"),
     "canopy_label_raw":   ("deep_learning/canopy_map/labels",
                            "{tag}_canopy_mask_raw.tif"),
-    "canopy_label_norm":  ("deep_learning/canopy_map/labels",
-                           "{tag}_canopy_mask_normalized.tif"),
     "canopy_bbox_json":   ("deep_learning/canopy_map/labels",
                            "{tag}_canopy_bounding_box.json"),
     "canopy_hull_json":   ("deep_learning/canopy_map/labels",
@@ -96,61 +84,42 @@ _PLOT = {
     "trimmed_las":        ("las", "{tag}_trimmed.laz"),
     "terrain_las":        ("las", "{tag}_terrain.laz"),
     "understory_las":     ("las", "{tag}_understory.laz"),
-    "normalized_las":     ("las", "{tag}_normalized.laz"),
 
     "volume_label":       ("deep_learning/volume/labels", "{tag}_volume.json"),
 
     "stem_feature_raw":   ("deep_learning/stem_map/features",
                            "{tag}_stem_map_raw.tif"),
-    "stem_feature_norm":  ("deep_learning/stem_map/features",
-                           "{tag}_stem_map_normalized.tif"),
     "stem_label_raw":     ("deep_learning/stem_map/labels",
                            "{tag}_stem_mask_raw.tif"),
-    "stem_label_norm":    ("deep_learning/stem_map/labels",
-                           "{tag}_stem_mask_normalized.tif"),
     "dtm_tif":            ("rasters", "{tag}_dtm.tif"),
 
     "canopy_feature_raw": ("deep_learning/canopy_map/features",
                            "{tag}_canopy_map_raw.tif"),
-    "canopy_feature_norm":("deep_learning/canopy_map/features",
-                           "{tag}_canopy_map_normalized.tif"),
     "canopy_label_raw":   ("deep_learning/canopy_map/labels",
                            "{tag}_canopy_mask_raw.tif"),
-    "canopy_label_norm":  ("deep_learning/canopy_map/labels",
-                           "{tag}_canopy_mask_normalized.tif"),
 }
 
 
 # ---------------------------------------------------------------------------
-# Shrub-level artifacts (mirrors trees; shrubs have raw / understory /
-# normalized clouds, a volume JSON with primitive+mesh+voxel volumes, and
-# canopy + DBH(stem) maps). Shrubs have no trimmed/skeleton stage.
+# Shrub-level artifacts (mirrors trees; shrubs have raw / understory
+# clouds, canopy + DBH(stem) maps, and a per-shrub volume carried by the
+# plot shrub index). Shrubs have no trimmed/skeleton stage, and their
+# volume JSON is not a deliverable (2026-11 review, item W24).
 # ---------------------------------------------------------------------------
 
 _SHRUB = {
     "raw_las":            ("las", "{tag}_raw.laz"),
     "understory_las":     ("las", "{tag}_understory.laz"),
-    "normalized_las":     ("las", "{tag}_normalized.laz"),
-
-    "volume_label":       ("deep_learning/volume/labels", "{tag}_volume.json"),
 
     "stem_feature_raw":   ("deep_learning/stem_map/features",
                            "{tag}_stem_bounding_box_raw.tif"),
-    "stem_feature_norm":  ("deep_learning/stem_map/features",
-                           "{tag}_stem_bounding_box_normalized.tif"),
     "stem_label_raw":     ("deep_learning/stem_map/labels",
                            "{tag}_stem_mask_raw.tif"),
-    "stem_label_norm":    ("deep_learning/stem_map/labels",
-                           "{tag}_stem_mask_normalized.tif"),
 
     "canopy_feature_raw": ("deep_learning/canopy_map/features",
                            "{tag}_canopy_bounding_box_raw.tif"),
-    "canopy_feature_norm":("deep_learning/canopy_map/features",
-                           "{tag}_canopy_bounding_box_normalized.tif"),
     "canopy_label_raw":   ("deep_learning/canopy_map/labels",
                            "{tag}_canopy_mask_raw.tif"),
-    "canopy_label_norm":  ("deep_learning/canopy_map/labels",
-                           "{tag}_canopy_mask_normalized.tif"),
     "canopy_bbox_json":   ("deep_learning/canopy_map/labels",
                            "{tag}_canopy_bounding_box.json"),
     "canopy_hull_json":   ("deep_learning/canopy_map/labels",

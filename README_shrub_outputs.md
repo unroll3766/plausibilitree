@@ -12,9 +12,7 @@ individual_shrubs/<plot>_shrub_<uid>/
   las/
     <tag>_raw.laz           the shrub's own points only (semantic 8)
     <tag>_understory.laz    the shrub + surrounding context (bbox crop)
-    <tag>_normalized.laz     written if a normalize run is performed
   deep_learning/
-    volume/labels/<tag>_volume.json
     canopy_map/features/<tag>_canopy_bounding_box_raw.tif   (crown CHM)
     canopy_map/labels/<tag>_canopy_mask_raw.tif
     canopy_map/labels/<tag>_canopy_bounding_box.json
@@ -23,19 +21,19 @@ individual_shrubs/<plot>_shrub_<uid>/
     stem_map/labels/<tag>_stem_mask_raw.tif
 ```
 
-A plot-level `plot_placement/textual/<plot>_shrub_index.json` lists every shrub
-with its id, point count, and the three volumes.
+A plot-level `plot_placement/textual/<plot>_shrub_index.json` carries each
+shrub's full record: id, point count, geometry (height/width/base z/centre),
+and the sampled-shape volumes `volume_m3.primitive` and `volume_m3.mesh`
+(the per-shrub `deep_learning/volume/labels/<tag>_volume.json` was removed
+in the 2026-11 review, item W24; build_info copies these values into each
+shrub's info JSON).
 
 ## Clouds
 
-- **raw** — only this shrub's points (`semantic_code == 4` and its `shrub_id`).
+- **raw** — only this shrub's points (`semantic_code == 8` and its `shrub_id`).
 - **understory** — every point (any class) inside the shrub's footprint bbox
   padded by one shrub-width, so the shrub sits in its neighbourhood (grass,
   ground, and any overlapping tree points). Mirrors the tree understory crop.
-- **normalized** — written when `normalize.py` runs, using the same steps and
-  grid (`--tree-l`/`--tree-z`) as trees. Shrubs have no `trimmed`/`terrain`
-  source, so an `understory` source maps to the shrub's understory cloud and any
-  other source maps to its raw cloud.
 
 ## Volume JSON
 

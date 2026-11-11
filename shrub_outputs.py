@@ -4,16 +4,14 @@ shrub_outputs.py: per-shrub individual outputs, mirroring the per-tree ones.
 For every shrub in a plot this writes, under individual_shrubs/<tag>/:
   las/<tag>_raw.las          the shrub's own points only
   las/<tag>_understory.las   the shrub + surrounding context (crop of the scene)
-  deep_learning/volume/labels/<tag>_volume.json
-        shrub_id, height/width, and the sampled-shape volumes:
-          primitive  -- nominal ellipsoid (4/3)pi(w/2)^2(h/2)
-          mesh       -- actual jittered primitive mesh volume (the shrub
-                        volume per the notes.md ruling; never voxel-based)
   deep_learning/canopy_map/...  crown CHM + bbox/hull (foliage-style, from shrub pts)
   deep_learning/stem_map/...    breast-height (DBH-band) cross-section (may be empty)
 
-The (raw / understory / normalized) cloud triple matches trees so a normalize
-run treats shrubs exactly like trees.
+Each shrub's volume is NOT a per-object file (2026-11 review, item W24):
+the sampled-shape volumes (primitive + mesh) plus the geometry are carried
+by the plot-level shrub index
+(plot_placement/textual/<plot>_shrub_index.json) and, from there, into each
+shrub's info JSON (build_info.py).
 """
 
 from __future__ import annotations
@@ -68,10 +66,19 @@ def build_shrub_outputs(plot_dir, plot_uid, shrub_geom,
         # (per-shrub sub-clouds retired, item W6: the plot understory
         # cloud + shrub_id are the record; extraction crops them on demand)
 
-        # ---- volume JSON: sampled shape (primitive + mesh) ----
-        vol_doc = {
-            "shrub_id": int(s),
-            "n_points": n_pts,
+        # ---- canopy map (crown envelope from shrub points) ----
+        _shrub_canopy_map(plot_dir, plot_uid, uid, xyz[mine], canopy_cell_size)
+
+        # ---- DBH/stem map (breast-height band cross-section; may be empty) ----
+        _shrub_stem_map(plot_dir, plot_uid, uid, xyz[mine], stem_cell_size,
+                        dbh_height, dbh_threshold)
+
+        # full per-shrub record for the plot-level index: the geometry and
+        # the sampled-shape volumes (primitive + mesh) that build_info
+        # copies into the shrub info JSONs (volume JSONs are retired,
+        # 2026-11 review item W24)
+        shrub_index.append({
+            "shrub_id": int(s), "shrub_uid": uid, "n_points": n_pts,
             "height_m": geom["height_m"],
             "width_m": geom["width_m"],
             "base_z_m": geom.get("base_z_m", 0.0),
@@ -80,21 +87,6 @@ def build_shrub_outputs(plot_dir, plot_uid, shrub_geom,
                 "primitive": geom["primitive_volume_m3"],
                 "mesh": geom["mesh_volume_m3"],
             },
-        }
-        vol_out = layout.shrub_path(plot_dir, plot_uid, uid, "volume_label")
-        with open(vol_out, "w") as f:
-            json.dump(vol_doc, f, indent=2)
-
-        # ---- canopy map (crown envelope from shrub points) ----
-        _shrub_canopy_map(plot_dir, plot_uid, uid, xyz[mine], canopy_cell_size)
-
-        # ---- DBH/stem map (breast-height band cross-section; may be empty) ----
-        _shrub_stem_map(plot_dir, plot_uid, uid, xyz[mine], stem_cell_size,
-                        dbh_height, dbh_threshold)
-
-        shrub_index.append({
-            "shrub_id": int(s), "shrub_uid": uid, "n_points": n_pts,
-            "volume_m3": vol_doc["volume_m3"],
         })
         written += 1
 

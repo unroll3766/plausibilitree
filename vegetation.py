@@ -85,11 +85,19 @@ def ellipsoid_primitive_volume(height, width):
 def gen_shrub_layer(plot_bounds, cell_size, shrub_cover, height_range,
                     width_range, tree_positions, tree_canopy_r,
                     points_per_shrub=300, jitter_frac=0.4, margin=0.0,
-                    dtm=None, seed=None):
+                    dtm=None, seed=None,
+                    plot_shape="rectangle", plot_radius=None):
     """Generate the shrub point layer.
 
     Each shrub's height and width are drawn independently from their ranges
     (width_range is a (min, max) in metres, like height_range).
+
+    Candidate cells are constrained to the plot's own footprint: for a
+    circle (plot_shape="circle", plot_radius in metres) only cells whose
+    centre lies inside the disc are seeded. Placing shrubs over the full
+    bounding square would put corner shrubs wholly outside the plot, and
+    the point-level disc clip would strip every one of their points while
+    their records persisted (the 2026-11 review's 0-point shrubs).
 
     Returns (points, centers, widths):
       points  : (N, 3) x, y, z  (draped onto the DTM)
@@ -114,6 +122,13 @@ def gen_shrub_layer(plot_bounds, cell_size, shrub_cover, height_range,
         tree = cKDTree(np.asarray(tree_positions, dtype=float))
         dist, idx = tree.query(cells, k=1)
         keep &= dist > (np.asarray(tree_canopy_r)[idx] + margin)
+
+    # 2b. constrain candidate cells to the plot footprint (spec 3.4): a
+    # circular plot seeds shrubs only inside the disc, never in the
+    # bounding square's corners
+    if plot_shape == "circle" and plot_radius:
+        r = float(plot_radius)
+        keep &= cells[:, 0] ** 2 + cells[:, 1] ** 2 <= r * r
 
     # 3. keep with probability shrub_cover
     keep &= rng.random(len(cells)) <= shrub_cover

@@ -262,12 +262,9 @@ def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
     # single post-trim foliage source (spec 3.2): the surviving points
     fol_src = fol_trim if len(fol_trim) else fol_raw
 
-    # canopy hull volume from the hull json (post-trim single value)
-    hull = _load(layout.tree_path(plot_dir, plot_uid, uid, "canopy_hull_json",
-                                  create=False)) or {}
-    hull_vol = hull.get("volume_m3")
-
-    # crown axes from surviving foliage x-y
+    # crown axes from surviving foliage x-y (the convex-hull volume
+    # extension was removed -- 2026-11 review, item 10: it was only ever
+    # populated when the optional canopy-map stage ran)
     crown_src = fol_src
     axes = crown_axes(crown_src[:, :2]) if len(crown_src) else None
 
@@ -306,10 +303,7 @@ def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
             "coordinate_system": coord_system,
             "units": units,
         },
-        "canopy": {
-            "convex_hull_volume_m3": hull_vol,
-            **(axes or {"major_axis": None, "minor_axis": None}),
-        },
+        "canopy": dict(axes or {"major_axis": None, "minor_axis": None}),
     }
     if tree_center_real is not None:
         info["TREE_CENTER_REAL"] = tree_center_real
@@ -441,12 +435,11 @@ def build_plot_info(plot_dir, plot_uid, skels, tree_infos, coord_system, units,
     # tree aggregates from the per-tree infos (single source of truth)
     n_trees = len(tree_infos)
     basal_area = 0.0
-    tv = {"trunk": 0.0, "branch": 0.0, "foliage": 0.0, "canopy": 0.0}
+    tv = {"trunk": 0.0, "branch": 0.0, "foliage": 0.0}
     for info in tree_infos.values():
         basal_area += np.pi * (info["TREE_DBH"] / 2.0) ** 2
         for k in ("trunk", "branch", "foliage"):
             tv[k] += info["VOL_" + k.upper()]
-        tv["canopy"] += info["canopy"]["convex_hull_volume_m3"] or 0.0
 
     vol_trees = tv["trunk"] + tv["branch"] + tv["foliage"]
 
@@ -498,7 +491,6 @@ def build_plot_info(plot_dir, plot_uid, skels, tree_infos, coord_system, units,
             "coordinate_system": coord_system,
             "units": units,
         },
-        "canopy": {"convex_hull_volume_m3": tv["canopy"]},
         "shrubs": {"primitive_reference_m3": shrub_total["primitive"]},
         "grass": {"percent_cover": grass_cover},
     }
@@ -511,17 +503,16 @@ def build_plot_info(plot_dir, plot_uid, skels, tree_infos, coord_system, units,
 
 
 def _shrub_totals(plot_dir, plot_uid):
-    """Sum shrub volumes from the per-shrub volume JSONs (sampled shape:
+    """Sum shrub volumes from the per-shrub info JSONs (sampled shape:
     mesh is the shrub volume per the notes.md ruling; primitive is the
     analytic NOMINAL reference)."""
     import glob as _glob
     pattern = os.path.join(plot_dir, "individual_shrubs",
-                          f"{plot_uid}_shrub_*", "deep_learning", "volume",
-                          "labels", "*_volume.json")
+                          f"{plot_uid}_shrub_*", "textual", "*_info.json")
     n, mesh, prim = 0, 0.0, 0.0
     for p in sorted(_glob.glob(pattern)):
         doc = _load(p) or {}
-        v = doc.get("volume_m3", {})
+        v = (doc.get("shrub_characteristics") or {}).get("volume_m3", {})
         n += 1
         mesh += float(v.get("mesh") or 0.0)
         prim += float(v.get("primitive") or 0.0)
@@ -608,7 +599,12 @@ def build_info(csv_path, plot_dir=None, *, coord_system="local", units="meters",
         with open(out, "w") as f:
             json.dump(info, f, indent=2)
 
-    # plot info
+    n_shrub = build_shrub_info(plot_dir, plot_uid, coord_system, units,
+                               foliage_voxel, voxel_threshold,
+                               plot_cloud)
+
+    # plot info (runs after the shrub info so VOL_SHRUB sums the
+    # per-shrub info JSONs)
     plot_info = build_plot_info(plot_dir, plot_uid, skels, tree_infos,
                                 coord_system, units,
                                 foliage_voxel, grass_voxel, voxel_threshold,
@@ -618,10 +614,6 @@ def build_info(csv_path, plot_dir=None, *, coord_system="local", units="meters",
     os.makedirs(os.path.dirname(pout), exist_ok=True)
     with open(pout, "w") as f:
         json.dump(plot_info, f, indent=2)
-
-    n_shrub = build_shrub_info(plot_dir, plot_uid, coord_system, units,
-                               foliage_voxel, voxel_threshold,
-                               plot_cloud)
 
     if verbose:
         print(f"{plot_uid}: wrote plot info + {len(tree_infos)} tree info files"
@@ -637,39 +629,21 @@ def _shrub_textual(plot_dir, plot_uid, uid):
     return os.path.join(layout.shrub_dir(plot_dir, plot_uid, uid), "textual")
 
 
-def _ellipsoid_dbh(height, width, base_z, bh=BREAST_HEIGHT_M):
-    """Diameter of the shrub ellipsoid's horizontal cross-section at breast
-    height (bh above the shrub base). 0 if the shrub is shorter than bh.
-
-    The ellipsoid is centered at height/2 with vertical semi-axis h/2 and
-    horizontal semi-axis w/2. Width at local height z (measured from base):
-      w(z) = width * sqrt(1 - ((z - h/2)/(h/2))^2)   for 0 <= z <= h, else 0.
-    """
-    h = float(height)
-    if h <= 0 or bh > h:
-        return 0.0
-    c = h / 2.0
-    frac = 1.0 - ((bh - c) / c) ** 2
-    if frac <= 0:
-        return 0.0
-    return float(width) * (frac ** 0.5)
-
-
 def _shrub_geoms(plot_dir, plot_uid):
-    """shrub_uid -> geometry dict from each shrub's volume JSON."""
+    """shrub_uid -> per-shrub record from the plot shrub index.
+
+    The per-shrub deep_learning volume labels are retired (2026-11 review,
+    item W24); the shrub index written by the understory stage carries the
+    geometry and the sampled-shape volumes.
+    """
     out = {}
-    d = os.path.join(plot_dir, layout.INDIVIDUAL_SHRUBS)
-    if not os.path.isdir(d):
+    idx = os.path.join(plot_dir, layout.PLOT_PLACEMENT, "textual",
+                      f"{plot_uid}_shrub_index.json")
+    if not os.path.exists(idx):
         return out
-    for name in sorted(os.listdir(d)):
-        sdir = os.path.join(d, name)
-        if not os.path.isdir(sdir):
-            continue
-        uid = name.rsplit("_", 1)[-1]
-        vpath = layout.shrub_path(plot_dir, plot_uid, uid, "volume_label",
-                                  create=False)
-        if os.path.exists(vpath):
-            out[uid] = json.load(open(vpath))
+    doc = json.load(open(idx)) or {}
+    for sh in doc.get("shrubs", []):
+        out[str(sh.get("shrub_uid"))] = sh
     return out
 
 
@@ -747,14 +721,12 @@ def build_shrub_info(plot_dir, plot_uid, coord_system, units,
             },
             "shrub_characteristics": {
                 "center": [cx, cy],
-                "dbh_m": _ellipsoid_dbh(height, width, base_z),
                 "max_width_m": width,
                 "height_of_max_width_m": base_z + height / 2.0,
                 "height_m": height,
                 "volume_m3": {
                     "primitive": g.get("volume_m3", {}).get("primitive"),
                     "mesh": g.get("volume_m3", {}).get("mesh"),
-                    "voxel": g.get("volume_m3", {}).get("voxel"),
                 },
             },
             "neighborhood": _shrub_neighborhood(

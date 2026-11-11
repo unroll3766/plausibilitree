@@ -1,9 +1,11 @@
 # Info JSONs (`build_info.py`)
 
 `build_info.py` emits the plot- and tree-level `*_info.json` files, replacing the
-old `*_volume.json` files. It runs last in the pipeline (after every cloud,
-skeleton, and canopy map exists) and only reads, so its order is flexible as long
-as those inputs are present. Shrub `*_volume.json` files are **not** touched.
+old tree `*_volume.json` files. It runs last in the pipeline (after every
+cloud, skeleton, and canopy map exists) and only reads, so its order is
+flexible as long as those inputs are present. Per-shrub values come from the
+plot shrub index (`understory.py` writes it); there are no per-shrub
+`*_volume.json` files anymore (removed in the 2026-11 review).
 
 ```
 plot_placement/textual/<plot>_info.json
@@ -33,7 +35,6 @@ PLOT_CENTER                    optional [lon, lat, elev]; present only when the
 DTM_PATH                       optional relative path; present only when a plot
                                DTM was generated
 meta: plot_uid, coordinate_system, units
-canopy: convex_hull_volume_m3         (plot-total foliage hull volume)
 shrubs: primitive_reference_m3        (analytic reference; VOL_SHRUB is the mesh)
 grass: percent_cover                  (realized; measured from the cloud)
 ```
@@ -54,7 +55,9 @@ VOL_TREE    = VOL_TRUNK + VOL_BRANCH + VOL_FOLIAGE
 VOL_TRUNK   VOL_BRANCH   VOL_FOLIAGE    float, m^3
 BOUNDING_BOX                  [x_min, y_min, z_min, x_max, y_max, z_max]
 meta: plot_uid, coordinate_system, units
-canopy: convex_hull_volume_m3, major_axis, minor_axis
+canopy: major_axis, minor_axis        (convex-hull volume removed in the
+                                      2026-11 review: it was only populated
+                                      when the optional canopy-map stage ran)
 neighborhood: (unchanged; see below)
 ```
 
@@ -74,8 +77,12 @@ perpendicular to it).
 
 ## Shrub-level schema
 
-Unchanged (notes.md defines no per-shrub info schema): `meta` +
-`shrub_characteristics` + `neighborhood`, as before.
+`meta` (shrub_uid / plot_uid / coordinate_system / units / bounding_box) +
+`shrub_characteristics` (center, max_width_m, height_of_max_width_m,
+height_m, volume_m3.primitive, volume_m3.mesh) + `neighborhood`. The
+2026-11 review removed the ellipsoid `dbh_m` field and the always-null
+`volume_m3.voxel` key (shrub volume is never voxel-based per the notes.md
+ruling).
 
 ## How each value is derived
 
@@ -94,12 +101,11 @@ absent from the skeleton.
 `>= --voxel-threshold` points, times the voxel cell volume, over the
 surviving (trimmed) cloud.
 
-**Canopy volume** — convex-hull volume of the foliage points, read from the
-per-tree `canopy_convex_hull.json` (single post-trim value).
+The canopy convex-hull volume extension was removed in the 2026-11 review
+(it was only populated when the optional canopy-map stage ran); the crown
+axes remain.
 
-**Total volume (VOL_TREE / VOL_TREES)** — `trunk + branch + foliage`
-(canopy is a separate envelope measure and is reported alongside, not
-summed into the total).
+**Total volume (VOL_TREE / VOL_TREES)** — `trunk + branch + foliage`.
 
 **Basal area** — `sum over trees of pi * (dbh/2)^2`, in m^2 per plot. DBH is the
 taper diameter at breast height (1.37 m).
@@ -110,10 +116,10 @@ vertices; the **minor axis** is the widest extent of the hull measured
 perpendicular to the major direction. Lengths in metres; orientation in degrees
 CCW from +x in the local frame (minor = major +/- 90 deg by construction).
 
-**Shrub total volume (VOL_SHRUB)** — sums the per-shrub mesh volumes from
-the shrub JSONs (sampled shape per the notes.md ruling; never voxels). The
-nominal primitive (ellipsoid) volumes are the `shrubs.primitive_reference_m3`
-extension.
+**Shrub total volume (VOL_SHRUB)** — sums the `volume_m3.mesh` values from
+the per-shrub info JSONs (sampled shape per the notes.md ruling; never
+voxels). The nominal primitive (ellipsoid) volumes are the
+`shrubs.primitive_reference_m3` extension.
 
 **Grass (VOL_GRASS)** — occupied-voxel volume of grass points at
 `--grass-voxel` (GRASS_VOXEL); `grass.percent_cover` is the **realized** cover: the fraction of plot footprint cells
