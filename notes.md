@@ -2,6 +2,26 @@
 
 PlausibiliTree is a modular assortment of software that generates realistic and labelled point clouds of forested scenes.
 
+## Review notes
+
+1. utm needs to be added to requirements.txt  
+2. the normalization step happens in the DL side, it’s out of scope for this project  
+3. Is basis-stem still needed in quickstart instructions  
+4. Please note the updated BRANCH\_ORDER spec, \-1 is used to refer to non branch points  
+5. Branch order behavior is not correct. When a branch splits, one of the splits should carry the parent order. If a 0th order branch splits, the larger one needs to stay a 0th order branch while the smaller one becomes a 1st order branch.  
+6. At least 2 shrubs were generated with 0 points. They have a record in individual shrubs. Diagnose why this happened.  
+7. In individual\_shrubs/textual/shrub\_info.jsons:  
+   1. dbh\_m can be removed entirely  
+   2. null values in bb, voxel, and neighborhood can occur (likely related to 6\)  
+8. in individual\_shrubs/deep\_learning/volume/labels/shrub\_volume.jsons:  
+   1. Again, deep learning is out of scope. This file is not needed at all  
+   2. 0 values in n\_points likely related to 6\.  
+9. in individual\_trees/textual/generation.jsons:  
+   1. realised values should include DBH in addition to base\_radius\_m  
+10. in individual\_trees/textual/info.jsons:  
+    1. convex\_hull volume is not needed (it’s populated as null anyway)  
+11. Note the inclusion of a new helper module to view tree skeletons (full implementation TBD)
+
 ## Comments
 
 For consistency, all geospatial data is ingested and exported as EPSG:4326 (lat/lon) and EPSG:5773 (elevation). Local coordinates are always measured in meters, as are parameters that operate in local space (buffers, cell sizes, etc.). Internally, Plausibilitree uses the utm python library to convert all geospatial data into a meters based projection during processing. [https\://github.com/Turbo87/utm](https://github.com/Turbo87/utm)   
@@ -25,7 +45,7 @@ Point cloud settings (max density)
 
 ## Process
 
-* Starting with the first tree: generate a tree using the appropriate parameters given the DBH, HT, and tree code from the tree parameter dict. Place it at the provided x,y with a random rotation \[0,360) in steps of N and a random reflection. Continue until all trees are placed  
+* Starting with the first tree: generate a tree using the appropriate parameters given the DBH, HT, and tree code from the tree parameter dict. Place it at the provided x,y with a random rotation \[0,360) in steps of ROT\_STEPS and a random reflection. Continue until all trees are placed  
 * Use the tree skeletons to identify intersections with other trees. For each tree, in ascending order of UID:  
   * When parts from two different trees intersect, points from one of the trees are flagged as trimmed=TRUE. Rules for trim selection  
     * When points are flagged for trimming, find the nearest joint before the collision. Any points connected to that joint are flagged as trimmed=TRUE.  
@@ -37,12 +57,18 @@ Point cloud settings (max density)
   * If multiple options are provided (filepath, random parameters, and/or none), resolve it in this way: None if None was included, else choose filepath if filepath was provided. Return a warning describing this choice.   
   * If none was provided and sampling density was not provided, return a warning and sample at a default density.  
   * If the topography dict is otherwise malformed or not provided, return a warning and operate as if None was provided.  
+* TBD implementation: adding boulders and rocks to the plot in unoccupied areas.  
+  * User specifies the number and size range of rocks and boulders. There also needs to be some kind of parameter to account for how irregular a boulder might be.  
+  * Boulders and rocks are placed the same as trees. The lowest part of the boulder is placed at the lowest part of the ground, thus any boulders and rocks “sink” into the ground on the upslope.  
 * Next, the program generates vegetation using the vegetation parameter dict.   
   * Shrubs are populated first. Each shrub is randomly generated (sampled from shrub parameters). The shrub is placed randomly within the constraints of the shrub pattern and tree proximity. Any point belonging to a shrub that intersects with a tree point is removed.  
   * Grass is populated next. Any point belonging to grass that intersects with a tree point or a shrub point is removed.  
 * Finally, the program populates downed woody debris. TBD how to implement this but::  
   * Downed logs of varying radius, length  
-  * Tree stumps of varying radius and height
+  * Tree stumps of varying radius and height  
+  * Stumps need to have a minimum distance from other trees  
+  * Downed logs need to have a minimum and maximum distance from other trees  
+  * Number of stumps, number of logs
 
 ## Outputs
 
@@ -160,6 +186,30 @@ Scanner parameters
 
 A .laz file generated by HELIOS++
 
+## Helper: Tree skeleton viewer
+
+A 3D GUI to load a tree skeleton JSON
+
+### Input
+
+skeleton.json (raw or trimmed)
+
+### Process
+
+User should be able to toggle various attributes:
+
+* Radius \- displays the width of each branch when activated. Shows polylines when deactivated.  
+* Branch ID \- toggle a display on or off.  
+* Branch angle \- toggle a display on or off.  
+* Branch order \- colorize skeleton/cylinders by branch order.
+
+User should be able to zoom in/out, rotate the skeleton, etc.  
+User should be able to render the current view to a .png or .jpeg
+
+### Output
+
+TBD
+
 ## SimpleSynthTree modifications
 
 ### Tree generation modifications
@@ -175,7 +225,7 @@ A .laz file generated by HELIOS++
 ### .LAS update modification
 
 * Updated to 1.4 format  
-* Added additional point columns: tree\_ID, semantic, branch\_ID, branch\_order, trimmed  
+* Added additional point columns: tree\_ID, semantic, branch\_ID, branch\_order  
 * Add support for .laz export
 
 # Variables
@@ -190,7 +240,8 @@ GRASS\_VOXEL \= float. Size used for voxel downsample to calculate grass volume 
 DTM\_RESOLUTION \= float. Resolution used to generate the DTM. Defaults to 0.25  
 CHM\_RESOLUTION \= float. Resolution used to generate the canopy height map. Defaults to 0.05  
 STEM\_RESOLUTION \= float. Resolution used to generate the stem map. Defaults to 0.05  
-STEM\_SECTION \= float. The buffer applied to DBH\_HT when generating a stem map. Defaults to 0.25.
+STEM\_SECTION \= float. The buffer applied to DBH\_HT when generating a stem map. Defaults to 0.25.  
+ROT\_STEPS \= int. Number of steps (in degrees) to take when rotating a tree, defaults to 30\.
 
 # Data Structures
 
@@ -222,7 +273,7 @@ Optional attributes
 
 Plot level mesh with the following elements:
 
-* Semantic code (1=trunk, 2=branch, 3=foliage, 8=shrub, 9=grass, 0=ground)  
+* Semantic code (1=trunk, 2=branch, 3=foliage, 8=shrub, 9=grass, 0=no semantic class (ground, noise, etc.)  
 * Tree UID (string)  
 * Tree code (string)  
 * Shrub UID (string)
@@ -243,17 +294,17 @@ Required attributes:
 
 | Attribute | Data type | Data description | Lower range | Upper range | Notes |
 | :---- | :---- | :---- | :---- | :---- | :---- |
-| NUM\_TREES | int | Number of trees contained in the plot | \<= 0 | inf |  |
-| BASAL\_AREA | float | Basal area of trees contained in plot | \<= 0 | inf | measured in square meters |
-| NUM\_SHRUBS | int | Number of shrubs contained in the plot | \<= 0 | inf |  |
-| VOL\_TREES | float | Sum of the volume of every tree | \<= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume comes from individual tree .JSON files |
-| VOL\_SHRUB | float | Sum of the volume of every tree | \<= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\* MAX(SHRUB\_LIST\$HT) | Volume comes from individual shrub .JSON files.  |
-| VOL\_GRASS | float | Sum of the volume of all points labelled grass | \<= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume calculated from grass points voxelized at GRASS\_VOXEL |
-| VOL\_TRUNK | float | Sum of the volume of all portions labelled trunk | \<= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume calculated from individual tree .JSON files |
-| VOL\_BRANCH | float | Sum of the volume of all portions labelled branch | \<= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume calculated from individual tree .JSON files |
-| VOL\_FOLIAGE | float | Sum of the volume of all points labelled foliage | \<= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume calculated from foliage points voxelized at FOLIAGE\_VOXEL |
+| NUM\_TREES | int | Number of trees contained in the plot | \>= 0 | inf |  |
+| BASAL\_AREA | float | Basal area of trees contained in plot | \>= 0 | inf | measured in square meters (use 0 if no trees) |
+| NUM\_SHRUBS | int | Number of shrubs contained in the plot | \>= 0 | inf |  |
+| VOL\_TREES | float | Sum of the volume of every tree | \>= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume comes from individual tree .JSON files |
+| VOL\_SHRUB | float | Sum of the volume of every tree | \>= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\* MAX(SHRUB\_LIST\$HT) | Volume comes from individual shrub .JSON files.  |
+| VOL\_GRASS | float | Sum of the volume of all points labelled grass | \>= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume calculated from grass points voxelized at GRASS\_VOXEL |
+| VOL\_TRUNK | float | Sum of the volume of all portions labelled trunk | \>= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume calculated from individual tree .JSON files |
+| VOL\_BRANCH | float | Sum of the volume of all portions labelled branch | \>= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume calculated from individual tree .JSON files |
+| VOL\_FOLIAGE | float | Sum of the volume of all points labelled foliage | \>= 0 | PLOT\_WIDTH\*PLOT\_LENGTH\*MAX(TREE\_LIST\$HT) | Volume calculated from foliage points voxelized at FOLIAGE\_VOXEL |
 | PLOT\_SHAPE | string | one of circle or rectangle |  |  |  |
-| PLOT\_AREA | float | area | \< 0 | inf |  |
+| PLOT\_AREA | float | area | \> 0 | inf |  |
 | BOUNDING\_BOX | 6 floats | 3D bounding box of point cloud |  |  | If global coordinates are available, use EPSG:4326 for x,y and EPSG:5773 for z. Otherwise, use local coordinates in meters. |
 | CHM\_PATH | string | filepath to the generated CHM |  |  |  |
 | STEM\_PATH | string | filepath to the generated stem map |  |  |  |
@@ -311,10 +362,11 @@ A .JSON where each element represents a portion of the generated tree.
 | Attribute | Data type | Data description | Lower range | Upper range | Notes |
 | :---- | :---- | :---- | :---- | :---- | :---- |
 | BRANCH\_UID | string | A unique ID for each element in the tree |  |  |  |
-| BRANCH\_ORDER | int | A 0th order branch is the trunk, a 1st order branch is connected to the trunk, a 2nd order branch is connected to a 1st order banch, and so on. | 0 | 5 | 5 is a soft upper limit. |
-| BRANCH\_LENGTH | float | The length of the element | \< 0 |  |  |
-| BRANCH\_RADIUS | float | The radius of the element | \< 0 |  |  |
-| BRANCH\_VOLUME | float | The volume of a cylinder fitted calculated with the element’s length and radius | \< 0 |  |  |
+| BRANCH\_ORDER | int | A 0th order branch is the trunk, a 1st order branch is connected to the trunk, a 2nd order branch is connected to a 1st order banch, and so on. \-1 indicates the point does not belong to a branch | \-1 | 5 | 5 is a soft upper limit. |
+| BRANCH\_LENGTH | float | The length of the element | \> 0 |  |  |
+| BRANCH\_RADIUS | float | The base radius of the element | \> 0 |  |  |
+| BRANCH\_VOLUME | float | The volume of a cylinder fitted calculated with the element’s length and radius | \> 0 |  |  |
+| BRANCH\_ANGLE | (float, float, float) | The angle of the branch w.r.t. x, y, z axis in degrees | \>= 0 | \< 360 |  |
 | SOURCE | string | UID of the element this element connects to |  |  | Every element should only have one source |
 | DESTINATION | string | UID(s) of the elements connected to this element |  |  | In the case of a split branch, there may be multiple destinations |
 
@@ -369,3 +421,5 @@ These parameters are required for SimpleSynthTree
   * Parameters for random terrain generation  
   * None  
 * Ground sampling density (DTM\_RESOLUTION)
+
+## 
