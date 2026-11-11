@@ -1380,3 +1380,17 @@ record per se.
   maps (fixed: existence-gated moves), and my first extraction skeleton
   index double-prefixed the tree tags (fixed to match build_info's
   loader).
+- Review pass (commit 484f485): terrain's "N tree DTM crops" counter
+  incremented for trees with canopy bboxes even when no DTM existed (now
+  counts writes); the core-only no-per-object-clouds check now scans
+  individual_*/**/*.la[sz] (flat staging included); Section 4's
+  extraction-is-the-only-writer claim corrected (normalize writes
+  per-object _normalized variants of extracted crops). Probes: extraction
+  resolves/names by the source chain (terrain on a core-only plot),
+  re-runs byte-identical, --surroundings carries background tree ids,
+  missing clouds raise FileNotFoundError; the committed demo's scene
+  links all resolve (7 plot / 28 tree / 2 shrub); tree info values
+  recompute exactly from plot-cloud slices (bbox exact, VOL_FOLIAGE
+  2.044 == 2.044); placement clouds carry only codes 1/2/3, so the CHM
+  vegetation filter is inert on that path. run_all.py exit 0 after the
+  fixes.
