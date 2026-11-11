@@ -54,8 +54,12 @@ terrain/understory/build_info, which the stages depend on).
 It errors out with a reminder to run `fia_helper.py` first if no `plot_*.csv`
 is found there.
 
-Extraction (`--extract-trees`) also runs per plot, after build_info.
-Normalization is retired (2026-11 review): the DL side owns it.
+Extraction (`--extract-trees`) also runs per plot, after build_info; its two
+knobs are `--extract-source` (plot cloud the extraction slices; 'understory'
+resolves to the furthest-processed present, default) and
+`--extract-surroundings` (metres of context added around each object's own
+points, default 0). Normalization is retired (2026-11 review): the DL side
+owns it.
 
 ## Terrain and understory (grass + shrubs)
 

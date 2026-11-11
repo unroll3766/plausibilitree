@@ -200,3 +200,13 @@ Re-entries only when behavior changes. Long-form narrative lives in
   f9a45a3. Known gap: commits 2-4 cannot run the cross suite (fixture.py still
   passed normalize=True until f9a45a3 — TypeError). Demo commit deleted all
   7 *_normalized.laz + 2 shrub volume JSONs; 0 *_normalized* tracked at HEAD.
+2026-11-11 — Full end-to-end repo pass (post review round): check.py (29
+  modules) + run_all.py exit 0; git clean, no pyc/scratch/secrets tracked,
+  largest tracked file 252 KB; retired formats (normalized, per-shrub volume
+  labels, dbh_m/voxel keys, tree-info hull) have zero live readers; demo
+  scene link audit 44/44 resolve (links are relative to the plot dir's
+  parent); colorize_plot smoke on the demo understory cloud OK (26,988
+  points); demo plot/tree/shrub info keys match spec 8.4 exactly (canopy
+  axes only, no dbh_m/voxel, DTM_PATH optional present). Doc gaps found and
+  fixed: --extract-source/--extract-surroundings were undocumented (W6-era);
+  the W23 shrub footprint placement was undocumented in README_understory.

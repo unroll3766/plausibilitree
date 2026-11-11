@@ -29,6 +29,12 @@ jitter a centre, sample height in `[--shrub-height-min, --shrub-height-max]`,
 width in `[--shrub-width-min, --shrub-width-max]`, build a warped icosphere,
 sample `--points-per-shrub` points, drape onto the DTM. Because cells near
 canopies are excluded up front, shrubs sit in the gaps between trees.
+Candidate cells also respect the plot's own footprint: a circular plot
+seeds shrubs only inside the disc, never in the bounding square's corners
+(2026-11 review, W23 — corner shrubs used to lose every point to the
+plot-boundary clip while their records persisted). A shrub that still
+retains no points after clipping is dropped from the record set with a
+warning, so no shrub ever has a record without points.
 
 ## Grass
 
