@@ -11,7 +11,7 @@ per-object clouds back out of the plot cloud on demand:
 
 `--source` picks the plot cloud to slice (understory -> terrain -> trimmed
 -> raw resolution); each crop is written to the canonical per-object `las/`
-position under that source's name, so the scene links, normalize and the
+position under that source's name, so the scene links and the
 editor read it unchanged. `--surroundings N` widens every crop to an
 N-metre window around the object's own points so the crop carries
 background; without it a crop is the object's own points only.
