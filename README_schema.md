@@ -3,8 +3,8 @@
 Every cloud in the pipeline carries **one canonical set of extra dimensions**,
 defined once in `schema.py` and written/read through `las.export_canonical_las`
 / `las.read_canonical_las`. Plot-level and tree-level clouds share the schema
-from generation through normalization, so consumers never have to branch on
-which stage produced a file. A stage that hasn't computed a dim yet writes its
+from generation through the derived stages, so consumers never have to
+branch on which stage produced a file. A stage that hasn't computed a dim yet writes its
 zero/default (e.g. a raw cloud has `shrub_id = 0` everywhere); the column still
 exists, so the schema never changes shape across the chain.
 
@@ -89,9 +89,6 @@ foliage (semantic 3) carries the branch element's code. Non-tree points
   passes through unchanged.
 - **understory** — appends shrubs (semantic 8) and grass (semantic 9) with
   `shrub_id` on shrubs; classifies them by height.
-- **normalize** — its per-voxel categorical ratio columns come from
-  `branch_code` (raw/trimmed source) or `semantic_code` (terrain/understory
-  source); see README_normalize.
 
 ## Writer / reader
 

@@ -22,15 +22,15 @@ pip install -r requirements.txt
 # 1. (optional) tree lists: raw FIA TREE table -> one canonical plot_<UID>.csv
 #    tree list per plot (spec Section 8.1; --format tree-list-json for the
 #    JSON form, --format sst-csv for the legacy table)
-python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
+python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --seed 42
 
-# 2. + 3. generate forests and their ML outputs:
+# 2. + 3. generate forests and their outputs:
 #    per-tree clouds -> assembled plot -> stem/canopy maps -> canonical
-#    layout -> (optional terrain + understory) -> info JSONs -> normalize
+#    layout -> (optional terrain + understory) -> info JSONs
 python run_pipeline.py plots --radius 15 --seed 42
 #    terrain always runs (flat plane by default; --generate-dtm or --dtm
 #    for relief), add --understory for shrubs and grass
-#    add e.g. --max-density 5000 --spatial for DL-oriented normalization
+#    (normalization is out of scope: the DL side owns it)
 
 # 3.+4. cache and train: see the companion project
 #    ../SimpleSynthForest-DL  (ae_data build -> train_ae / tune_ae / ...)
@@ -61,7 +61,6 @@ FIA TREE csv ──fia_helper──▶ plots/plot_<UID>.json       (module 1, op
                  terrain (opt.)    │  drape onto DTM, ground points, HAG
                  understory (opt.) │  shrubs + grass
                  build_info        │  plot/tree/shrub info JSONs
-                 normalize (opt.)  │  subsample / rescale / voxelize for DL
                                    ▼
                      plots/plot_<UID>/  (canonical layout, see below)
                                    │
@@ -114,7 +113,6 @@ file roles — is defined once in [README_schema.md](README_schema.md)
   `canopy_map.py` ([README_canopy_map.md](README_canopy_map.md))
 - Info JSONs (counts, volumes, neighbourhoods): `build_info.py`
   ([README_build_info.md](README_build_info.md))
-- DL preprocessing: `normalize.py` ([README_normalize.md](README_normalize.md))
 - Interactive environment editing: `scene_editor.py` — tune terrain, shrubs
   and grass on already-generated plots and view the result
   ([README_scene_editor.md](README_scene_editor.md))
@@ -126,7 +124,7 @@ Training, tuning and diagnostics live in the separate companion project
 building over this project's outputs), `ae_model.py` / `pointbert.py`
 (autoencoder + encoders), `train_ae.py`, `tune_ae.py`, `probe_ae.py`,
 `diagnose_ae.py`, and the trial tree-count task. It consumes this project's
-canonical layout and normalized clouds; no synthesis code lives there.
+canonical layout; no synthesis code lives there.
 
 ## Output layout
 
@@ -143,13 +141,13 @@ plots/
 └── plot_<UID>/
     ├── plot_placement/
     │   ├── las/                    plot-level clouds: raw, trimmed, terrain,
-    │   │                           understory, normalized
+    │   │                           understory
     │   ├── textual/                scene JSON (links every artifact), manifest,
     │   │                           info JSON, DTM crop, shrub index
     │   └── deep_learning/          plot-level stem_map / canopy_map
     │                               feature+label rasters
     ├── individual_trees/<TREE_UID>/
-    │   ├── las/                    per-tree clouds (same five variants)
+    │   ├── las/                    per-tree clouds (same four variants)
     │   ├── textual/                generation + skeleton JSONs, DTM crop
     │   └── deep_learning/          per-tree stem_map / canopy_map
     │                               feature+label rasters
@@ -184,7 +182,6 @@ switch remain readable without regeneration.
 | Understory | [README_understory.md](README_understory.md) |
 | Shrub outputs | [README_shrub_outputs.md](README_shrub_outputs.md) |
 | Info JSONs | [README_build_info.md](README_build_info.md) |
-| Normalization | [README_normalize.md](README_normalize.md) |
 | Point-cloud schema | [README_schema.md](README_schema.md) |
 | Deep learning (separate project) | `../SimpleSynthForest-DL/README.md` |
 

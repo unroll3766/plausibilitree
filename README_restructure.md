@@ -1,7 +1,7 @@
 # Output restructuring (canonical layout)
 
-Stage 6: reorganise the flat stage outputs into the canonical, deep-learning
-friendly directory tree, and generate the derived artifacts that tree implies.
+Stage 6: reorganise the flat stage outputs into the canonical directory
+tree, and generate the derived artifacts that tree implies.
 
 ```
 # after stages 2-5:
@@ -12,8 +12,7 @@ Two modules:
 
 - **`layout.py`** — the single source of truth for every output path. Stage
   scripts and the restructure step both address files through it, so the layout
-  (including the not-yet-produced `normalized` slots) is defined in exactly one
-  place.
+  is defined in exactly one place.
 - **`restructure.py`** — moves the flat files into the layout and produces the
   new derived artifacts.
 
@@ -24,7 +23,7 @@ PLOT_UID/
   individual_trees/
     PLOT_UID_TREE_UID/
       textual/        generation.json, raw_skeleton.json, trimmed_skeleton.json
-      las/            raw.laz, trimmed.laz              (normalized.laz: later)
+      las/            raw.laz, trimmed.laz
       deep_learning/
         volume/labels/            volume.json
         stem_map/features/        stem_bounding_box_raw.tif
@@ -34,7 +33,7 @@ PLOT_UID/
                                   canopy_bounding_box.json, canopy_convex_hull.json
   plot_placement/
     textual/          manifest.csv, PLOT_UID_scene.json
-    las/              raw.laz, trimmed.laz              (normalized.laz: later)
+    las/              raw.laz, trimmed.laz
     deep_learning/
       volume/labels/            PLOT_UID_volume.json
       stem_map/features/        PLOT_UID_stem_map_raw.tif

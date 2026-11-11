@@ -11,8 +11,7 @@ those tables and runs the processing stages, in order, for every one:
                     -> understory (opt.) -> build_info
     derived, opt-in (spec Section 5): stem_map (--stem-map),
                     canopy_map (--canopy-map), extraction
-                    (--extract-trees), normalize (--normalize,
-                    dataset-wide over the restructured plots)
+                    (--extract-trees)
 
 Terrain always runs per spec Section 3.3: a --dtm file or --generate-dtm
 selects the relief, and neither means the None topography (a flat plane at
@@ -24,15 +23,14 @@ plots use the same parameters.
 
 Example (mirrors the documented per-stage commands):
 
-    python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
+    python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --seed 42
 
     python run_pipeline.py plots \\
         --radius 7.315 --seed 42 \\
         --points-per-metre 4096 --max-attempts 10 \\
         --stem-map --stem-resolution 0.05 --stem-section 0.25 \\
         --canopy-map --chm-resolution 0.05 \\
-        --max-density 5000 --spatial --density cube --plot-l 30 \\
-        --tree-l 30 --normalize --extract-trees
+        --extract-trees
 
 Parameters not given fall back to the defaults below, which match that example.
 By default a failing plot is logged and skipped so the batch continues; use
@@ -140,16 +138,11 @@ def run_pipeline(plotdir, *,
                  grass_cover=0.6, grass_candidate_density=200.0,
                  canopy_attenuation=0.3,
                  rotation_step=30.0,
-                 max_density=5000, spatial=True, density="none",
-                 plot_l=30, plot_z=None, tree_l=30, tree_z=None,
-                 norm_source="understory",
-                 stem_map=False, canopy_map=False, normalize=False,
+                 stem_map=False, canopy_map=False,
                  extract_trees=False, extract_surroundings=0.0,
                  extract_source="understory",
                  stop_on_error=False, dry_run=False):
     t0 = time.time()
-    if density == "none":          # accept the CLI-style sentinel programmatically
-        density = None
 
     # ---- clear stale outputs ----------------------------------------------
     # fia_helper.py is a separate step now and owns plot_<id>.csv in plotdir;
@@ -182,10 +175,7 @@ def run_pipeline(plotdir, *,
 
     # ---- per-plot stages --------------------------------------------------
     # Stages 2-5 + restructure run per plot. Terrain (optional) runs after
-    # restructure. Normalize is deferred and run once over all plots together,
-    # so its branch-order scan spans the whole dataset and every _normalized.las
-    # shares one column schema (uniform across the dataset, not just within a
-    # plot).
+    # restructure, before understory.
     #
     # Env sidecars (replicate.py): a plot may carry its own terrain/understory
     # draw. Builders below merge the sidecar over the globals per plot and
@@ -220,7 +210,7 @@ def run_pipeline(plotdir, *,
             "--source", canopy_source]))
     stages.append(("restructure.py", lambda c: [c]))
 
-    # terrain is optional and runs after restructure, before normalize.
+    # terrain is optional and runs after restructure, before understory.
     # Sidecar "dtm" (if any) wins over synthesis; a sidecar without "dtm"
     # synthesizes with the sidecar's drawn gen_* parameters.
     def _terrain_args(csv):
@@ -265,7 +255,7 @@ def run_pipeline(plotdir, *,
             args += ["--dtm", terr[terr.index("--dtm") + 1]]
         return args
 
-    # terrain always runs (after restructure, before normalize): with a
+    # terrain always runs (after restructure, before understory): with a
     # provided DTM, a generated DTM, or -- when neither is configured -- the
     # flat plane (None topography, spec Section 3.3). Sidecar "dtm" (if any)
     # wins over synthesis; a sidecar without "dtm" synthesizes with the
@@ -293,7 +283,6 @@ def run_pipeline(plotdir, *,
     stages.append(("build_info.py", lambda c: [c, *info_args]))
 
     ok, failed = [], []
-    restructured = []          # plot CSVs that reached restructure, for normalize
     if any_env:
         n_env = sum(1 for e in envs.values() if e)
         print(f"[env] {n_env} of {len(plot_csvs)} plot(s) carry an env sidecar "
@@ -320,28 +309,6 @@ def run_pipeline(plotdir, *,
             failed.append(name)
         else:
             ok.append(name)
-            restructured.append(csv)
-        print()
-
-    # ---- normalize: one call over every restructured plot -----------------
-    # (opt-in derived stage, spec Section 5, item W6)
-    if normalize and restructured:
-        norm = ["--max-density", max_density] if max_density is not None else []
-        if spatial:
-            norm.append("--spatial")
-        if density is not None:
-            norm += ["--density", density, "--plot-l", plot_l, "--tree-l", tree_l]
-            if density == "square":
-                norm += ["--plot-z", plot_z, "--tree-z", tree_z]
-        norm += ["--source", norm_source, "--seed", seed]
-        print(f"[normalize] {len(restructured)} plot(s) together "
-              f"(dataset-wide uniform schema)")
-        if not _run("normalize.py", [*restructured, *norm], dry_run):
-            print("      normalize failed on the batch")
-            # move any ok plots that only failed at normalize into failed
-            failed.extend(os.path.splitext(os.path.basename(c))[0]
-                          for c in restructured)
-            ok = [n for n in ok if n not in failed]
         print()
 
     dt = time.time() - t0
@@ -429,24 +396,6 @@ def main():
                          "accounting in build_info (default 0.1)")
     ap.add_argument("--voxel-threshold", type=int, default=1,
                     help="min points for an occupied voxel (default 1)")
-    # normalize
-    ap.add_argument("--max-density", type=int, default=5000)
-    ap.add_argument("--spatial", action="store_true", default=True)
-    ap.add_argument("--no-spatial", dest="spatial", action="store_false")
-    ap.add_argument("--density", default="none", choices=["square", "cube", "none"],
-                    help="density-dependent voxelization: none (default; write "
-                         "the subsampled/rescaled point cloud), cube (L^3 voxel "
-                         "lattice), or square (LxLxZ column-profile lattice). "
-                         "Voxelization is opt-in.")
-    ap.add_argument("--plot-l", type=int, default=30)
-    ap.add_argument("--plot-z", type=int, default=None)
-    ap.add_argument("--tree-l", type=int, default=30)
-    ap.add_argument("--tree-z", type=int, default=None)
-    ap.add_argument("--norm-source", default="understory",
-                    choices=["raw", "trimmed", "terrain", "understory"],
-                    help="cloud normalize reads; default resolves to the "
-                         "furthest-processed present (understory->terrain->"
-                         "trimmed->raw)")
     # opt-in derived stages (spec Section 5, item W6)
     ap.add_argument("--stem-map", action="store_true",
                     help="run the stem map derived stage (2-band breast-"
@@ -454,9 +403,6 @@ def main():
     ap.add_argument("--canopy-map", action="store_true",
                     help="run the canopy map derived stage (2-band CHM + "
                          "crown bboxes/hulls)")
-    ap.add_argument("--normalize", action="store_true",
-                    help="run the normalization derived stage over the "
-                         "restructured plots")
     ap.add_argument("--extract-trees", action="store_true",
                     help="run the individual-extraction derived stage: crop "
                          "per-tree/per-shrub clouds from the plot cloud")
@@ -475,9 +421,6 @@ def main():
                     help="print the commands without running them")
     args = ap.parse_args()
 
-    density = None if args.density == "none" else args.density
-    if density == "square" and (args.plot_z is None or args.tree_z is None):
-        ap.error("--density square requires --plot-z and --tree-z")
     if args.dtm and args.generate_dtm:
         print("warning: both --dtm and --generate-dtm given; using the "
               "provided DTM (filepath wins, generation ignored) per the "
@@ -510,11 +453,7 @@ def main():
         shrub_cell_size=args.shrub_cell_size, grass_cover=args.grass_cover,
         grass_candidate_density=args.grass_candidate_density,
         canopy_attenuation=args.canopy_attenuation,
-        max_density=args.max_density, spatial=args.spatial, density=density,
-        plot_l=args.plot_l, plot_z=args.plot_z, tree_l=args.tree_l,
-        tree_z=args.tree_z, norm_source=args.norm_source,
         stem_map=args.stem_map, canopy_map=args.canopy_map,
-        normalize=args.normalize,
         extract_trees=args.extract_trees,
         extract_surroundings=args.extract_surroundings,
         extract_source=args.extract_source,

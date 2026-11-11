@@ -2,7 +2,7 @@
 terrain.py: drape a placed plot onto a DTM, add ground points and a
 height-above-ground column, and classify points per the LAS spec.
 
-Runs after restructure.py, before normalize.py. Reads the canonical placement
+Runs after restructure.py, before understory.py. Reads the canonical placement
 cloud, reads a DTM (ESRI ASCII .asc, metres, x/y/z), and writes:
 
     plot_placement/las/<PLOT_UID>_terrain.las

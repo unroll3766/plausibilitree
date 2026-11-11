@@ -3,7 +3,7 @@
 Stage that drapes a placed plot onto a DTM (or, when no DTM is configured,
 onto a **flat plane at z = 0**), adds bare-earth ground points and a
 height-above-ground column, and classifies points per the LAS spec. Runs
-**after `restructure.py`, before `normalize.py`** — the stage always runs;
+**after `restructure.py`, before `understory.py`** — the stage always runs;
 the three topography modes are chosen per the design spec (Section 3.3):
 a provided DTM wins over `--generate-dtm` (a warning describes the ignored
 choice), and when neither is given the topography is None: a uniform flat
@@ -111,7 +111,7 @@ The terrain stage always runs (per plot, after restructure); `--dtm` /
 --terrain-source S     raw|trimmed (default trimmed)
 ```
 
-Terrain slots between restructure and normalize: it is skipped when
+Terrain slots between restructure and understory: it is skipped when
 `--dtm`/`--generate-dtm` is absent, and errors cleanly (per plot, so one
 uncovered plot is skipped rather than sinking the batch) when the DTM is too
 small.

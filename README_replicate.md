@@ -59,9 +59,7 @@ Every range is overridable on the CLI, e.g.
 
 **Shared across replicates** (identical by design): the tree tables
 themselves, `generate_trees` / `assemble_plot` / `stem_map` / `canopy_map` /
-`restructure` (all driven by `run_pipeline`'s global `--seed`), and the
-dataset-wide `normalize` call (one seed for the whole batch, so subsampling
-does not differ between replicates).
+`restructure` (all driven by `run_pipeline`'s global `--seed`).
 
 ## How the orchestrator applies it
 
@@ -71,12 +69,6 @@ present, uses that draw **for that plot's terrain and understory stages only**
 A sidecar `dtm` entry replaces DTM synthesis for that plot. A mixed directory
 (some replicated, some not) works unchanged; stages that aren't configured
 for a plot are skipped with a note.
-
-One caveat on mixed directories: `normalize.py` requires every plot in a
-batch to resolve to the same source kind (understory vs. trimmed vs. raw), so
-a batch mixing plots with and without an understory layer errors out with
-instructions. Keep replicates in their own run directory, or pass
-`--norm-source` explicitly to force one kind for the whole batch.
 
 ## Reproducibility
 

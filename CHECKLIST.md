@@ -122,14 +122,10 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
       per-object `las/` positions, linked in the scene; optional
       `--surroundings N` context window. The only writer of per-object
       clouds under W6.
-- [ ] **Normalization** (optional DL preprocessing, `normalize.py`): max
-      points-per-m3 cap, rescale to the unit cube, optional density
-      voxelization (cube L^3 or LxLxZ lattices with density / num_trees /
-      per-order ratio columns); categorical is `branch_code` or
-      `semantic_code` depending on the source cloud; run-wide category union so
-      every `_normalized.las` shares one schema; plot level always, tree
-      and shrub level when extraction produced their clouds
-      levels.
+- [x] **Normalization**: retired (2026-11 review, item W21/D21) — deep
+      learning is out of scope and the normalization step happens on
+      the DL side. `normalize.py` and every normalized path key are
+      gone.
 
 ## 4. Deep learning (separate companion project)
 
@@ -137,14 +133,14 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
       README): cloud cache building, autoencoder + encoder registry,
       training, Optuna tuning, memorisation probes, blobbiness diagnostics,
       and the trial tree-count task. It consumes this project's canonical
-      layout and normalized clouds; nothing here imports it.
+      layout; nothing here imports it.
 
 ## 5. Orchestration
 
 - [ ] **Pipeline runner** (`run_pipeline.py`): discovers `plot_*.csv` tables,
       runs all stages per plot as isolated subprocesses with shared
-      parameters, gates terrain/understory on flags, defers normalize to one
-      dataset-wide call (uniform schema), runs build_info last, cleans stale
+      parameters, gates terrain/understory on flags, runs build_info last,
+      cleans stale
       output dirs, supports `--limit`, `--stop-on-error`, `--dry-run`, failure
       logging with meaningful exit codes.
 

@@ -1,7 +1,7 @@
 # Understory (shrubs + grass) — `understory.py`
 
 Optional stage that adds procedural **shrubs** and **grass** to a plot's terrain
-cloud. Runs **after `terrain.py`, before `normalize.py`** (it needs the draped
+cloud. Runs **after `terrain.py`**, as the final cloud-writing stage (it needs the draped
 terrain cloud and the DTM).
 
 ```
@@ -64,25 +64,11 @@ Per-tree `_understory.laz` crops contain all points inside that tree's canopy
 x-y bbox — so a crop includes nearby shrubs/grass and the ground patch, not just
 the tree.
 
-## Feeding normalize
-
-`normalize.py` resolves its source to the **furthest-processed cloud** present:
-understory → terrain → trimmed → raw. Every canonical cloud carries both
-`branch_code` and `semantic_code`, so normalize picks the meaningful one: when
-it reads an **understory/terrain** cloud, its per-voxel **categorical ratio
-columns come from `semantic_code`** — `semantic_1` (trunk), `semantic_2`
-(branch), `semantic_3` (foliage), `semantic_8` (shrub), `semantic_9` (grass),
-`semantic_0` (ground). Reading a pre-terrain **trimmed/raw** cloud uses
-`branch_code_k` instead. `num_trees` and `density` are unchanged. The run-wide
-union is taken over whichever categorical applies, so all normalized files share
-one schema. If a run's plots resolve to mixed kinds (some understory, some only
-trimmed), normalize errors rather than emitting an inconsistent schema.
-
 ## In the pipeline
 
 `run_pipeline.py --understory` enables it (requires terrain via `--dtm` or
 `--generate-dtm`; otherwise it's skipped with a note). Runs per plot after
-terrain; the deferred, dataset-wide normalize then picks up the understory
-clouds with the uniform object-type schema. Knobs: `--shrub-cover`,
+terrain, as the final cloud-writing stage. The normalization stage is retired
+(2026-11 review): the DL side owns it. Knobs: `--shrub-cover`,
 `--shrub-cell-size`, `--grass-cover`, `--grass-candidate-density`,
 `--canopy-attenuation`.
