@@ -167,6 +167,11 @@ is identical).
   within cover/pattern constraints; tree proximity is enforced via canopy
   attenuation. Any shrub point intersecting a tree point is removed.
   Shrubs are labelled with `shrub_id` and the shrub semantic code (8).
+  Candidate shrub cells are constrained to the plot's own footprint
+  (a circular plot seeds shrubs only inside the disc, not in the bounding
+  square's corners), and a shrub that retains no points after clipping is
+  dropped from the per-shrub record set with a warning — no shrub ever has
+  a record without points (2026-11 review, item W23).
 - **Grass next.** Any grass point intersecting a tree point or a shrub point
   is removed. Grass carries no per-plant identity (semantics only).
 
@@ -188,9 +193,9 @@ After all clouds exist, plot-level and tree-level info JSONs are written
 (Section 8.4) under the notes.md field names: trunk (frustum sum along
 the skeleton with taper radii), branch (cylinder per branch element),
 foliage (occupied-voxel volume at FOLIAGE_VOXEL), grass (occupied-voxel
-volume at GRASS_VOXEL), canopy (convex-hull volume of foliage; spec
-extension) — one post-trim value each, no pre-trim variants
-(Section 3.2).
+volume at GRASS_VOXEL) — one post-trim value each, no pre-trim variants
+(Section 3.2). The canopy convex-hull volume extension is withdrawn
+(2026-11 review, item 10).
 
 ## 4. Core outputs
 
@@ -220,9 +225,7 @@ operates on them — but they are not deliverables: generate/assemble stage
 them in the flat working area and restructure deletes them, so nothing
 per-tree ever lands in `individual_trees/*/las/` from a core run. The same
 applies to per-shrub clouds; the extraction stage is the only stage that
-crops per-object clouds out of the plot cloud — normalize still writes
-per-object `_normalized.laz` variants, but only for objects the
-extraction produced.)
+crops per-object clouds out of the plot cloud.)
 
 ## 5. Derived output stages (opt-in)
 
@@ -256,8 +259,6 @@ Each is a separate stage over the core outputs, never part of the core run.
   0 where a cell holds no vegetation; band 2 (float32, 0/1) is 1 where a
   foliage point (code 3) lies in the cell. Plus per-tree crown bounding
   boxes and convex hulls.
-- **Normalization** **[implemented as an opt-in stage (`--normalize`)]** —
-  subsample / rescale / voxelize clouds for DL consumption.
 - **HELIOS++ scan simulation** — **[planned]**. Re-simulate acquisition with
   HELIOS++: input a voxelized point cloud or the polygon meshes of
   Section 5 item below, plus scanner parameters; output a .laz with
@@ -363,6 +364,14 @@ original and edited clouds; save the dicts. (`scene_editor.py`.)
 Replicates a tree list N times, each with a randomly drawn terrain/shrub/
 grass sidecar JSON that the pipeline applies per plot (`replicate.py`).
 
+### 6.5 Tree skeleton viewer — **[planned]** (item W26)
+
+A 3D GUI helper that loads a tree skeleton JSON (raw or trimmed). Toggles:
+branch radii (cylinders vs polylines), branch ID display, branch angle
+display, branch-order colorization; zoom/rotate/pan; render the current
+view to .png/.jpeg. Input: one skeleton JSON. Output: TBD (2026-11
+review, item 11 — helper module noted; full implementation TBD).
+
 ## 7. Generator module contract (with Simple Synth Tree)
 
 ### 7.1 Module contract — **[implemented]**
@@ -382,7 +391,10 @@ in `sst_generator.py`, selectable by name from the registry —
     trunk and branch centerlines carrying radii (or a documented proxy)
     and joint structure sufficient for collision trimming;
   - realized dimensions and provenance (model params, stem fraction,
-    point budget) so the build can be recorded and reproduced.
+    point budget). The realized record carries the height, the base
+    radius and the taper-implied DBH (diameter at DBH_HT) so
+    `<TREE_UID>_generation.json` reports the realized DBH alongside
+    `base_radius_m` (2026-11 review, item 9; item W25).
 - `load_param_dict(path)`: the parameter dictionary format (Section 8.6)
   mapping tree code -> parameters.
 - `resolve_tree_code(code)`: a tree code -> dictionary key.
@@ -532,23 +544,36 @@ portion of the generated tree — an element graph:
 | Attribute | Type | Description |
 |---|---|---|
 | BRANCH_UID | string | unique id of the element within the tree |
-| BRANCH_ORDER | int | 0 = trunk, 1 = connected to the trunk, 2 = connected to a 1st order element, ... (5 is a soft upper limit) |
+| BRANCH_ORDER | int | 0 = trunk, 1 = connected to the trunk, 2 = connected to a 1st order element, ... (5 is a soft upper limit). **-1 indicates the point does not belong to a branch** (non-branch points: ground, grass, shrubs; on cloud points this is `branch_code` 0 = order -1) |
 | BRANCH_LENGTH | float | length of the element, m |
 | BRANCH_RADIUS | float | radius of the element, m |
 | BRANCH_VOLUME | float | cylinder volume pi * r^2 * L from the element's length and radius |
 | SOURCE | string | UID of the element this element connects to (exactly one; null for the root trunk element) |
 | DESTINATION | string | UID(s) of the elements connected to this one (multiple at a fork) |
 
-Implementation (W15): the graph is computed at generation time and
+Implementation (W15; split rule corrected in the 2026-11 review, item W22):
+the graph is computed at generation time and
 embedded in every skeleton JSON under the `elements` key (raw and trimmed
 variants alike — the elements carry no coordinates, only UIDs/parents/
 lengths/radii/volumes, so they are invariant under place() rotation and
 reflection and the trimmed skeleton copies them verbatim). SST realization
 decisions of the notes.md table:
 
-- Partition: one element per trunk stem (all trunk material, including
-  fork daughter stems, is BRANCH_ORDER 0) and one element per branch
-  (BRANCH_ORDER 1; SST branches do not sub-branch, so no higher orders).
+- **Split rule (item 5 of the 2026-11 review):** when an element splits,
+  one of the splits carries the parent order. The split daughter with the
+  larger base radius keeps the parent's order; ties are broken by the
+  daughter's own length, then deterministically (the first-listed
+  daughter keeps the parent order). In SST the global taper gives both
+  daughters of a split the same base radius (they start at the split
+  height), so the larger-by-length daughter stays the trunk (order 0) and
+  the shorter becomes order 1 — a fork of a fork can produce orders 2 and
+  higher. A *branch* (a side element, not a split) is always
+  parent order + 1, so branches hanging off an order-1 stem are order 2
+  (SST branches never sub-branch).
+- Partition: one element per trunk stem (the main stem is order 0; each
+  fork daughter stem's order follows the split rule above) and one
+  element per branch (source stem order + 1; SST branches do not
+  sub-branch).
 - UID scheme: `T00`, `T01`, ... for stems in stem order, `B000`, `B001`,
   ... for branches in skeleton order.
 - SOURCE: the root trunk element's is null; each fork daughter stem's is
@@ -559,6 +584,13 @@ decisions of the notes.md table:
   half-thickness. BRANCH_VOLUME is the notes.md cylinder; the frustum
   accounting of Section 8.4 is separate and unchanged.
 - DESTINATION is the inverse of SOURCE (children in the same order).
+
+The same order rule drives the point-cloud codes (assemble): a point on
+an element carries `branch_code` = element order + 1, and a point on no
+branch carries `branch_code` 0 = BRANCH_ORDER -1; stem points on an
+order-0 element are semantic 1 (trunk), stem points on order >= 1
+elements are semantic 2 (branch stem) — under the split rule the
+dominant fork stem stays trunk.
 
 The polyline-and-splits form below remains the trimming stage's native
 format; consumers of the skeleton can use either.
@@ -633,8 +665,9 @@ parameter dictionary is JSON
 ```
 <PLOT_UID>/
   plot_placement/
-    las/            raw / trimmed / terrain / understory / normalized clouds
-    textual/        scene JSON, manifest, plot info JSON, DTM crop
+    las/            raw / trimmed / terrain / understory clouds
+    textual/        scene JSON, manifest, plot info JSON, DTM crop,
+                    plot shrub index JSON (understory stage)
     rasters/        plot DTM GeoTIFF (EPSG:9707; anchored plots only)
     deep_learning/  stem_map / canopy_map feature+label rasters    (derived)
   individual_trees/<PLOT_UID>_<TREE_UID>/
@@ -644,6 +677,12 @@ parameter dictionary is JSON
   individual_shrubs/<PLOT_UID>_shrub_<SHRUB_UID>/
     textual/        shrub info JSONs         (understory stage)
 ```
+
+Per-shrub volume labels under `deep_learning/volume/labels/` were removed
+(2026-11 review, item W24; the per-shrub volume lives in the shrub info JSON
+and the plot shrub index). Per-tree and plot-level derived artifacts under
+`deep_learning/` (volume labels, stem/canopy map rasters) remain (owner
+decision, 2026-11 review round).
 
 ### 8.3 Point cloud dimensions — **[implemented]**
 
@@ -655,7 +694,7 @@ x, y, z plus:
 | shrub_id | int32 | 0 = not a shrub |
 | semantic_code | int8 | object identity, below |
 | classification | uint8 | LAS class by height above ground: 2 ground, 3 low (<=0.5 m), 4 medium (0.5-2 m), 5 high (>2 m), 7 noise |
-| branch_code | int8 | 0 not-tree; 1 trunk; 2+ = branch element code |
+| branch_code | int8 | 0 not a tree/branch point (BRANCH_ORDER -1 per notes.md); 1 trunk (order 0); 2+ = element order + 1 (order 1 = connected to trunk, 3 = connected to a 2, ...) |
 | branch_id | int32 | branch element identity within the plot (0 = unassigned) |
 | height_above_ground | float32 | z minus DTM at (x, y) |
 
@@ -706,23 +745,30 @@ plot is anchored (Section 10; the bottom of the tree is the elevation
 per notes.md), absent otherwise.
 
 Fields beyond the notes.md set are retained as extensions: `meta`
-(plot_uid / tree_uid, coordinate_system, units), `canopy` (per-plot
-total or per-tree convex-hull volume, crown major/minor axes for trees),
-`grass` (realized percent cover, plot info only), `shrubs`
-(primitive-volume analytic reference, plot info only), and per-tree /
-per-shrub `neighborhood` voxel-compaction records (extension volumes
-measured at FOLIAGE_VOXEL so all class proportions share one basis).
-The old tree_characteristics / vegetation_characteristics nestings are
-gone. Shrub info is unchanged (notes.md defines no per-shrub info
-schema): meta + shrub_characteristics + neighborhood.
+(plot_uid / tree_uid, coordinate_system, units), `canopy` (per-tree crown
+major/minor axes; the convex-hull volume extension was removed in the
+2026-11 review, item 10 — it was only ever populated when the optional
+canopy-map stage ran), `grass` (realized percent cover, plot info only),
+`shrubs` (primitive-volume analytic reference, plot info only), and
+per-tree / per-shrub `neighborhood` voxel-compaction records (extension
+volumes measured at FOLIAGE_VOXEL so all class proportions share one
+basis). The old tree_characteristics / vegetation_characteristics
+nestings are gone.
+
+Shrub info (notes.md defines no per-shrub info schema): meta
+(shrub_uid / plot_uid / coordinate_system / units / bounding_box),
+`shrub_characteristics` (center, max_width_m, height_of_max_width_m,
+height_m, volume_m3 {primitive, mesh}) and `neighborhood`. The
+2026-11 review (items 7/8) removed the ellipsoid `dbh_m` field and the
+`volume_m3.voxel` key (shrub volume is never voxel-based per the
+notes.md ruling); VOL_SHRUB is summed from the per-shrub info JSONs.
 
 Volume methods: trunk = frustum sum along skeleton centerlines with taper
 radii; branch = cylinder per branch (pi r^2 L); foliage = occupied-voxel
 volume at FOLIAGE_VOXEL; grass at GRASS_VOXEL; shrub = sampled-shape
 volume — the actual (jittered) primitive mesh that produced the shrub's
 points (per the notes.md ruling, never occupied-voxel; the nominal
-ellipsoid (4/3) pi (w/2)^2 (h/2) is the analytic reference); canopy =
-convex-hull volume of foliage (spec extension). FOLIAGE_VOXEL and
+ellipsoid (4/3) pi (w/2)^2 (h/2) is the analytic reference). FOLIAGE_VOXEL and
 GRASS_VOXEL are separate knobs (--foliage-voxel, --grass-voxel; both
 default 0.1 per notes.md) with a shared occupancy threshold
 (--voxel-threshold, default 1).
@@ -917,6 +963,13 @@ matches the design).
 | W18 | Parameter dictionary per notes.md | a0/a1 + taper naming; per-code DBH/HT applicability bounds (DBH_MIN/MAX, HT_MIN/MAX) replacing the proportional DBH_TOL/HT_TOL; confirm the SPLIT_NUM_LO/HI extension (Sections 7.3, 8.6) | closed |
 | W20 | Parameter editor: dictionary from a tree list | derive a parameter dictionary from a tree list (propose per-code parameters from the list's species/DBH/HT) so the editor's load path covers tree lists as well (Section 6.2) | open |
 | W19 | Rotation stepping + variable names | quantize placement rotation to steps of N (ROTATION_STEP, seeded); rename code variables to notes.md names: FOLIAGE_VOXEL, GRASS_VOXEL, DTM_RESOLUTION, CHM_RESOLUTION, STEM_RESOLUTION, STEM_SECTION (Sections 3.1, 9) | closed (FOLIAGE_VOXEL/GRASS_VOXEL split deferred to W16) |
+| W21 | Normalization retired (2026-11 review item 2) | deep learning is out of scope: the normalization step happens on the DL side. Remove normalize.py, the --normalize pipeline stage and every normalized path key (Sections 5, 8.2) | closed |
+| W22 | Branch-order split rule (2026-11 review items 4, 5) | -1 = a point on no branch (branch_code 0); at a split the daughter with the larger base radius keeps the parent order (ties: longer, then first-listed), the other is parent + 1; branches are parent + 1 — applied to both the element graph and the per-point codes (Section 7.4) | closed |
+| W23 | Shrubs inside the plot footprint (2026-11 review items 6, 7) | circular plots seeded shrubs over the bounding square, and the disc clip removed whole corner shrubs while their records persisted (0-point shrubs, null bb/neighborhood). Shrub cells are constrained to the plot disc; a shrub with no surviving points is dropped with a warning (Section 3.4) | closed |
+| W24 | Shrub volume label + shrub info cleanup (2026-11 review items 7, 8) | remove per-shrub deep_learning volume labels (volume lives in the shrub info JSON and the plot shrub index); drop dbh_m and the always-null volume_m3.voxel key; VOL_SHRUB is summed from the per-shrub info JSONs (Section 8.4) | closed |
+| W25 | Tree info convex hull + realized DBH (2026-11 review items 9, 10) | generation.json's realized record carries the taper-implied DBH; the per-tree canopy convex-hull volume extension (null unless the optional canopy-map stage ran) is removed (Sections 7.1, 8.4) | closed |
+| W26 | Tree skeleton viewer helper (2026-11 review item 11) | 3D GUI skeleton JSON viewer: radius/ID/angle toggles, branch-order colorization, zoom/rotate, render to png/jpeg (Section 6.5). Full implementation TBD | open |
+| W27 | Review-round housekeeping (2026-11 review items 1, 3) | pin utm in requirements.txt (notes.md comments say the pipeline uses the utm library); drop the redundant --basis stem (it is the default) from quickstart instructions | closed |
 
 Registry of resolved decisions (for provenance):
 
