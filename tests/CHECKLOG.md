@@ -194,3 +194,9 @@ Re-entries only when behavior changes. Long-form narrative lives in
   The normalized-artifact check was reinstated as a standing invariant
   (stronger than the deleted core-only one: any *_normalized* anywhere in the
   core-only or full run fails); suite exit 0 with both new checks PASS.
+2026-11-11 — Per-commit historical audit (doc-first round): diff review of all
+  10 commits vs messages — faithful, no strays. Worktree state runs: check.py +
+  placement suite pass at 2d7dfe8/f70da55/280fb6b; full run_all exit 0 at
+  f9a45a3. Known gap: commits 2-4 cannot run the cross suite (fixture.py still
+  passed normalize=True until f9a45a3 — TypeError). Demo commit deleted all
+  7 *_normalized.laz + 2 shrub volume JSONs; 0 *_normalized* tracked at HEAD.
