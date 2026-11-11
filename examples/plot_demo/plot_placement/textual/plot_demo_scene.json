@@ -219,44 +219,40 @@
   },
   "trees": {
     "001": {
-      "raw_las": "plot_demo/individual_trees/plot_demo_001/las/plot_demo_001_raw.laz",
-      "trimmed_las": "plot_demo/individual_trees/plot_demo_001/las/plot_demo_001_trimmed.laz",
       "stem_feature": "plot_demo/individual_trees/plot_demo_001/deep_learning/stem_map/features/plot_demo_001_stem_bounding_box_raw.tif",
       "stem_label": "plot_demo/individual_trees/plot_demo_001/deep_learning/stem_map/labels/plot_demo_001_stem_mask_raw.tif",
       "canopy_feature": "plot_demo/individual_trees/plot_demo_001/deep_learning/canopy_map/features/plot_demo_001_canopy_bounding_box_raw.tif",
       "canopy_label": "plot_demo/individual_trees/plot_demo_001/deep_learning/canopy_map/labels/plot_demo_001_canopy_mask_raw.tif",
       "canopy_bbox": "plot_demo/individual_trees/plot_demo_001/deep_learning/canopy_map/labels/plot_demo_001_canopy_bounding_box.json",
-      "canopy_hull": "plot_demo/individual_trees/plot_demo_001/deep_learning/canopy_map/labels/plot_demo_001_canopy_convex_hull.json"
+      "canopy_hull": "plot_demo/individual_trees/plot_demo_001/deep_learning/canopy_map/labels/plot_demo_001_canopy_convex_hull.json",
+      "understory_las": "plot_demo/individual_trees/plot_demo_001/las/plot_demo_001_understory.laz"
     },
     "002": {
-      "raw_las": "plot_demo/individual_trees/plot_demo_002/las/plot_demo_002_raw.laz",
-      "trimmed_las": "plot_demo/individual_trees/plot_demo_002/las/plot_demo_002_trimmed.laz",
       "stem_feature": "plot_demo/individual_trees/plot_demo_002/deep_learning/stem_map/features/plot_demo_002_stem_bounding_box_raw.tif",
       "stem_label": "plot_demo/individual_trees/plot_demo_002/deep_learning/stem_map/labels/plot_demo_002_stem_mask_raw.tif",
       "canopy_feature": "plot_demo/individual_trees/plot_demo_002/deep_learning/canopy_map/features/plot_demo_002_canopy_bounding_box_raw.tif",
       "canopy_label": "plot_demo/individual_trees/plot_demo_002/deep_learning/canopy_map/labels/plot_demo_002_canopy_mask_raw.tif",
       "canopy_bbox": "plot_demo/individual_trees/plot_demo_002/deep_learning/canopy_map/labels/plot_demo_002_canopy_bounding_box.json",
-      "canopy_hull": "plot_demo/individual_trees/plot_demo_002/deep_learning/canopy_map/labels/plot_demo_002_canopy_convex_hull.json"
+      "canopy_hull": "plot_demo/individual_trees/plot_demo_002/deep_learning/canopy_map/labels/plot_demo_002_canopy_convex_hull.json",
+      "understory_las": "plot_demo/individual_trees/plot_demo_002/las/plot_demo_002_understory.laz"
     },
     "003": {
-      "raw_las": "plot_demo/individual_trees/plot_demo_003/las/plot_demo_003_raw.laz",
-      "trimmed_las": "plot_demo/individual_trees/plot_demo_003/las/plot_demo_003_trimmed.laz",
       "stem_feature": "plot_demo/individual_trees/plot_demo_003/deep_learning/stem_map/features/plot_demo_003_stem_bounding_box_raw.tif",
       "stem_label": "plot_demo/individual_trees/plot_demo_003/deep_learning/stem_map/labels/plot_demo_003_stem_mask_raw.tif",
       "canopy_feature": "plot_demo/individual_trees/plot_demo_003/deep_learning/canopy_map/features/plot_demo_003_canopy_bounding_box_raw.tif",
       "canopy_label": "plot_demo/individual_trees/plot_demo_003/deep_learning/canopy_map/labels/plot_demo_003_canopy_mask_raw.tif",
       "canopy_bbox": "plot_demo/individual_trees/plot_demo_003/deep_learning/canopy_map/labels/plot_demo_003_canopy_bounding_box.json",
-      "canopy_hull": "plot_demo/individual_trees/plot_demo_003/deep_learning/canopy_map/labels/plot_demo_003_canopy_convex_hull.json"
+      "canopy_hull": "plot_demo/individual_trees/plot_demo_003/deep_learning/canopy_map/labels/plot_demo_003_canopy_convex_hull.json",
+      "understory_las": "plot_demo/individual_trees/plot_demo_003/las/plot_demo_003_understory.laz"
     },
     "004": {
-      "raw_las": "plot_demo/individual_trees/plot_demo_004/las/plot_demo_004_raw.laz",
-      "trimmed_las": "plot_demo/individual_trees/plot_demo_004/las/plot_demo_004_trimmed.laz",
       "stem_feature": "plot_demo/individual_trees/plot_demo_004/deep_learning/stem_map/features/plot_demo_004_stem_bounding_box_raw.tif",
       "stem_label": "plot_demo/individual_trees/plot_demo_004/deep_learning/stem_map/labels/plot_demo_004_stem_mask_raw.tif",
       "canopy_feature": "plot_demo/individual_trees/plot_demo_004/deep_learning/canopy_map/features/plot_demo_004_canopy_bounding_box_raw.tif",
       "canopy_label": "plot_demo/individual_trees/plot_demo_004/deep_learning/canopy_map/labels/plot_demo_004_canopy_mask_raw.tif",
       "canopy_bbox": "plot_demo/individual_trees/plot_demo_004/deep_learning/canopy_map/labels/plot_demo_004_canopy_bounding_box.json",
-      "canopy_hull": "plot_demo/individual_trees/plot_demo_004/deep_learning/canopy_map/labels/plot_demo_004_canopy_convex_hull.json"
+      "canopy_hull": "plot_demo/individual_trees/plot_demo_004/deep_learning/canopy_map/labels/plot_demo_004_canopy_convex_hull.json",
+      "understory_las": "plot_demo/individual_trees/plot_demo_004/las/plot_demo_004_understory.laz"
     }
   },
   "terrain": {
@@ -300,6 +296,14 @@
     "n_grass_points": 11666,
     "semantic_note": "shrubs -> semantic_code 4, grass -> 5, on top of the existing tree(1/2/3)/ground(6) codes; shrub_id >=1 on shrub points, 0 elsewhere",
     "plot_understory_las": "plot_demo/plot_placement/las/plot_demo_understory.laz"
+  },
+  "shrubs": {
+    "001": {
+      "understory_las": "plot_demo/individual_shrubs/plot_demo_shrub_001/las/plot_demo_shrub_001_understory.laz"
+    },
+    "002": {
+      "understory_las": "plot_demo/individual_shrubs/plot_demo_shrub_002/las/plot_demo_shrub_002_understory.laz"
+    }
   },
   "normalization": {
     "steps": {
