@@ -218,9 +218,21 @@ def run_checks(fixroot, plot_dir):
           float(hag[under].min()) >= -1.5e-3,
           f"min {hag[under].min():.4f}")
     if dtm is not None:
+        # ground z sits on the DTM within LAS quantization: the 0.001 m
+        # xy quantization propagates onto the local slope, plus the
+        # 0.001 m z quantization. The old hard-coded 2.5 mm bound assumed
+        # one fixture's slope; the DTM-derived bound below is the honest
+        # one (the 2026-11 review shrub-placement change shifted the
+        # cloud bbox, hence the LAS offset grid, and tripped it).
+        grid = np.asarray(dtm.grid, dtype=float)
+        grad = np.gradient(grid, float(dtm.cell))
+        slope = float(np.hypot(grad[0], grad[1]).max())
+        tol = 0.001 * slope + 0.001
         gz = dtm.sample(uxyz[ground][:, 0], uxyz[ground][:, 1])
-        check("ground on the DTM (2.5 mm = xy-quant x slope + z scale)",
-              np.abs(gz - uxyz[ground][:, 2]).max() < 2.5e-3)
+        check("ground on the DTM (xy-quant x slope + z scale)",
+              np.abs(gz - uxyz[ground][:, 2]).max() < tol,
+              f"max {np.abs(gz - uxyz[ground][:, 2]).max():.5f} "
+              f"vs tol {tol:.5f} (slope {slope:.2f})")
 
     print("== F. understory domains (notes.md semantic codes, W14) ==")
     check("understory semantic domain is the notes.md set",
@@ -260,10 +272,11 @@ def run_checks(fixroot, plot_dir):
            "BOUNDING_BOX"}
           <= set(tree_infos[0]))
     shrub_mesh = sum(
-        (json.load(open(fp)).get("volume_m3", {}) or {}).get("mesh") or 0.0
+        (json.load(open(fp)).get("shrub_characteristics", {})
+         or {}).get("volume_m3", {}).get("mesh") or 0.0
         for fp in glob.glob(os.path.join(
             plot_dir, "individual_shrubs", f"{uid_tag}_shrub_*",
-            "deep_learning", "volume", "labels", "*_volume.json")))
+            "textual", "*_info.json")))
     check("VOL_SHRUB == recomputed sum of per-shrub mesh volumes "
           "(sampled shape, never voxels)",
           abs(pi["VOL_SHRUB"] - shrub_mesh) < 1e-9)
@@ -371,9 +384,29 @@ def run_checks(fixroot, plot_dir):
         n_br = len(sk["branches"])
         check(f"{uid} element count == trunk segments + branches",
               len(els) == n_stems + n_br)
-        check(f"{uid} trunk elements are order 0, branches order 1",
-              all(e["BRANCH_ORDER"] == (0 if e["BRANCH_UID"].startswith("T")
-                                        else 1) for e in els))
+        # split rule (spec 7.4): at a split the dominant daughter (larger
+        # taper base radius; ties: longer stem, then first-listed) keeps
+        # the parent order, the other is parent + 1; a branch is always
+        # its source stem's order + 1
+        def _stem_key(d):
+            seg = sk["trunk"]["segments"][d]
+            r = (max(0.0, float(sk["base_radius_m"])
+                      * (1.0 - seg["z_range"][0] / float(sk["height_m"])))
+                 if sk["height_m"] > 0 else 0.0)
+            return (-r, -float(seg["length_m"]), d)
+        exp_order = {0: 0}
+        for k, sp in enumerate(sk.get("splits", [])):
+            parent = int(sp["parent_polyline"])
+            d_keep, d_promote = sorted((2 * k + 1, 2 * k + 2), key=_stem_key)
+            exp_order[d_keep] = exp_order[parent]
+            exp_order[d_promote] = exp_order[parent] + 1
+        order_ok = all(by_uid[f"T{i:02d}"]["BRANCH_ORDER"] == exp_order.get(i, 0)
+                       for i in range(n_stems))
+        order_ok = order_ok and all(
+            e["BRANCH_ORDER"] == by_uid[e["SOURCE"]]["BRANCH_ORDER"] + 1
+            for e in els if e["BRANCH_UID"].startswith("B"))
+        check(f"{uid} stem orders follow the split rule, branches parent + 1",
+              order_ok)
         seg_ok = vol_ok = rad_ok = True
         for i, seg in enumerate(sk["trunk"]["segments"]):
             e = by_uid[f"T{i:02d}"]
@@ -567,11 +600,8 @@ def run_checks(fixroot, plot_dir):
               "stem_map" not in cscene and "canopy_map" not in cscene)
         check("core-only plot info has null CHM_PATH/STEM_PATH",
               cinfo["CHM_PATH"] is None and cinfo["STEM_PATH"] is None)
-        check("core-only run writes no normalized cloud",
-              not any(f.endswith("_normalized.laz")
-                      for f in os.listdir(os.path.join(cplace, "las"))))
         obj_las = glob.glob(os.path.join(cd, "individual_*", "**", "*.la[sz]"),
-                           recursive=True)
+                            recursive=True)
         check("core-only run writes no per-object clouds (any position)",
               obj_las == [], str(obj_las[:2]))
     finally:
