@@ -542,8 +542,36 @@ def run_checks(fixroot, plot_dir):
             check("lat 95 raises (limits of agreement)", False)
         except ValueError:
             check("lat 95 raises (limits of agreement)", True)
+
     finally:
         geo_cleanup()
+
+    # ---- core-only run (item W6): derived stages stay off by default ----
+    corewd, core_cleanup = fixture.workdir(tag="inv_core")
+    cd = fixture.build_core_fixture(corewd)
+    try:
+        cuid = fixture.PLOT_UID
+        cplace = os.path.join(cd, "plot_placement")
+        cscene = json.load(open(os.path.join(cplace, "textual",
+                                             f"{cuid}_scene.json")))
+        cinfo = json.load(open(os.path.join(cplace, "textual",
+                                            f"{cuid}_info.json")))
+        check("core-only run writes no deep_learning rasters",
+              not os.path.exists(os.path.join(cplace, "deep_learning")))
+        check("core-only scene links no map artifacts",
+              not any(("stem" in k or "canopy" in k)
+                      for k in cscene.get("plot_files", {})),
+              str([k for k in cscene.get("plot_files", {})
+                    if "stem" in k or "canopy" in k]))
+        check("core-only scene carries no map provenance blocks",
+              "stem_map" not in cscene and "canopy_map" not in cscene)
+        check("core-only plot info has null CHM_PATH/STEM_PATH",
+              cinfo["CHM_PATH"] is None and cinfo["STEM_PATH"] is None)
+        check("core-only run writes no normalized cloud",
+              not any(f.endswith("_normalized.laz")
+                      for f in os.listdir(os.path.join(cplace, "las"))))
+    finally:
+        core_cleanup()
 
 
 if __name__ == "__main__":

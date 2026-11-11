@@ -227,7 +227,7 @@ Each is a separate stage over the core outputs, never part of the core run.
   cloud using `tree_id` and the per-tree JSONs. The core outputs alone are
   sufficient for anyone to do this themselves. **[partial]**: today per-tree
   sub-clouds are instead written directly by every core run (item W6).
-- **Stem map** **[implemented as an always-on stage]** — a 2-band raster of
+- **Stem map** **[implemented as an opt-in stage (`--stem-map`)]** — a 2-band raster of
   the breast-height slab (DBH_HT +/- STEM_SECTION, cell STEM_RESOLUTION),
   both bands covering the whole plot: band 1 (uint16) counts all points
   in the slab; band 2 (uint16, 0/1) is a binary mask, 1 where a *tree*
@@ -236,15 +236,15 @@ Each is a separate stage over the core outputs, never part of the core run.
   Per-tree stem bounding boxes (JSON) accompany it. Per-tree instance
   masks (integer `tree_id` labels, skeleton-derived) remain separate
   per-tree rasters.
-- **Canopy map (CHM)** **[implemented as an always-on stage]** — a 2-band
+- **Canopy map (CHM)** **[implemented as an opt-in stage (`--canopy-map`)]** — a 2-band
   raster at CHM_RESOLUTION: band 1 (float32) is the max height above
   ground per cell over vegetation points (semantic codes 1, 2, 3, 8; grass
   code 9 is ground cover and contributes nothing to a canopy height map),
   0 where a cell holds no vegetation; band 2 (float32, 0/1) is 1 where a
   foliage point (code 3) lies in the cell. Plus per-tree crown bounding
   boxes and convex hulls.
-- **Normalization** **[partial]** — subsample / rescale / voxelize clouds for
-  DL consumption.
+- **Normalization** **[implemented as an opt-in stage (`--normalize`)]** —
+  subsample / rescale / voxelize clouds for DL consumption.
 - **HELIOS++ scan simulation** — **[planned]**. Re-simulate acquisition with
   HELIOS++: input a voxelized point cloud or the polygon meshes of
   Section 5 item below, plus scanner parameters; output a .laz with

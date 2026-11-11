@@ -19,7 +19,7 @@ normalized clouds. The full canonical layout is present; see
 
 ```
 python run_pipeline.py examples --radius 15 --seed 42 --points-per-metre 256 \
-    --generate-dtm --understory
+    --generate-dtm --understory --stem-map --canopy-map --normalize
 ```
 
 Pipeline outputs you generate elsewhere (e.g. a `plots/` run directory) are

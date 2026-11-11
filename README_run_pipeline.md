@@ -1,11 +1,13 @@
 # Pipeline orchestrator (`run_pipeline.py`)
 
 Runs the PlausibiliTree pipeline over a directory of already-generated
-per-plot SST tables: generate_trees, assemble_plot, stem_map, canopy_map,
-restructure, (optional) terrain, (optional) understory (grass + shrubs),
-build_info, then normalize — for every plot, all with the same parameters.
-The FIA helper (`fia_helper.py`) is a separate, standalone step that must be
-run first to produce those tables; see README_fia_helper.md.
+per-plot SST tables: generate_trees, assemble_plot, restructure,
+(always) terrain, (optional) understory (grass + shrubs), then build_info —
+for every plot, all with the same parameters. The derived stages — stem
+map, canopy map and normalize — are OPT-IN (spec Section 5): they run only
+when `--stem-map`, `--canopy-map` and/or `--normalize` are given. The FIA
+helper (`fia_helper.py`) is a separate, standalone step that must be run
+first to produce those tables; see README_fia_helper.md.
 
 ```
 python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
@@ -13,10 +15,10 @@ python fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
 python run_pipeline.py plots \
     --radius 15 --seed 42 \
     --points-per-metre 4096 --max-attempts 10 \
-    --stem-resolution 0.1 --stem-section 0.25 \
-    --chm-resolution 0.1 \
+    --stem-map --stem-resolution 0.1 --stem-section 0.25 \
+    --canopy-map --chm-resolution 0.1 \
     --generate-dtm --understory \
-    --max-density 5000 --spatial --density cube --plot-l 30 --tree-l 30
+    --normalize --max-density 5000 --spatial --density cube --plot-l 30 --tree-l 30
 ```
 
 This reproduces the documented hand-run sequence:
@@ -27,17 +29,22 @@ fia_helper.py CA_TREE_SMALL.csv -o plots -r 15 --basis stem --seed 42
     generate_trees.py  --seed 42 --points-per-metre 4096 --max-attempts 10
     assemble_plot.py   --seed 42 --plot-radius 15
     stem_map.py        --stem-resolution 0.1 --stem-section 0.25
+                       (opt-in: --stem-map)
     canopy_map.py      --chm-resolution 0.1 --source trimmed
+                       (opt-in: --canopy-map)
     restructure.py
     terrain.py          --generate-dtm ...       (optional; --dtm or --generate-dtm)
     understory.py        ...                     (optional; requires terrain, --understory)
     build_info.py        ...                     (always; plot + per-tree info JSONs)
     normalize.py       --max-density 5000 --spatial --density cube --plot-l 30 --tree-l 30
+                       (opt-in: --normalize)
 ```
 
-Every default matches the first example (terrain/understory off by default), so
-the flags above are only needed to change them; `python run_pipeline.py plots`
-alone runs it once `plots/` has been populated by `fia_helper.py`.
+Every default matches the first example (terrain/understory and the derived
+stages off by default), so the flags above are only needed to change them;
+`python run_pipeline.py plots` alone runs the CORE pipeline (plot clouds +
+JSONs, no maps, no normalized clouds) once `plots/` has been populated by
+`fia_helper.py`.
 
 ## How it works
 

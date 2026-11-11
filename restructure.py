@@ -298,9 +298,12 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
           layout.plot_path(plot_dir, plot_uid, "manifest"))
     _move(raw_las, layout.plot_path(plot_dir, plot_uid, "raw_las"))
     _move(trimmed_las, layout.plot_path(plot_dir, plot_uid, "trimmed_las"))
-    _move(stem_feat_flat, layout.plot_path(plot_dir, plot_uid, "stem_feature_raw"))
-    _move(canopy_feat_flat,
-          layout.plot_path(plot_dir, plot_uid, "canopy_feature_raw"))
+    if os.path.exists(stem_feat_flat):
+        _move(stem_feat_flat,
+              layout.plot_path(plot_dir, plot_uid, "stem_feature_raw"))
+    if os.path.exists(canopy_feat_flat):
+        _move(canopy_feat_flat,
+              layout.plot_path(plot_dir, plot_uid, "canopy_feature_raw"))
 
     # ---- plot-level canopy total ------------------------------------------
     canopy_total = round(sum(vols.values()), 4)
@@ -361,11 +364,17 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
         # (no "volume" entry: the plot-level volume JSON is retired,
         # superseded by build_info's per-tree _info.json; a link here
         # would dangle, violating the scene's every-link-resolves role)
-        "stem_map_feature": layout.plot_rel(plot_dir, plot_uid, "stem_feature_raw"),
-        "stem_map_label": layout.plot_rel(plot_dir, plot_uid, "stem_label_raw"),
-        "canopy_map_feature": layout.plot_rel(plot_dir, plot_uid, "canopy_feature_raw"),
-        "canopy_map_label": layout.plot_rel(plot_dir, plot_uid, "canopy_label_raw"),
     }
+    # the map links exist only when their derived stage ran (item W6:
+    # stem/canopy maps are opt-in); every link must resolve, so absent
+    # artifacts stay out of the scene
+    for name, key in (("stem_map_feature", "stem_feature_raw"),
+                      ("stem_map_label", "stem_label_raw"),
+                      ("canopy_map_feature", "canopy_feature_raw"),
+                      ("canopy_map_label", "canopy_label_raw")):
+        if os.path.exists(layout.plot_path(plot_dir, plot_uid, key,
+                                            create=False)):
+            scene["plot_files"][name] = layout.plot_rel(plot_dir, plot_uid, key)
     # the stage records above point at the FLAT-layout clouds as they were
     # when the stage ran; restructure has just MOVED those files, so rewrite
     # the provenance to the canonical paths (same files, new location)

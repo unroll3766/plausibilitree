@@ -79,9 +79,24 @@ def build_full_fixture(outdir: str, ppm: int = 64, seed: int = SEED) -> str:
     from run_pipeline import run_pipeline
     rc = run_pipeline(outdir, radius=RADIUS_M, seed=seed,
                      points_per_metre=ppm, limit=1,
-                     generate_dtm=True, understory=True)
+                     generate_dtm=True, understory=True,
+                     stem_map=True, canopy_map=True, normalize=True)
     if rc not in (0, None):
         raise RuntimeError(f"fixture pipeline failed with exit code {rc}")
+    return os.path.join(outdir, PLOT_UID)
+
+
+def build_core_fixture(outdir: str, ppm: int = 16,
+                       seed: int = SEED) -> str:
+    """Core-only pipeline (no derived stages, item W6): the tree list is
+    generated, assembled, restructured, terrain-draped and info-built, with
+    NO stem/canopy maps and NO normalization. Returns the plot dir."""
+    from run_pipeline import run_pipeline
+    build_tree_list(outdir, n_trees=2)
+    rc = run_pipeline(outdir, radius=RADIUS_M, seed=seed,
+                      points_per_metre=ppm, limit=1)
+    if rc not in (0, None):
+        raise RuntimeError(f"core fixture pipeline failed with exit code {rc}")
     return os.path.join(outdir, PLOT_UID)
 
 
@@ -106,6 +121,7 @@ def build_geo_fixture(outdir: str, ppm: int = 32, seed: int = 7) -> str:
     # shrub_cover/width raised so the shrub raster exports reliably engage
     rc = run_pipeline(outdir, radius=12.0, seed=seed, points_per_metre=ppm,
                       limit=1, generate_dtm=True, understory=True,
+                      stem_map=True, canopy_map=True, normalize=True,
                       shrub_cover=0.9, shrub_width_min=0.8,
                       shrub_width_max=1.6)
     if rc not in (0, None):

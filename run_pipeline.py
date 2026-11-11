@@ -6,10 +6,12 @@ fia_helper.py is now a separate, standalone step -- run it first to turn a raw
 FIA TREE table into <plotdir>/ tree lists. This orchestrator only consumes
 those tables and runs the processing stages, in order, for every one:
 
-    generate_trees -> assemble_plot -> stem_map -> canopy_map
-                    -> restructure -> terrain (always; flat plane when no
-                      DTM is configured) -> understory (opt.)
-                    -> build_info -> normalize (dataset-wide)
+    generate_trees -> assemble_plot -> restructure -> terrain
+                    (always; flat plane when no DTM is configured)
+                    -> understory (opt.) -> build_info
+    derived, opt-in (spec Section 5): stem_map (--stem-map),
+                    canopy_map (--canopy-map), normalize (--normalize,
+                    dataset-wide over the restructured plots)
 
 Terrain always runs per spec Section 3.3: a --dtm file or --generate-dtm
 selects the relief, and neither means the None topography (a flat plane at
@@ -26,9 +28,10 @@ Example (mirrors the documented per-stage commands):
     python run_pipeline.py plots \\
         --radius 7.315 --seed 42 \\
         --points-per-metre 4096 --max-attempts 10 \\
-        --stem-resolution 0.05 --stem-section 0.25 \\
-        --chm-resolution 0.05 \\
-        --max-density 5000 --spatial --density cube --plot-l 30 --tree-l 30
+        --stem-map --stem-resolution 0.05 --stem-section 0.25 \\
+        --canopy-map --chm-resolution 0.05 \\
+        --max-density 5000 --spatial --density cube --plot-l 30 \\
+        --tree-l 30 --normalize
 
 Parameters not given fall back to the defaults below, which match that example.
 By default a failing plot is logged and skipped so the batch continues; use
@@ -139,6 +142,7 @@ def run_pipeline(plotdir, *,
                  max_density=5000, spatial=True, density="none",
                  plot_l=30, plot_z=None, tree_l=30, tree_z=None,
                  norm_source="understory",
+                 stem_map=False, canopy_map=False, normalize=False,
                  stop_on_error=False, dry_run=False):
     t0 = time.time()
     if density == "none":          # accept the CLI-style sentinel programmatically
@@ -200,12 +204,17 @@ def run_pipeline(plotdir, *,
         "--branch-radius-frac", branch_radius_frac, "--tolerance", tolerance,
         "--rotation-step", rotation_step,
         *_assemble_shape]))
-    stages.append(("stem_map.py", lambda c: [
-        c, "--stem-resolution", stem_resolution, "--stem-section", stem_section,
-        "--bbox-padding", bbox_padding]))
-    stages.append(("canopy_map.py", lambda c: [
-        c, "--chm-resolution", chm_resolution, "--buffer", canopy_buffer,
-        "--source", canopy_source]))
+    # derived stages are opt-in (spec Section 5, item W6): stem/canopy
+    # maps run only when requested; restructure tolerates their absence
+    if stem_map:
+        stages.append(("stem_map.py", lambda c: [
+            c, "--stem-resolution", stem_resolution,
+            "--stem-section", stem_section,
+            "--bbox-padding", bbox_padding]))
+    if canopy_map:
+        stages.append(("canopy_map.py", lambda c: [
+            c, "--chm-resolution", chm_resolution, "--buffer", canopy_buffer,
+            "--source", canopy_source]))
     stages.append(("restructure.py", lambda c: [c]))
 
     # terrain is optional and runs after restructure, before normalize.
@@ -303,7 +312,8 @@ def run_pipeline(plotdir, *,
         print()
 
     # ---- normalize: one call over every restructured plot -----------------
-    if restructured:
+    # (opt-in derived stage, spec Section 5, item W6)
+    if normalize and restructured:
         norm = ["--max-density", max_density] if max_density is not None else []
         if spatial:
             norm.append("--spatial")
@@ -425,6 +435,16 @@ def main():
                     help="cloud normalize reads; default resolves to the "
                          "furthest-processed present (understory->terrain->"
                          "trimmed->raw)")
+    # opt-in derived stages (spec Section 5, item W6)
+    ap.add_argument("--stem-map", action="store_true",
+                    help="run the stem map derived stage (2-band breast-"
+                         "height raster + bounding boxes)")
+    ap.add_argument("--canopy-map", action="store_true",
+                    help="run the canopy map derived stage (2-band CHM + "
+                         "crown bboxes/hulls)")
+    ap.add_argument("--normalize", action="store_true",
+                    help="run the normalization derived stage over the "
+                         "restructured plots")
     # control
     ap.add_argument("--stop-on-error", action="store_true",
                     help="abort the batch on the first stage failure")
@@ -470,6 +490,8 @@ def main():
         max_density=args.max_density, spatial=args.spatial, density=density,
         plot_l=args.plot_l, plot_z=args.plot_z, tree_l=args.tree_l,
         tree_z=args.tree_z, norm_source=args.norm_source,
+        stem_map=args.stem_map, canopy_map=args.canopy_map,
+        normalize=args.normalize,
         stop_on_error=args.stop_on_error, dry_run=args.dry_run)
     sys.exit(rc)
 
