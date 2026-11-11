@@ -1394,3 +1394,60 @@ record per se.
   2.044 == 2.044); placement clouds carry only codes 1/2/3, so the CHM
   vegetation filter is inert on that path. run_all.py exit 0 after the
   fixes.
+
+## 2026-11-11 — 2026-11 review round (normalization retirement, branch-order
+split rule, shrub placement/records, JSON clean-ups, housekeeping)
+
+Owner review of notes.md (items 1-11) reconciled into the spec as W21-W27;
+code brought in line and verified.
+
+- Item 6 diagnosis (0-point shrubs): reproduced with the real gen_shrub_layer
+  + understory disc clip on an r=15 m circular plot at cover 1.0 — 37 of 225
+  bounding-square corner shrubs lost every point to the clip while their
+  records persisted (shrub_geom is keyed by placement, not surviving points).
+  Root cause fixed by constraining candidate shrub cells to the plot disc
+  (the same repro then yields 0 zero-point shrubs); an explicit guard in
+  build_understory drops any shrub that still ends with no points, with a
+  stderr warning, and the scene's n_shrubs counts recorded shrubs.
+- Item 5 fix: at a split the daughter with the larger base radius keeps the
+  parent order (ties: longer stem, then first-listed); the other is parent
+  order + 1; a branch is its source stem's order + 1. Implemented once per
+  producer: sst_generator.element_graph (skeleton JSON elements) and
+  TreeSkeleton.order (per-point branch_code / semantic refinement / trimmed
+  skeleton fields) share the rule. Demo hardwoods now show orders 0..3.
+  The SST global taper gives both daughters the same base radius (they start
+  at the split height), so stem length decides in practice today.
+  Per the updated notes.md table, -1 marks a point on no branch
+  (branch_code 0); documented in spec 7.4/8.3 and the scene encoding.
+- Items 2/8 (DL out of scope, owner decision "only named items"):
+  normalize.py + --normalize + all normalized path keys retired; the
+  per-shrub deep_learning volume labels removed — each shrub's volume and
+  geometry now ride in the plot shrub index and the shrub info JSON;
+  VOL_SHRUB sums the per-shrub info JSONs
+  (notes.md: "from individual shrub .JSON files" — build_shrub_info now runs
+  before build_plot_info). Per-tree/plot deep_learning artifacts stay.
+- Items 7/9/10: shrub info loses dbh_m and the always-null volume_m3.voxel
+  key (never voxel-based per the notes.md ruling); generation.json realised
+  carries dbh_m (taper-implied, consistent with TREE_DBH); the per-tree
+  canopy convex-hull volume extension (null unless the canopy-map stage
+  ran) is gone from tree info and the plot-info aggregation.
+- Items 1/3: utm pinned in requirements.txt; --basis stem dropped from the
+  quickstarts (it is fia_helper's default).
+- Item 11: skeleton viewer helper noted in spec Section 6.5, register W26
+  (open; full implementation TBD).
+- One invariant bound was recalibrated honestly: "ground on the DTM"
+  previously hard-coded 2.5 mm, which implicitly assumed one fixture's LAS
+  offset grid; the shrub-placement change moved the cloud bbox and tripped
+  it (observed max error 2.92 mm vs 1.94 mm before, identical DTM). The
+  bound is now derived from the DTM's own maximum slope:
+  scale*slope + scale = 4.6 mm for the fixture. Underlying invariant
+  unchanged.
+
+Checks run: check.py (29 modules, no undefined names) after every edit;
+tests/run_all.py exit 0 (placement_reflection + cross_artifact_invariants,
+including W5 geo fixtures); committed demo regenerated with
+run_pipeline.py examples --radius 15 --seed 42 --points-per-metre 256
+--generate-dtm --understory --stem-map --canopy-map --extract-trees (exit
+code 0, 6 extracted crops, 4 tree + 2 shrub info JSONs) and a contract
+script over the regenerated demo (all items verified on-disk). Item-6
+mechanism confirmed by the synthetic repro before/after the fix.

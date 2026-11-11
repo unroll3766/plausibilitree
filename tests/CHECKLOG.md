@@ -166,3 +166,24 @@ Re-entries only when behavior changes. Long-form narrative lives in
   no-per-object-clouds check to every individual_*/**/*.la[sz]; spec's "extraction
   is the only writer" claim corrected (normalize writes per-object _normalized
   variants of extracted crops); run_all exit 0.
+
+2026-11-11 — Review round (W21): normalize.py retired with --normalize and every
+  normalized path key; check.py parses all 29 modules, run_all.py exit 0 with no
+  normalized artifacts in fixtures.
+2026-11-11 — Review round (W22): fork-order split rule (dominant daughter by
+  taper radius, ties by stem length, keeps parent order; branches parent + 1)
+  in both element graphs and per-point branch_code; demo hardwoods now show
+  orders 0..3; run_all.py exit 0.
+2026-11-11 — Review round (W23): shrub zero-point diagnosis confirmed by
+  synthetic repro (37/225 bounding-square corner shrubs lost every point to the
+  circular-plot disc clip while records persisted); after footprint-constrained
+  cell placement the same repro yields 0 zero-point shrubs.
+2026-11-11 — Review round (W24/25): demo contracts verified by script — realised
+  dBs present in generation JSONs, no dbh_m / voxel key in shrub info, no
+  per-shrub volume JSON, no convex_hull in tree info, VOL_SHRUB == sum of
+  per-shrub info mesh volumes, no normalized artifacts (demo regen, examples,
+  exit 0).
+2026-11-11 — Review round: ground-on-DTM invariant bound now derived from the
+  DTM's own max slope (scale*slope + scale = 4.6 mm for the fixture) instead of
+  the fixture-specific 2.5 mm; the shrub-placement change shifted the cloud
+  bbox (LAS offset grid) and tripped the old bound (full suite exit 0 after).
