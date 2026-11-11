@@ -96,6 +96,8 @@ adds facts specific to this repository.
   - `conda run -n ssf python tests/run_all.py` — everything (~60 s)
   - `conda run -n ssf python tests/test_placement_reflection.py` — fast (~25 s)
   - `conda run -n ssf python tests/test_cross_artifact_invariants.py` — full fixture (~40 s)
+  - `conda run -n ssf python tests/test_review_round_regression.py` —
+    W21-W27 probes, fixture-free + committed-demo contract (~10 s)
 
 ## Conventions
 - Units: local coordinates and all local sizes in metres; geospatial

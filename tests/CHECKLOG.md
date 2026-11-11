@@ -210,3 +210,10 @@ Re-entries only when behavior changes. Long-form narrative lives in
   axes only, no dbh_m/voxel, DTM_PATH optional present). Doc gaps found and
   fixed: --extract-source/--extract-surroundings were undocumented (W6-era);
   the W23 shrub footprint placement was undocumented in README_understory.
+2026-11-11 — Promoted the review-round probes into a standing third suite
+  (tests/test_review_round_regression.py, in run_all.py): shrub footprint/zero-
+  point invariants (W23), synthetic fork-order battery incl. radius-first
+  dominance, ties and subordinate cascades (W22), and the committed-demo
+  contract (links, retired artifacts, item 9/10/7 schemas). 21 checks,
+  ~10 s, exit 0; mutation-tested (inverted dominance -> 5 FAIL, disabled disc
+  filter -> 3 FAIL, both reverted); run_all.py exit 0 with three suites.

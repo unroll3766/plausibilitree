@@ -9,11 +9,13 @@ import sys
 
 import test_cross_artifact_invariants
 import test_placement_reflection
+import test_review_round_regression
 
 
 SUITES = [
     ("placement & frame", test_placement_reflection.main),
     ("cross-artifact invariants", test_cross_artifact_invariants.main),
+    ("review-round regressions (W21-W27)", test_review_round_regression.main),
 ]
 
 
