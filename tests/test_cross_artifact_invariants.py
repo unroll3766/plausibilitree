@@ -604,6 +604,13 @@ def run_checks(fixroot, plot_dir):
                             recursive=True)
         check("core-only run writes no per-object clouds (any position)",
               obj_las == [], str(obj_las[:2]))
+        # normalization is retired (2026-11 review, W21): no run may leave a
+        # single *_normalized* artifact anywhere (clouds, rasters, links)
+        for label, root in (("core-only", cd), ("full", plot_dir)):
+            norm_any = glob.glob(os.path.join(root, "**", "*_normalized*"),
+                                 recursive=True)
+            check(f"retired normalization leaves no artifact behind ({label})",
+                  norm_any == [], str(norm_any[:2]))
     finally:
         core_cleanup()
 

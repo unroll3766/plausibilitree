@@ -179,7 +179,7 @@ Re-entries only when behavior changes. Long-form narrative lives in
   circular-plot disc clip while records persisted); after footprint-constrained
   cell placement the same repro yields 0 zero-point shrubs.
 2026-11-11 — Review round (W24/25): demo contracts verified by script — realised
-  dBs present in generation JSONs, no dbh_m / voxel key in shrub info, no
+  dbh_m present in generation JSONs, no dbh_m / voxel key in shrub info, no
   per-shrub volume JSON, no convex_hull in tree info, VOL_SHRUB == sum of
   per-shrub info mesh volumes, no normalized artifacts (demo regen, examples,
   exit 0).
@@ -187,3 +187,10 @@ Re-entries only when behavior changes. Long-form narrative lives in
   DTM's own max slope (scale*slope + scale = 4.6 mm for the fixture) instead of
   the fixture-specific 2.5 mm; the shrub-placement change shifted the cloud
   bbox (LAS offset grid) and tripped the old bound (full suite exit 0 after).
+2026-11-11 — Review-round audit: the two claims not yet probed directly now hold —
+  kept full-pipeline fixture contains 0 *_normalized* artifacts (find,
+  suite --keep); demo regen in a fresh dir is byte-identical to the committed
+  examples/plot_demo except the four generated_utc timestamps (diff -rq).
+  The normalized-artifact check was reinstated as a standing invariant
+  (stronger than the deleted core-only one: any *_normalized* anywhere in the
+  core-only or full run fails); suite exit 0 with both new checks PASS.
