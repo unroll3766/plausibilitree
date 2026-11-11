@@ -23,7 +23,6 @@
     "units": "meters"
   },
   "canopy": {
-    "convex_hull_volume_m3": 446.081733,
     "major_axis": {
       "length_m": 8.458960042463849,
       "orientation_deg": 19.495265634096675

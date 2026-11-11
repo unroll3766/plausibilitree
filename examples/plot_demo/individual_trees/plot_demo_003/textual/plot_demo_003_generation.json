@@ -19,6 +19,7 @@
   "realised": {
     "height_m": 19.199750998564085,
     "base_radius_m": 0.2216649472062257,
+    "dbh_m": 0.4116960489844309,
     "fork": 1,
     "n_points": 2560,
     "n_stem_points": 731,
@@ -102,5 +103,5 @@
     "SPR_HI": 0.3,
     "FUNC_GROUP": "DF"
   },
-  "generated_utc": "2026-11-11T00:42:18+00:00"
+  "generated_utc": "2026-11-11T20:09:21+00:00"
 }

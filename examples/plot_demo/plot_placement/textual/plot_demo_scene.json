@@ -51,7 +51,7 @@
       "trunk.segments.branch_order",
       "branches.branch_order"
     ],
-    "definition": "0 = main stem; a fork or a branch is parent order + 1 (fork = 1, branch on trunk = 1, branch on fork = 2)",
+    "definition": "order (spec Section 7.4): 0 = main stem; at a split the daughter with the larger base radius keeps the parent order (ties: longer, then first-listed) and the other is parent + 1; a branch is parent order + 1",
     "note": "current simulator produces orders 0, 1 and 2",
     "unassigned_value": 0
   },
@@ -294,7 +294,7 @@
     "n_shrubs": 2,
     "n_shrub_points": 600,
     "n_grass_points": 11666,
-    "semantic_note": "shrubs -> semantic_code 4, grass -> 5, on top of the existing tree(1/2/3)/ground(6) codes; shrub_id >=1 on shrub points, 0 elsewhere",
+    "semantic_note": "shrubs -> semantic_code 8, grass -> 9, on top of the existing tree(1/2/3)/ground(0) codes; shrub_id >=1 on shrub points, 0 elsewhere",
     "plot_understory_las": "plot_demo/plot_placement/las/plot_demo_understory.laz"
   },
   "shrubs": {
@@ -304,37 +304,5 @@
     "002": {
       "understory_las": "plot_demo/individual_shrubs/plot_demo_shrub_002/las/plot_demo_shrub_002_understory.laz"
     }
-  },
-  "normalization": {
-    "steps": {
-      "max_density": 5000,
-      "spatial": true,
-      "density": null
-    },
-    "source": "understory",
-    "categorical": "semantic_code",
-    "run_categories": [
-      0,
-      1,
-      2,
-      3,
-      8,
-      9
-    ],
-    "plot": {
-      "L": null,
-      "Z": null
-    },
-    "tree": {
-      "L": null,
-      "Z": null
-    },
-    "columns": [
-      "x",
-      "y",
-      "z",
-      "semantic",
-      "tree_id"
-    ]
   }
 }

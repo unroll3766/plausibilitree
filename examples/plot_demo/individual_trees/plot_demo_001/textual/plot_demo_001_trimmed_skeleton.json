@@ -138,7 +138,7 @@
           "plot_demo_t1_e36",
           "plot_demo_t1_e37"
         ],
-        "branch_order": 1
+        "branch_order": 0
       },
       {
         "z_range": [
@@ -238,7 +238,7 @@
           "plot_demo_t1_e74",
           "plot_demo_t1_e75"
         ],
-        "branch_order": 2
+        "branch_order": 1
       },
       {
         "z_range": [
@@ -288,7 +288,7 @@
           "plot_demo_t1_e93",
           "plot_demo_t1_e94"
         ],
-        "branch_order": 2
+        "branch_order": 0
       },
       {
         "z_range": [
@@ -338,7 +338,7 @@
           "plot_demo_t1_e112",
           "plot_demo_t1_e113"
         ],
-        "branch_order": 2
+        "branch_order": 1
       },
       {
         "z_range": [
@@ -438,7 +438,7 @@
           "plot_demo_t1_e150",
           "plot_demo_t1_e151"
         ],
-        "branch_order": 3
+        "branch_order": 1
       },
       {
         "z_range": [
@@ -488,7 +488,7 @@
           "plot_demo_t1_e169",
           "plot_demo_t1_e170"
         ],
-        "branch_order": 3
+        "branch_order": 2
       }
     ],
     "polylines": [
@@ -1431,7 +1431,7 @@
       "radius_m": 0.6675672765608938,
       "branch_id": 100172,
       "branch_uid": "plot_demo_t1_e171",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -1511,7 +1511,7 @@
       "radius_m": 0.45960911811543026,
       "branch_id": 100176,
       "branch_uid": "plot_demo_t1_e175",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -1531,7 +1531,7 @@
       "radius_m": 0.6866011791757352,
       "branch_id": 100177,
       "branch_uid": "plot_demo_t1_e176",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -1551,7 +1551,7 @@
       "radius_m": 0.6144092376407433,
       "branch_id": 100178,
       "branch_uid": "plot_demo_t1_e177",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -1611,7 +1611,7 @@
       "radius_m": 0.6761637363497941,
       "branch_id": 100181,
       "branch_uid": "plot_demo_t1_e180",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -1771,7 +1771,7 @@
       "radius_m": 0.5252583290841903,
       "branch_id": 100189,
       "branch_uid": "plot_demo_t1_e188",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -1851,7 +1851,7 @@
       "radius_m": 0.8503230359943661,
       "branch_id": 100193,
       "branch_uid": "plot_demo_t1_e192",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -1871,7 +1871,7 @@
       "radius_m": 0.6548580247439679,
       "branch_id": 100194,
       "branch_uid": "plot_demo_t1_e193",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -1951,7 +1951,7 @@
       "radius_m": 0.5074413806360293,
       "branch_id": 100198,
       "branch_uid": "plot_demo_t1_e197",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -1971,7 +1971,7 @@
       "radius_m": 0.7614876673630256,
       "branch_id": 100199,
       "branch_uid": "plot_demo_t1_e198",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2011,7 +2011,7 @@
       "radius_m": 0.7312170003140461,
       "branch_id": 100201,
       "branch_uid": "plot_demo_t1_e200",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -2031,7 +2031,7 @@
       "radius_m": 0.5805583650834295,
       "branch_id": 100202,
       "branch_uid": "plot_demo_t1_e201",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -2111,7 +2111,7 @@
       "radius_m": 0.47744135800398474,
       "branch_id": 100206,
       "branch_uid": "plot_demo_t1_e205",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -2131,7 +2131,7 @@
       "radius_m": 0.6644378767669226,
       "branch_id": 100207,
       "branch_uid": "plot_demo_t1_e206",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2191,7 +2191,7 @@
       "radius_m": 0.6224400522992659,
       "branch_id": 100210,
       "branch_uid": "plot_demo_t1_e209",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -2211,7 +2211,7 @@
       "radius_m": 0.30334061853727007,
       "branch_id": 100211,
       "branch_uid": "plot_demo_t1_e210",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2231,7 +2231,7 @@
       "radius_m": 0.650938010655731,
       "branch_id": 100212,
       "branch_uid": "plot_demo_t1_e211",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2251,7 +2251,7 @@
       "radius_m": 0.42260868834908627,
       "branch_id": 100213,
       "branch_uid": "plot_demo_t1_e212",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -2291,7 +2291,7 @@
       "radius_m": 0.5854165441016999,
       "branch_id": 100215,
       "branch_uid": "plot_demo_t1_e214",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2311,7 +2311,7 @@
       "radius_m": 0.5365629079643275,
       "branch_id": 100216,
       "branch_uid": "plot_demo_t1_e215",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2331,7 +2331,7 @@
       "radius_m": 0.5201496086666811,
       "branch_id": 100217,
       "branch_uid": "plot_demo_t1_e216",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2351,7 +2351,7 @@
       "radius_m": 0.2567392717574232,
       "branch_id": 100218,
       "branch_uid": "plot_demo_t1_e217",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2371,7 +2371,7 @@
       "radius_m": 0.4644490560619925,
       "branch_id": 100219,
       "branch_uid": "plot_demo_t1_e218",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2391,7 +2391,7 @@
       "radius_m": 0.1140400660970466,
       "branch_id": 100220,
       "branch_uid": "plot_demo_t1_e219",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2431,7 +2431,7 @@
       "radius_m": 0.7967881268062366,
       "branch_id": 100222,
       "branch_uid": "plot_demo_t1_e221",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2451,7 +2451,7 @@
       "radius_m": 0.6588067641766837,
       "branch_id": 100223,
       "branch_uid": "plot_demo_t1_e222",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2471,7 +2471,7 @@
       "radius_m": 0.5641492806747712,
       "branch_id": 100224,
       "branch_uid": "plot_demo_t1_e223",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -2491,7 +2491,7 @@
       "radius_m": 0.39509258253797136,
       "branch_id": 100225,
       "branch_uid": "plot_demo_t1_e224",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2511,7 +2511,7 @@
       "radius_m": 0.4447571516681911,
       "branch_id": 100226,
       "branch_uid": "plot_demo_t1_e225",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -2531,7 +2531,7 @@
       "radius_m": 0.5312244089325707,
       "branch_id": 100227,
       "branch_uid": "plot_demo_t1_e226",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2551,7 +2551,7 @@
       "radius_m": 0.27557156329426613,
       "branch_id": 100228,
       "branch_uid": "plot_demo_t1_e227",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2571,7 +2571,7 @@
       "radius_m": 0.5422839524456425,
       "branch_id": 100229,
       "branch_uid": "plot_demo_t1_e228",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2591,7 +2591,7 @@
       "radius_m": 0.5944795275929015,
       "branch_id": 100230,
       "branch_uid": "plot_demo_t1_e229",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2611,7 +2611,7 @@
       "radius_m": 0.6094974052308201,
       "branch_id": 100231,
       "branch_uid": "plot_demo_t1_e230",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2631,7 +2631,7 @@
       "radius_m": 0.47492961969959835,
       "branch_id": 100233,
       "branch_uid": "plot_demo_t1_e232",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2651,7 +2651,7 @@
       "radius_m": 0.428564361627154,
       "branch_id": 100234,
       "branch_uid": "plot_demo_t1_e233",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2671,7 +2671,7 @@
       "radius_m": 0.3342862518215193,
       "branch_id": 100235,
       "branch_uid": "plot_demo_t1_e234",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2691,7 +2691,7 @@
       "radius_m": 0.4106186088720824,
       "branch_id": 100236,
       "branch_uid": "plot_demo_t1_e235",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -2731,7 +2731,7 @@
       "radius_m": 0.6076305957402942,
       "branch_id": 100238,
       "branch_uid": "plot_demo_t1_e237",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2751,7 +2751,7 @@
       "radius_m": 0.048444400370274046,
       "branch_id": 100239,
       "branch_uid": "plot_demo_t1_e238",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2771,7 +2771,7 @@
       "radius_m": 0.5050070660532077,
       "branch_id": 100240,
       "branch_uid": "plot_demo_t1_e239",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2791,7 +2791,7 @@
       "radius_m": 0.02956510285431148,
       "branch_id": 100241,
       "branch_uid": "plot_demo_t1_e240",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2811,7 +2811,7 @@
       "radius_m": 0.5778348546784069,
       "branch_id": 100242,
       "branch_uid": "plot_demo_t1_e241",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2831,7 +2831,7 @@
       "radius_m": 0.30939351355024036,
       "branch_id": 100243,
       "branch_uid": "plot_demo_t1_e242",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2851,7 +2851,7 @@
       "radius_m": 0.6594776858077124,
       "branch_id": 100244,
       "branch_uid": "plot_demo_t1_e243",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2871,7 +2871,7 @@
       "radius_m": 0.6171869876962077,
       "branch_id": 100245,
       "branch_uid": "plot_demo_t1_e244",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -2891,7 +2891,7 @@
       "radius_m": 0.584136191110322,
       "branch_id": 100246,
       "branch_uid": "plot_demo_t1_e245",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -2911,7 +2911,7 @@
       "radius_m": 0.44689369383329947,
       "branch_id": 100247,
       "branch_uid": "plot_demo_t1_e246",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -2951,7 +2951,7 @@
       "radius_m": 0.5523980647086404,
       "branch_id": 100249,
       "branch_uid": "plot_demo_t1_e248",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -2971,7 +2971,7 @@
       "radius_m": 0.3534639598498426,
       "branch_id": 100251,
       "branch_uid": "plot_demo_t1_e250",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -2991,7 +2991,7 @@
       "radius_m": 0.38001950344503654,
       "branch_id": 100252,
       "branch_uid": "plot_demo_t1_e251",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3011,7 +3011,7 @@
       "radius_m": 0.15897234307731367,
       "branch_id": 100253,
       "branch_uid": "plot_demo_t1_e252",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3031,7 +3031,7 @@
       "radius_m": 0.4175876603844474,
       "branch_id": 100254,
       "branch_uid": "plot_demo_t1_e253",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3051,7 +3051,7 @@
       "radius_m": 0.34732319865310446,
       "branch_id": 100255,
       "branch_uid": "plot_demo_t1_e254",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3071,7 +3071,7 @@
       "radius_m": 0.39368458518065863,
       "branch_id": 100256,
       "branch_uid": "plot_demo_t1_e255",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -3091,7 +3091,7 @@
       "radius_m": 0.29259789895271643,
       "branch_id": 100257,
       "branch_uid": "plot_demo_t1_e256",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3111,7 +3111,7 @@
       "radius_m": 0.19680510720731764,
       "branch_id": 100258,
       "branch_uid": "plot_demo_t1_e257",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3131,7 +3131,7 @@
       "radius_m": 0.3600024203213444,
       "branch_id": 100259,
       "branch_uid": "plot_demo_t1_e258",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3151,7 +3151,7 @@
       "radius_m": 0.07378546223080973,
       "branch_id": 100260,
       "branch_uid": "plot_demo_t1_e259",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3171,7 +3171,7 @@
       "radius_m": 0.49909992030946815,
       "branch_id": 100261,
       "branch_uid": "plot_demo_t1_e260",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3191,7 +3191,7 @@
       "radius_m": 0.38082062867271094,
       "branch_id": 100262,
       "branch_uid": "plot_demo_t1_e261",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -3211,7 +3211,7 @@
       "radius_m": 0.36308911955880324,
       "branch_id": 100263,
       "branch_uid": "plot_demo_t1_e262",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3231,7 +3231,7 @@
       "radius_m": 0.24874185043839758,
       "branch_id": 100264,
       "branch_uid": "plot_demo_t1_e263",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3271,7 +3271,7 @@
       "radius_m": 0.28950481702581476,
       "branch_id": 100266,
       "branch_uid": "plot_demo_t1_e265",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3291,7 +3291,7 @@
       "radius_m": 0.7379539937478174,
       "branch_id": 100267,
       "branch_uid": "plot_demo_t1_e266",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -3311,7 +3311,7 @@
       "radius_m": 0.6698035718084842,
       "branch_id": 100268,
       "branch_uid": "plot_demo_t1_e267",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -3331,7 +3331,7 @@
       "radius_m": 0.5893885335248312,
       "branch_id": 100269,
       "branch_uid": "plot_demo_t1_e268",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -3351,7 +3351,7 @@
       "radius_m": 0.6212941040935429,
       "branch_id": 100270,
       "branch_uid": "plot_demo_t1_e269",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -3371,7 +3371,7 @@
       "radius_m": 0.4748238198451897,
       "branch_id": 100271,
       "branch_uid": "plot_demo_t1_e270",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -3391,7 +3391,7 @@
       "radius_m": 0.5037223511668171,
       "branch_id": 100272,
       "branch_uid": "plot_demo_t1_e271",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -3411,7 +3411,7 @@
       "radius_m": 0.6359121507132978,
       "branch_id": 100273,
       "branch_uid": "plot_demo_t1_e272",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -3431,7 +3431,7 @@
       "radius_m": 0.5678064392424058,
       "branch_id": 100274,
       "branch_uid": "plot_demo_t1_e273",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3471,7 +3471,7 @@
       "radius_m": 0.6514249150180265,
       "branch_id": 100276,
       "branch_uid": "plot_demo_t1_e275",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -3491,7 +3491,7 @@
       "radius_m": 0.23146987671192193,
       "branch_id": 100277,
       "branch_uid": "plot_demo_t1_e276",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3511,7 +3511,7 @@
       "radius_m": 0.2401042708888059,
       "branch_id": 100278,
       "branch_uid": "plot_demo_t1_e277",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3531,7 +3531,7 @@
       "radius_m": 0.5094667446811534,
       "branch_id": 100279,
       "branch_uid": "plot_demo_t1_e278",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3551,7 +3551,7 @@
       "radius_m": 0.26353297427578987,
       "branch_id": 100280,
       "branch_uid": "plot_demo_t1_e279",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3571,7 +3571,7 @@
       "radius_m": 0.3053349641166668,
       "branch_id": 100281,
       "branch_uid": "plot_demo_t1_e280",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3611,7 +3611,7 @@
       "radius_m": 0.34164466437053526,
       "branch_id": 100283,
       "branch_uid": "plot_demo_t1_e282",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3631,7 +3631,7 @@
       "radius_m": 0.3181484999004778,
       "branch_id": 100284,
       "branch_uid": "plot_demo_t1_e283",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3651,7 +3651,7 @@
       "radius_m": 0.3292977176303711,
       "branch_id": 100285,
       "branch_uid": "plot_demo_t1_e284",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3691,7 +3691,7 @@
       "radius_m": 0.3824027561480927,
       "branch_id": 100287,
       "branch_uid": "plot_demo_t1_e286",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3711,7 +3711,7 @@
       "radius_m": 0.25993168409136264,
       "branch_id": 100288,
       "branch_uid": "plot_demo_t1_e287",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3731,7 +3731,7 @@
       "radius_m": 0.4361692193804258,
       "branch_id": 100289,
       "branch_uid": "plot_demo_t1_e288",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -3751,7 +3751,7 @@
       "radius_m": 0.7677961075974383,
       "branch_id": 100290,
       "branch_uid": "plot_demo_t1_e289",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -3771,7 +3771,7 @@
       "radius_m": 0.2300887407064539,
       "branch_id": 100291,
       "branch_uid": "plot_demo_t1_e290",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3791,7 +3791,7 @@
       "radius_m": 0.42760307835506634,
       "branch_id": 100292,
       "branch_uid": "plot_demo_t1_e291",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -3811,7 +3811,7 @@
       "radius_m": 0.3327650409713439,
       "branch_id": 100293,
       "branch_uid": "plot_demo_t1_e292",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -3851,7 +3851,7 @@
       "radius_m": 0.23865357282937955,
       "branch_id": 100295,
       "branch_uid": "plot_demo_t1_e294",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3871,7 +3871,7 @@
       "radius_m": 0.29821502944707184,
       "branch_id": 100296,
       "branch_uid": "plot_demo_t1_e295",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3911,7 +3911,7 @@
       "radius_m": 0.30000899642071455,
       "branch_id": 100298,
       "branch_uid": "plot_demo_t1_e297",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3931,7 +3931,7 @@
       "radius_m": 0.4836692527297786,
       "branch_id": 100299,
       "branch_uid": "plot_demo_t1_e298",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3951,7 +3951,7 @@
       "radius_m": 0.3978772517682485,
       "branch_id": 100300,
       "branch_uid": "plot_demo_t1_e299",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3971,7 +3971,7 @@
       "radius_m": 0.20782274121087438,
       "branch_id": 100301,
       "branch_uid": "plot_demo_t1_e300",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -3991,7 +3991,7 @@
       "radius_m": 0.3882077890873097,
       "branch_id": 100302,
       "branch_uid": "plot_demo_t1_e301",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4031,7 +4031,7 @@
       "radius_m": 0.412322304370462,
       "branch_id": 100304,
       "branch_uid": "plot_demo_t1_e303",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -4051,7 +4051,7 @@
       "radius_m": 0.13168181468585685,
       "branch_id": 100305,
       "branch_uid": "plot_demo_t1_e304",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4071,7 +4071,7 @@
       "radius_m": 0.43542776049217236,
       "branch_id": 100306,
       "branch_uid": "plot_demo_t1_e305",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -4091,7 +4091,7 @@
       "radius_m": 0.42112601231691055,
       "branch_id": 100307,
       "branch_uid": "plot_demo_t1_e306",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4111,7 +4111,7 @@
       "radius_m": 0.5319759277083701,
       "branch_id": 100308,
       "branch_uid": "plot_demo_t1_e307",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -4131,7 +4131,7 @@
       "radius_m": 0.4420650297369997,
       "branch_id": 100309,
       "branch_uid": "plot_demo_t1_e308",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4151,7 +4151,7 @@
       "radius_m": 0.21233773160851213,
       "branch_id": 100310,
       "branch_uid": "plot_demo_t1_e309",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4171,7 +4171,7 @@
       "radius_m": 0.5822714574558673,
       "branch_id": 100311,
       "branch_uid": "plot_demo_t1_e310",
-      "branch_order": 2
+      "branch_order": 1
     },
     {
       "base": [
@@ -4191,7 +4191,7 @@
       "radius_m": 0.5101035738785713,
       "branch_id": 100312,
       "branch_uid": "plot_demo_t1_e311",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4211,7 +4211,7 @@
       "radius_m": 0.5975515421409509,
       "branch_id": 100313,
       "branch_uid": "plot_demo_t1_e312",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -4231,7 +4231,7 @@
       "radius_m": 0.41330096183927134,
       "branch_id": 100314,
       "branch_uid": "plot_demo_t1_e313",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4251,7 +4251,7 @@
       "radius_m": 0.26254069386489004,
       "branch_id": 100315,
       "branch_uid": "plot_demo_t1_e314",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4291,7 +4291,7 @@
       "radius_m": 0.6487308508350161,
       "branch_id": 100317,
       "branch_uid": "plot_demo_t1_e316",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -4311,7 +4311,7 @@
       "radius_m": 0.4181611512679941,
       "branch_id": 100318,
       "branch_uid": "plot_demo_t1_e317",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4331,7 +4331,7 @@
       "radius_m": 0.81589452237252,
       "branch_id": 100319,
       "branch_uid": "plot_demo_t1_e318",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -4371,7 +4371,7 @@
       "radius_m": 0.0922616123201293,
       "branch_id": 100321,
       "branch_uid": "plot_demo_t1_e320",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4391,7 +4391,7 @@
       "radius_m": 0.5320681303021745,
       "branch_id": 100322,
       "branch_uid": "plot_demo_t1_e321",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -4431,7 +4431,7 @@
       "radius_m": 0.796635602504657,
       "branch_id": 100324,
       "branch_uid": "plot_demo_t1_e323",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -4451,7 +4451,7 @@
       "radius_m": 0.2408088540572073,
       "branch_id": 100325,
       "branch_uid": "plot_demo_t1_e324",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4471,7 +4471,7 @@
       "radius_m": 0.4969417506524579,
       "branch_id": 100326,
       "branch_uid": "plot_demo_t1_e325",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4511,7 +4511,7 @@
       "radius_m": 0.07565952842452855,
       "branch_id": 100328,
       "branch_uid": "plot_demo_t1_e327",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4531,7 +4531,7 @@
       "radius_m": 0.6154794872437078,
       "branch_id": 100329,
       "branch_uid": "plot_demo_t1_e328",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -4571,7 +4571,7 @@
       "radius_m": 0.7019287773783177,
       "branch_id": 100331,
       "branch_uid": "plot_demo_t1_e330",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -4591,7 +4591,7 @@
       "radius_m": 0.41277931186372163,
       "branch_id": 100332,
       "branch_uid": "plot_demo_t1_e331",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -4611,7 +4611,7 @@
       "radius_m": 0.5925527434899929,
       "branch_id": 100333,
       "branch_uid": "plot_demo_t1_e332",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -4631,7 +4631,7 @@
       "radius_m": 0.3261564715593954,
       "branch_id": 100334,
       "branch_uid": "plot_demo_t1_e333",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4651,7 +4651,7 @@
       "radius_m": 0.2965578138624034,
       "branch_id": 100335,
       "branch_uid": "plot_demo_t1_e334",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4671,7 +4671,7 @@
       "radius_m": 0.11606967270176267,
       "branch_id": 100336,
       "branch_uid": "plot_demo_t1_e335",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4691,7 +4691,7 @@
       "radius_m": 0.8002198160518074,
       "branch_id": 100337,
       "branch_uid": "plot_demo_t1_e336",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -4711,7 +4711,7 @@
       "radius_m": 0.6098935813779831,
       "branch_id": 100338,
       "branch_uid": "plot_demo_t1_e337",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -4731,7 +4731,7 @@
       "radius_m": 0.527489350205939,
       "branch_id": 100339,
       "branch_uid": "plot_demo_t1_e338",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -4751,7 +4751,7 @@
       "radius_m": 0.7864748817359835,
       "branch_id": 100340,
       "branch_uid": "plot_demo_t1_e339",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -4811,7 +4811,7 @@
       "radius_m": 0.6209633681989158,
       "branch_id": 100343,
       "branch_uid": "plot_demo_t1_e342",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4831,7 +4831,7 @@
       "radius_m": 0.7804776633571016,
       "branch_id": 100344,
       "branch_uid": "plot_demo_t1_e343",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -4851,7 +4851,7 @@
       "radius_m": 0.5200186356973636,
       "branch_id": 100345,
       "branch_uid": "plot_demo_t1_e344",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -4871,7 +4871,7 @@
       "radius_m": 0.6123144601163153,
       "branch_id": 100346,
       "branch_uid": "plot_demo_t1_e345",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -4891,7 +4891,7 @@
       "radius_m": 0.5247036985775094,
       "branch_id": 100347,
       "branch_uid": "plot_demo_t1_e346",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -4911,7 +4911,7 @@
       "radius_m": 0.5084049288979835,
       "branch_id": 100348,
       "branch_uid": "plot_demo_t1_e347",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -4951,7 +4951,7 @@
       "radius_m": 0.045584565806145526,
       "branch_id": 100350,
       "branch_uid": "plot_demo_t1_e349",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4971,7 +4971,7 @@
       "radius_m": 0.1531693356328564,
       "branch_id": 100351,
       "branch_uid": "plot_demo_t1_e350",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -4991,7 +4991,7 @@
       "radius_m": 0.7303293108400323,
       "branch_id": 100352,
       "branch_uid": "plot_demo_t1_e351",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5011,7 +5011,7 @@
       "radius_m": 0.3882957458279331,
       "branch_id": 100353,
       "branch_uid": "plot_demo_t1_e352",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5031,7 +5031,7 @@
       "radius_m": 0.4667658183445433,
       "branch_id": 100354,
       "branch_uid": "plot_demo_t1_e353",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -5051,7 +5051,7 @@
       "radius_m": 0.5426100623735987,
       "branch_id": 100355,
       "branch_uid": "plot_demo_t1_e354",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5071,7 +5071,7 @@
       "radius_m": 0.5504870762085026,
       "branch_id": 100356,
       "branch_uid": "plot_demo_t1_e355",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -5091,7 +5091,7 @@
       "radius_m": 0.5722435210021212,
       "branch_id": 100357,
       "branch_uid": "plot_demo_t1_e356",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5111,7 +5111,7 @@
       "radius_m": 0.4426409109349641,
       "branch_id": 100358,
       "branch_uid": "plot_demo_t1_e357",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5131,7 +5131,7 @@
       "radius_m": 0.7660606779230806,
       "branch_id": 100359,
       "branch_uid": "plot_demo_t1_e358",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5171,7 +5171,7 @@
       "radius_m": 0.2932329672682687,
       "branch_id": 100361,
       "branch_uid": "plot_demo_t1_e360",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5211,7 +5211,7 @@
       "radius_m": 0.7698892556649486,
       "branch_id": 100363,
       "branch_uid": "plot_demo_t1_e362",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5231,7 +5231,7 @@
       "radius_m": 0.5177500811419119,
       "branch_id": 100364,
       "branch_uid": "plot_demo_t1_e363",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5271,7 +5271,7 @@
       "radius_m": 0.5362345455755179,
       "branch_id": 100366,
       "branch_uid": "plot_demo_t1_e365",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5291,7 +5291,7 @@
       "radius_m": 0.700468820807349,
       "branch_id": 100367,
       "branch_uid": "plot_demo_t1_e366",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5311,7 +5311,7 @@
       "radius_m": 0.5696559209437396,
       "branch_id": 100368,
       "branch_uid": "plot_demo_t1_e367",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5331,7 +5331,7 @@
       "radius_m": 0.28530697282552914,
       "branch_id": 100369,
       "branch_uid": "plot_demo_t1_e368",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -5351,7 +5351,7 @@
       "radius_m": 0.6604006605412969,
       "branch_id": 100370,
       "branch_uid": "plot_demo_t1_e369",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5371,7 +5371,7 @@
       "radius_m": 0.6097521767832796,
       "branch_id": 100371,
       "branch_uid": "plot_demo_t1_e370",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -5391,7 +5391,7 @@
       "radius_m": 0.5383736852236307,
       "branch_id": 100372,
       "branch_uid": "plot_demo_t1_e371",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5411,7 +5411,7 @@
       "radius_m": 0.26408182595558166,
       "branch_id": 100373,
       "branch_uid": "plot_demo_t1_e372",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5431,7 +5431,7 @@
       "radius_m": 0.5282197376360577,
       "branch_id": 100374,
       "branch_uid": "plot_demo_t1_e373",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5451,7 +5451,7 @@
       "radius_m": 0.09676882744863045,
       "branch_id": 100375,
       "branch_uid": "plot_demo_t1_e374",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5471,7 +5471,7 @@
       "radius_m": 0.6019211994895661,
       "branch_id": 100376,
       "branch_uid": "plot_demo_t1_e375",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -5511,7 +5511,7 @@
       "radius_m": 0.49676539937816,
       "branch_id": 100378,
       "branch_uid": "plot_demo_t1_e377",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5531,7 +5531,7 @@
       "radius_m": 0.6480714519682236,
       "branch_id": 100379,
       "branch_uid": "plot_demo_t1_e378",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5551,7 +5551,7 @@
       "radius_m": 0.26147780960553463,
       "branch_id": 100380,
       "branch_uid": "plot_demo_t1_e379",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5591,7 +5591,7 @@
       "radius_m": 0.6600461545464505,
       "branch_id": 100382,
       "branch_uid": "plot_demo_t1_e381",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5611,7 +5611,7 @@
       "radius_m": 0.333594720987588,
       "branch_id": 100383,
       "branch_uid": "plot_demo_t1_e382",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5631,7 +5631,7 @@
       "radius_m": 0.5885339130790976,
       "branch_id": 100384,
       "branch_uid": "plot_demo_t1_e383",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5651,7 +5651,7 @@
       "radius_m": 0.3645129131696825,
       "branch_id": 100385,
       "branch_uid": "plot_demo_t1_e384",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -5671,7 +5671,7 @@
       "radius_m": 0.16474886478407705,
       "branch_id": 100386,
       "branch_uid": "plot_demo_t1_e385",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5691,7 +5691,7 @@
       "radius_m": 0.39845744948017137,
       "branch_id": 100387,
       "branch_uid": "plot_demo_t1_e386",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5711,7 +5711,7 @@
       "radius_m": 0.20320189185467458,
       "branch_id": 100388,
       "branch_uid": "plot_demo_t1_e387",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5731,7 +5731,7 @@
       "radius_m": 0.7906461087339125,
       "branch_id": 100389,
       "branch_uid": "plot_demo_t1_e388",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5751,7 +5751,7 @@
       "radius_m": 0.4836609370166601,
       "branch_id": 100390,
       "branch_uid": "plot_demo_t1_e389",
-      "branch_order": 3
+      "branch_order": 1
     },
     {
       "base": [
@@ -5771,7 +5771,7 @@
       "radius_m": 0.4111291428789514,
       "branch_id": 100391,
       "branch_uid": "plot_demo_t1_e390",
-      "branch_order": 4
+      "branch_order": 3
     },
     {
       "base": [
@@ -5791,7 +5791,7 @@
       "radius_m": 0.34492334349316756,
       "branch_id": 100392,
       "branch_uid": "plot_demo_t1_e391",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5811,7 +5811,7 @@
       "radius_m": 0.22006065326596894,
       "branch_id": 100393,
       "branch_uid": "plot_demo_t1_e392",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5831,7 +5831,7 @@
       "radius_m": 0.43421115260068777,
       "branch_id": 100394,
       "branch_uid": "plot_demo_t1_e393",
-      "branch_order": 4
+      "branch_order": 2
     },
     {
       "base": [
@@ -5851,7 +5851,7 @@
       "radius_m": 0.563418561984957,
       "branch_id": 100395,
       "branch_uid": "plot_demo_t1_e394",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5871,7 +5871,7 @@
       "radius_m": 0.49382570158273353,
       "branch_id": 100396,
       "branch_uid": "plot_demo_t1_e395",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5891,7 +5891,7 @@
       "radius_m": 0.7167712832415829,
       "branch_id": 100397,
       "branch_uid": "plot_demo_t1_e396",
-      "branch_order": 3
+      "branch_order": 2
     },
     {
       "base": [
@@ -5911,7 +5911,7 @@
       "radius_m": 0.5784356650049697,
       "branch_id": 100398,
       "branch_uid": "plot_demo_t1_e397",
-      "branch_order": 3
+      "branch_order": 2
     }
   ],
   "n_branches": 225,
@@ -5968,7 +5968,7 @@
     },
     {
       "BRANCH_UID": "T02",
-      "BRANCH_ORDER": 0,
+      "BRANCH_ORDER": 1,
       "BRANCH_LENGTH": 1.8478430148041147,
       "BRANCH_RADIUS": 0.12457865085849634,
       "BRANCH_VOLUME": 0.09009531164786995,
@@ -5984,7 +5984,7 @@
     },
     {
       "BRANCH_UID": "T03",
-      "BRANCH_ORDER": 0,
+      "BRANCH_ORDER": 1,
       "BRANCH_LENGTH": 2.654120693126144,
       "BRANCH_RADIUS": 0.08105826329539192,
       "BRANCH_VOLUME": 0.054785436961729335,
@@ -6046,7 +6046,7 @@
     },
     {
       "BRANCH_UID": "T05",
-      "BRANCH_ORDER": 0,
+      "BRANCH_ORDER": 1,
       "BRANCH_LENGTH": 9.315706758678335,
       "BRANCH_RADIUS": 0.10884147747762765,
       "BRANCH_VOLUME": 0.3467005567007667,
@@ -6084,7 +6084,7 @@
     },
     {
       "BRANCH_UID": "T06",
-      "BRANCH_ORDER": 0,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 9.044195069681148,
       "BRANCH_RADIUS": 0.10884147747762765,
       "BRANCH_VOLUME": 0.33659576742770403,
@@ -6128,7 +6128,7 @@
     },
     {
       "BRANCH_UID": "T07",
-      "BRANCH_ORDER": 0,
+      "BRANCH_ORDER": 1,
       "BRANCH_LENGTH": 7.056954906573944,
       "BRANCH_RADIUS": 0.05872876313348961,
       "BRANCH_VOLUME": 0.07646609707965872,
@@ -6211,7 +6211,7 @@
     },
     {
       "BRANCH_UID": "T08",
-      "BRANCH_ORDER": 0,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 5.738067456122025,
       "BRANCH_RADIUS": 0.05872876313348961,
       "BRANCH_VOLUME": 0.06217520573083452,
@@ -6245,7 +6245,7 @@
     },
     {
       "BRANCH_UID": "B000",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.3187261016939518,
       "BRANCH_RADIUS": 0.6675672765608938,
       "BRANCH_VOLUME": 4.646344033354812,
@@ -6272,7 +6272,7 @@
     },
     {
       "BRANCH_UID": "B003",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.427987939450697,
       "BRANCH_RADIUS": 0.7017814738826269,
       "BRANCH_VOLUME": 5.303871045855391,
@@ -6290,7 +6290,7 @@
     },
     {
       "BRANCH_UID": "B005",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.3674910041862764,
       "BRANCH_RADIUS": 0.6866011791757352,
       "BRANCH_VOLUME": 4.987299010171244,
@@ -6317,7 +6317,7 @@
     },
     {
       "BRANCH_UID": "B008",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.304373177879832,
       "BRANCH_RADIUS": 0.48478092172015064,
       "BRANCH_VOLUME": 1.7013502310279287,
@@ -6380,7 +6380,7 @@
     },
     {
       "BRANCH_UID": "B015",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.698103520584296,
       "BRANCH_RADIUS": 0.5592039670199839,
       "BRANCH_VOLUME": 2.6506291430706947,
@@ -6389,7 +6389,7 @@
     },
     {
       "BRANCH_UID": "B016",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.996702745511159,
       "BRANCH_RADIUS": 0.6142427417039773,
       "BRANCH_VOLUME": 3.552005298822513,
@@ -6407,7 +6407,7 @@
     },
     {
       "BRANCH_UID": "B018",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.1051407026897118,
       "BRANCH_RADIUS": 0.6453939275186541,
       "BRANCH_VOLUME": 4.0633188829767,
@@ -6425,7 +6425,7 @@
     },
     {
       "BRANCH_UID": "B020",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.69520483391696,
       "BRANCH_RADIUS": 0.7390209463495092,
       "BRANCH_VOLUME": 6.340184352032229,
@@ -6434,7 +6434,7 @@
     },
     {
       "BRANCH_UID": "B021",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 4.221171036925339,
       "BRANCH_RADIUS": 0.8503230359943661,
       "BRANCH_VOLUME": 9.588500861756476,
@@ -6443,7 +6443,7 @@
     },
     {
       "BRANCH_UID": "B022",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.1547915725324924,
       "BRANCH_RADIUS": 0.6548580247439679,
       "BRANCH_VOLUME": 4.250253682503041,
@@ -6452,7 +6452,7 @@
     },
     {
       "BRANCH_UID": "B023",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.131502116964804,
       "BRANCH_RADIUS": 0.6119947321527107,
       "BRANCH_VOLUME": 3.6846644997561717,
@@ -6488,7 +6488,7 @@
     },
     {
       "BRANCH_UID": "B027",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.8334710595363948,
       "BRANCH_RADIUS": 0.7614876673630256,
       "BRANCH_VOLUME": 6.983414332398262,
@@ -6524,7 +6524,7 @@
     },
     {
       "BRANCH_UID": "B031",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.6058595477433246,
       "BRANCH_RADIUS": 0.7258146706103711,
       "BRANCH_VOLUME": 5.967743707338984,
@@ -6542,7 +6542,7 @@
     },
     {
       "BRANCH_UID": "B033",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.9227997003510375,
       "BRANCH_RADIUS": 0.5857165017267529,
       "BRANCH_VOLUME": 3.1500964153934694,
@@ -6560,7 +6560,7 @@
     },
     {
       "BRANCH_UID": "B035",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.2761206626331654,
       "BRANCH_RADIUS": 0.6644378767669226,
       "BRANCH_VOLUME": 4.5437928631851925,
@@ -6569,7 +6569,7 @@
     },
     {
       "BRANCH_UID": "B036",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.2342154148190567,
       "BRANCH_RADIUS": 0.658954609605959,
       "BRANCH_VOLUME": 4.411942219627568,
@@ -6578,7 +6578,7 @@
     },
     {
       "BRANCH_UID": "B037",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.5365368640817545,
       "BRANCH_RADIUS": 0.5129568828219404,
       "BRANCH_VOLUME": 2.096779559105777,
@@ -6587,7 +6587,7 @@
     },
     {
       "BRANCH_UID": "B038",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.0803968030272957,
       "BRANCH_RADIUS": 0.6224400522992659,
       "BRANCH_VOLUME": 3.7493121371842273,
@@ -6596,7 +6596,7 @@
     },
     {
       "BRANCH_UID": "B039",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.51584960063054,
       "BRANCH_RADIUS": 0.30334061853727007,
       "BRANCH_VOLUME": 0.4381947019301072,
@@ -6605,7 +6605,7 @@
     },
     {
       "BRANCH_UID": "B040",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.222794656816842,
       "BRANCH_RADIUS": 0.650938010655731,
       "BRANCH_VOLUME": 4.290044255131106,
@@ -6614,7 +6614,7 @@
     },
     {
       "BRANCH_UID": "B041",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.1001834603760514,
       "BRANCH_RADIUS": 0.42260868834908627,
       "BRANCH_VOLUME": 1.1783761649857571,
@@ -6623,7 +6623,7 @@
     },
     {
       "BRANCH_UID": "B042",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.1858068619007427,
       "BRANCH_RADIUS": 0.6451553364102334,
       "BRANCH_VOLUME": 4.165795090801318,
@@ -6650,7 +6650,7 @@
     },
     {
       "BRANCH_UID": "B045",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.555973460170113,
       "BRANCH_RADIUS": 0.5201496086666811,
       "BRANCH_VOLUME": 2.17251490597166,
@@ -6659,7 +6659,7 @@
     },
     {
       "BRANCH_UID": "B046",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.3513448959183345,
       "BRANCH_RADIUS": 0.2567392717574232,
       "BRANCH_VOLUME": 0.2798341339596812,
@@ -6668,7 +6668,7 @@
     },
     {
       "BRANCH_UID": "B047",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.322997765494373,
       "BRANCH_RADIUS": 0.4644490560619925,
       "BRANCH_VOLUME": 1.574254102953947,
@@ -6677,7 +6677,7 @@
     },
     {
       "BRANCH_UID": "B048",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.9796523398056286,
       "BRANCH_RADIUS": 0.1140400660970466,
       "BRANCH_VOLUME": 0.04002550070408327,
@@ -6686,7 +6686,7 @@
     },
     {
       "BRANCH_UID": "B049",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.4096233424452413,
       "BRANCH_RADIUS": 0.6727674715036552,
       "BRANCH_VOLUME": 4.848263867554722,
@@ -6695,7 +6695,7 @@
     },
     {
       "BRANCH_UID": "B050",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 4.00185680367389,
       "BRANCH_RADIUS": 0.7967881268062366,
       "BRANCH_VOLUME": 7.981731695283257,
@@ -6704,7 +6704,7 @@
     },
     {
       "BRANCH_UID": "B051",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.380336106512083,
       "BRANCH_RADIUS": 0.6588067641766837,
       "BRANCH_VOLUME": 4.609203214538899,
@@ -6713,7 +6713,7 @@
     },
     {
       "BRANCH_UID": "B052",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.8443060841226107,
       "BRANCH_RADIUS": 0.5641492806747712,
       "BRANCH_VOLUME": 2.84389973272672,
@@ -6731,7 +6731,7 @@
     },
     {
       "BRANCH_UID": "B054",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.356045133694874,
       "BRANCH_RADIUS": 0.4447571516681911,
       "BRANCH_VOLUME": 1.4641290545034769,
@@ -6749,7 +6749,7 @@
     },
     {
       "BRANCH_UID": "B056",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.4214261167497826,
       "BRANCH_RADIUS": 0.27557156329426613,
       "BRANCH_VOLUME": 0.33911184782213505,
@@ -6758,7 +6758,7 @@
     },
     {
       "BRANCH_UID": "B057",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.788251049470517,
       "BRANCH_RADIUS": 0.5422839524456425,
       "BRANCH_VOLUME": 2.5759370908160837,
@@ -6776,7 +6776,7 @@
     },
     {
       "BRANCH_UID": "B059",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.9992885173832637,
       "BRANCH_RADIUS": 0.6094974052308201,
       "BRANCH_VOLUME": 3.5003529664210453,
@@ -6785,7 +6785,7 @@
     },
     {
       "BRANCH_UID": "B061",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.3270308239396145,
       "BRANCH_RADIUS": 0.47492961969959835,
       "BRANCH_VOLUME": 1.6489615173403196,
@@ -6794,7 +6794,7 @@
     },
     {
       "BRANCH_UID": "B062",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.1164079706133956,
       "BRANCH_RADIUS": 0.428564361627154,
       "BRANCH_VOLUME": 1.2211847375506726,
@@ -6803,7 +6803,7 @@
     },
     {
       "BRANCH_UID": "B063",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.6845489605177895,
       "BRANCH_RADIUS": 0.3342862518215193,
       "BRANCH_VOLUME": 0.591385323301435,
@@ -6812,7 +6812,7 @@
     },
     {
       "BRANCH_UID": "B064",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.027039608072919,
       "BRANCH_RADIUS": 0.4106186088720824,
       "BRANCH_VOLUME": 1.07371584514102,
@@ -6821,7 +6821,7 @@
     },
     {
       "BRANCH_UID": "B065",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.0883173949863827,
       "BRANCH_RADIUS": 0.6018507497556249,
       "BRANCH_VOLUME": 3.5143856106353257,
@@ -6830,7 +6830,7 @@
     },
     {
       "BRANCH_UID": "B066",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.998684274998374,
       "BRANCH_RADIUS": 0.6076305957402942,
       "BRANCH_VOLUME": 3.47824269796998,
@@ -6839,7 +6839,7 @@
     },
     {
       "BRANCH_UID": "B067",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.5871898748093758,
       "BRANCH_RADIUS": 0.048444400370274046,
       "BRANCH_VOLUME": 0.004329279254847959,
@@ -6857,7 +6857,7 @@
     },
     {
       "BRANCH_UID": "B069",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.9749013068522603,
       "BRANCH_RADIUS": 0.02956510285431148,
       "BRANCH_VOLUME": 0.002677129093021898,
@@ -6866,7 +6866,7 @@
     },
     {
       "BRANCH_UID": "B070",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.9027600780305853,
       "BRANCH_RADIUS": 0.5778348546784069,
       "BRANCH_VOLUME": 3.0448680956739076,
@@ -6875,7 +6875,7 @@
     },
     {
       "BRANCH_UID": "B071",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.5391483692999606,
       "BRANCH_RADIUS": 0.30939351355024036,
       "BRANCH_VOLUME": 0.4628633221667033,
@@ -6893,7 +6893,7 @@
     },
     {
       "BRANCH_UID": "B073",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.0363547499417036,
       "BRANCH_RADIUS": 0.6171869876962077,
       "BRANCH_VOLUME": 3.6335898657757464,
@@ -6902,7 +6902,7 @@
     },
     {
       "BRANCH_UID": "B074",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.9113956360393427,
       "BRANCH_RADIUS": 0.584136191110322,
       "BRANCH_VOLUME": 3.120896228521903,
@@ -6911,7 +6911,7 @@
     },
     {
       "BRANCH_UID": "B075",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.2187420736036403,
       "BRANCH_RADIUS": 0.44689369383329947,
       "BRANCH_VOLUME": 1.3920830458603635,
@@ -6920,7 +6920,7 @@
     },
     {
       "BRANCH_UID": "B076",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.385008992352295,
       "BRANCH_RADIUS": 0.6652230653560995,
       "BRANCH_VOLUME": 4.705917375321912,
@@ -6938,7 +6938,7 @@
     },
     {
       "BRANCH_UID": "B079",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.7497734626966908,
       "BRANCH_RADIUS": 0.3534639598498426,
       "BRANCH_VOLUME": 0.6867868569180654,
@@ -6947,7 +6947,7 @@
     },
     {
       "BRANCH_UID": "B080",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.9186354976094837,
       "BRANCH_RADIUS": 0.38001950344503654,
       "BRANCH_VOLUME": 0.870470625678724,
@@ -6956,7 +6956,7 @@
     },
     {
       "BRANCH_UID": "B081",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.8798603920803707,
       "BRANCH_RADIUS": 0.15897234307731367,
       "BRANCH_VOLUME": 0.06985649495959471,
@@ -6965,7 +6965,7 @@
     },
     {
       "BRANCH_UID": "B082",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.096507026587241,
       "BRANCH_RADIUS": 0.4175876603844474,
       "BRANCH_VOLUME": 1.1485277922321229,
@@ -6974,7 +6974,7 @@
     },
     {
       "BRANCH_UID": "B083",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.7612312542800297,
       "BRANCH_RADIUS": 0.34732319865310446,
       "BRANCH_VOLUME": 0.6674732115625508,
@@ -6983,7 +6983,7 @@
     },
     {
       "BRANCH_UID": "B084",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.0694806635819196,
       "BRANCH_RADIUS": 0.39368458518065863,
       "BRANCH_VOLUME": 1.007646187384643,
@@ -6992,7 +6992,7 @@
     },
     {
       "BRANCH_UID": "B085",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.5842035655841162,
       "BRANCH_RADIUS": 0.29259789895271643,
       "BRANCH_VOLUME": 0.4260918875669251,
@@ -7001,7 +7001,7 @@
     },
     {
       "BRANCH_UID": "B086",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.3273946826434313,
       "BRANCH_RADIUS": 0.19680510720731764,
       "BRANCH_VOLUME": 0.16151864966891155,
@@ -7010,7 +7010,7 @@
     },
     {
       "BRANCH_UID": "B087",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.941319102625543,
       "BRANCH_RADIUS": 0.3600024203213444,
       "BRANCH_VOLUME": 0.7904194925630874,
@@ -7019,7 +7019,7 @@
     },
     {
       "BRANCH_UID": "B088",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.48613328952080703,
       "BRANCH_RADIUS": 0.07378546223080973,
       "BRANCH_VOLUME": 0.008314704878700965,
@@ -7028,7 +7028,7 @@
     },
     {
       "BRANCH_UID": "B089",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.4858498070662645,
       "BRANCH_RADIUS": 0.49909992030946815,
       "BRANCH_VOLUME": 1.945359002701259,
@@ -7046,7 +7046,7 @@
     },
     {
       "BRANCH_UID": "B091",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.9879224807211524,
       "BRANCH_RADIUS": 0.36308911955880324,
       "BRANCH_VOLUME": 0.8233335020380721,
@@ -7055,7 +7055,7 @@
     },
     {
       "BRANCH_UID": "B092",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.2474498156260296,
       "BRANCH_RADIUS": 0.24874185043839758,
       "BRANCH_VOLUME": 0.24247707107452485,
@@ -7064,7 +7064,7 @@
     },
     {
       "BRANCH_UID": "B093",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.7974871093535625,
       "BRANCH_RADIUS": 0.5669099008487727,
       "BRANCH_VOLUME": 2.824529079855947,
@@ -7073,7 +7073,7 @@
     },
     {
       "BRANCH_UID": "B094",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.5365623894310994,
       "BRANCH_RADIUS": 0.28950481702581476,
       "BRANCH_VOLUME": 0.4045867539334151,
@@ -7082,7 +7082,7 @@
     },
     {
       "BRANCH_UID": "B095",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.6288981453416653,
       "BRANCH_RADIUS": 0.7379539937478174,
       "BRANCH_VOLUME": 6.208450550148778,
@@ -7091,7 +7091,7 @@
     },
     {
       "BRANCH_UID": "B096",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.3999742793024215,
       "BRANCH_RADIUS": 0.6698035718084842,
       "BRANCH_VOLUME": 4.792039868382678,
@@ -7109,7 +7109,7 @@
     },
     {
       "BRANCH_UID": "B098",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.095741378268472,
       "BRANCH_RADIUS": 0.6212941040935429,
       "BRANCH_VOLUME": 3.7541274226809684,
@@ -7118,7 +7118,7 @@
     },
     {
       "BRANCH_UID": "B099",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.449450094034157,
       "BRANCH_RADIUS": 0.4748238198451897,
       "BRANCH_VOLUME": 1.7349360173665456,
@@ -7145,7 +7145,7 @@
     },
     {
       "BRANCH_UID": "B102",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.8587747493175892,
       "BRANCH_RADIUS": 0.5678064392424058,
       "BRANCH_VOLUME": 2.895545787582388,
@@ -7154,7 +7154,7 @@
     },
     {
       "BRANCH_UID": "B103",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.9105935582626534,
       "BRANCH_RADIUS": 0.5852863703055531,
       "BRANCH_VOLUME": 3.13233539484069,
@@ -7163,7 +7163,7 @@
     },
     {
       "BRANCH_UID": "B104",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.2327845800819595,
       "BRANCH_RADIUS": 0.6514249150180265,
       "BRANCH_VOLUME": 4.309782651144015,
@@ -7172,7 +7172,7 @@
     },
     {
       "BRANCH_UID": "B105",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.2006628106370878,
       "BRANCH_RADIUS": 0.23146987671192193,
       "BRANCH_VOLUME": 0.20209701191180598,
@@ -7181,7 +7181,7 @@
     },
     {
       "BRANCH_UID": "B106",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.3286981816064833,
       "BRANCH_RADIUS": 0.2401042708888059,
       "BRANCH_VOLUME": 0.24064452412840237,
@@ -7190,7 +7190,7 @@
     },
     {
       "BRANCH_UID": "B107",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.5128803509192212,
       "BRANCH_RADIUS": 0.5094667446811534,
       "BRANCH_VOLUME": 2.049053815797115,
@@ -7199,7 +7199,7 @@
     },
     {
       "BRANCH_UID": "B108",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.6068137038163268,
       "BRANCH_RADIUS": 0.26353297427578987,
       "BRANCH_VOLUME": 0.35057853900132796,
@@ -7208,7 +7208,7 @@
     },
     {
       "BRANCH_UID": "B109",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.814023723622375,
       "BRANCH_RADIUS": 0.3053349641166668,
       "BRANCH_VOLUME": 0.5313074579423641,
@@ -7217,7 +7217,7 @@
     },
     {
       "BRANCH_UID": "B110",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.290436609550861,
       "BRANCH_RADIUS": 0.4655135555127421,
       "BRANCH_VOLUME": 1.5593112536715774,
@@ -7226,7 +7226,7 @@
     },
     {
       "BRANCH_UID": "B111",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.902953020341629,
       "BRANCH_RADIUS": 0.34164466437053526,
       "BRANCH_VOLUME": 0.6977939896656197,
@@ -7235,7 +7235,7 @@
     },
     {
       "BRANCH_UID": "B112",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.6393246999158086,
       "BRANCH_RADIUS": 0.3181484999004778,
       "BRANCH_VOLUME": 0.5212842637444004,
@@ -7244,7 +7244,7 @@
     },
     {
       "BRANCH_UID": "B113",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.6687310255680547,
       "BRANCH_RADIUS": 0.3292977176303711,
       "BRANCH_VOLUME": 0.5684779898693465,
@@ -7253,7 +7253,7 @@
     },
     {
       "BRANCH_UID": "B114",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.3752476385318935,
       "BRANCH_RADIUS": 0.47798826977939535,
       "BRANCH_VOLUME": 1.7048777593193762,
@@ -7262,7 +7262,7 @@
     },
     {
       "BRANCH_UID": "B115",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.919564925723624,
       "BRANCH_RADIUS": 0.3824027561480927,
       "BRANCH_VOLUME": 0.8818499733946468,
@@ -7271,7 +7271,7 @@
     },
     {
       "BRANCH_UID": "B116",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.4019314541159187,
       "BRANCH_RADIUS": 0.25993168409136264,
       "BRANCH_VOLUME": 0.29757407594766744,
@@ -7280,7 +7280,7 @@
     },
     {
       "BRANCH_UID": "B117",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.2551854119939114,
       "BRANCH_RADIUS": 0.4361692193804258,
       "BRANCH_VOLUME": 1.3478518351406543,
@@ -7289,7 +7289,7 @@
     },
     {
       "BRANCH_UID": "B118",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.8436819306984567,
       "BRANCH_RADIUS": 0.7677961075974383,
       "BRANCH_VOLUME": 7.118510450998305,
@@ -7298,7 +7298,7 @@
     },
     {
       "BRANCH_UID": "B119",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.5038058342871392,
       "BRANCH_RADIUS": 0.2300887407064539,
       "BRANCH_VOLUME": 0.2501107580256858,
@@ -7307,7 +7307,7 @@
     },
     {
       "BRANCH_UID": "B120",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.1459444421950358,
       "BRANCH_RADIUS": 0.42760307835506634,
       "BRANCH_VOLUME": 1.2326789872311212,
@@ -7316,7 +7316,7 @@
     },
     {
       "BRANCH_UID": "B121",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 1.7150331680085158,
       "BRANCH_RADIUS": 0.3327650409713439,
       "BRANCH_VOLUME": 0.5966199695543433,
@@ -7325,7 +7325,7 @@
     },
     {
       "BRANCH_UID": "B122",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.350099935393429,
       "BRANCH_RADIUS": 0.6744369714351354,
       "BRANCH_VOLUME": 4.787297028924206,
@@ -7334,7 +7334,7 @@
     },
     {
       "BRANCH_UID": "B123",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.4785098203762466,
       "BRANCH_RADIUS": 0.23865357282937955,
       "BRANCH_VOLUME": 0.26455134090372406,
@@ -7343,7 +7343,7 @@
     },
     {
       "BRANCH_UID": "B124",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.7780966569899905,
       "BRANCH_RADIUS": 0.29821502944707184,
       "BRANCH_VOLUME": 0.49678021675739437,
@@ -7352,7 +7352,7 @@
     },
     {
       "BRANCH_UID": "B125",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.3150793300809744,
       "BRANCH_RADIUS": 0.6708212379348547,
       "BRANCH_VOLUME": 4.686594793781061,
@@ -7361,7 +7361,7 @@
     },
     {
       "BRANCH_UID": "B126",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.496542530069598,
       "BRANCH_RADIUS": 0.30000899642071455,
       "BRANCH_VOLUME": 0.4231628101721749,
@@ -7370,7 +7370,7 @@
     },
     {
       "BRANCH_UID": "B127",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.3764262559355207,
       "BRANCH_RADIUS": 0.4836692527297786,
       "BRANCH_VOLUME": 1.7465103928519101,
@@ -7379,7 +7379,7 @@
     },
     {
       "BRANCH_UID": "B128",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.9794120458631606,
       "BRANCH_RADIUS": 0.3978772517682485,
       "BRANCH_VOLUME": 0.9844287769639647,
@@ -7388,7 +7388,7 @@
     },
     {
       "BRANCH_UID": "B129",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.329278701579614,
       "BRANCH_RADIUS": 0.20782274121087438,
       "BRANCH_VOLUME": 0.18036491309063415,
@@ -7397,7 +7397,7 @@
     },
     {
       "BRANCH_UID": "B130",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.1070651458133334,
       "BRANCH_RADIUS": 0.3882077890873097,
       "BRANCH_VOLUME": 0.9975997365493549,
@@ -7406,7 +7406,7 @@
     },
     {
       "BRANCH_UID": "B131",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.1354085531823057,
       "BRANCH_RADIUS": 0.6378441244056022,
       "BRANCH_VOLUME": 4.00749630000903,
@@ -7415,7 +7415,7 @@
     },
     {
       "BRANCH_UID": "B132",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.182164020342367,
       "BRANCH_RADIUS": 0.412322304370462,
       "BRANCH_VOLUME": 1.1654963567260885,
@@ -7424,7 +7424,7 @@
     },
     {
       "BRANCH_UID": "B133",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.9327210978360181,
       "BRANCH_RADIUS": 0.13168181468585685,
       "BRANCH_VOLUME": 0.05081047780196462,
@@ -7433,7 +7433,7 @@
     },
     {
       "BRANCH_UID": "B134",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.1635824128090175,
       "BRANCH_RADIUS": 0.43542776049217236,
       "BRANCH_VOLUME": 1.2887110217959525,
@@ -7442,7 +7442,7 @@
     },
     {
       "BRANCH_UID": "B135",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.2164552918554126,
       "BRANCH_RADIUS": 0.42112601231691055,
       "BRANCH_VOLUME": 1.2349033938375051,
@@ -7460,7 +7460,7 @@
     },
     {
       "BRANCH_UID": "B137",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.2015530826908734,
       "BRANCH_RADIUS": 0.4420650297369997,
       "BRANCH_VOLUME": 1.3516098730969233,
@@ -7469,7 +7469,7 @@
     },
     {
       "BRANCH_UID": "B138",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.1868058007585534,
       "BRANCH_RADIUS": 0.21233773160851213,
       "BRANCH_VOLUME": 0.16810625764039502,
@@ -7487,7 +7487,7 @@
     },
     {
       "BRANCH_UID": "B140",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.5048871260891663,
       "BRANCH_RADIUS": 0.5101035738785713,
       "BRANCH_VOLUME": 2.0476454748982715,
@@ -7496,7 +7496,7 @@
     },
     {
       "BRANCH_UID": "B141",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.950641737677031,
       "BRANCH_RADIUS": 0.5975515421409509,
       "BRANCH_VOLUME": 3.309916951654859,
@@ -7505,7 +7505,7 @@
     },
     {
       "BRANCH_UID": "B142",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.046432302536689,
       "BRANCH_RADIUS": 0.41330096183927134,
       "BRANCH_VOLUME": 1.0981965804979466,
@@ -7514,7 +7514,7 @@
     },
     {
       "BRANCH_UID": "B143",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.5222960766481626,
       "BRANCH_RADIUS": 0.26254069386489004,
       "BRANCH_VOLUME": 0.3296417857724499,
@@ -7523,7 +7523,7 @@
     },
     {
       "BRANCH_UID": "B144",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.4620461613994666,
       "BRANCH_RADIUS": 0.48092536285588583,
       "BRANCH_VOLUME": 1.788963281283353,
@@ -7532,7 +7532,7 @@
     },
     {
       "BRANCH_UID": "B145",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.1897186528724566,
       "BRANCH_RADIUS": 0.6487308508350161,
       "BRANCH_VOLUME": 4.21726948962999,
@@ -7541,7 +7541,7 @@
     },
     {
       "BRANCH_UID": "B146",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.135299536780439,
       "BRANCH_RADIUS": 0.4181611512679941,
       "BRANCH_VOLUME": 1.1729946845211046,
@@ -7550,7 +7550,7 @@
     },
     {
       "BRANCH_UID": "B147",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 4.084502593397921,
       "BRANCH_RADIUS": 0.81589452237252,
       "BRANCH_VOLUME": 8.541951155474118,
@@ -7559,7 +7559,7 @@
     },
     {
       "BRANCH_UID": "B148",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.54696056848771,
       "BRANCH_RADIUS": 0.5189435430340748,
       "BRANCH_VOLUME": 2.154826556612816,
@@ -7568,7 +7568,7 @@
     },
     {
       "BRANCH_UID": "B149",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.9307499045498309,
       "BRANCH_RADIUS": 0.0922616123201293,
       "BRANCH_VOLUME": 0.024890003218816494,
@@ -7577,7 +7577,7 @@
     },
     {
       "BRANCH_UID": "B150",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.620616340522914,
       "BRANCH_RADIUS": 0.5320681303021745,
       "BRANCH_VOLUME": 2.330707696133871,
@@ -7586,7 +7586,7 @@
     },
     {
       "BRANCH_UID": "B151",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.6961960256937822,
       "BRANCH_RADIUS": 0.5501302203585251,
       "BRANCH_VOLUME": 2.5634942189510634,
@@ -7595,7 +7595,7 @@
     },
     {
       "BRANCH_UID": "B152",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.923246913776185,
       "BRANCH_RADIUS": 0.796635602504657,
       "BRANCH_VOLUME": 7.821948237999122,
@@ -7604,7 +7604,7 @@
     },
     {
       "BRANCH_UID": "B153",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.5138998242253074,
       "BRANCH_RADIUS": 0.2408088540572073,
       "BRANCH_VOLUME": 0.2757985085424606,
@@ -7613,7 +7613,7 @@
     },
     {
       "BRANCH_UID": "B154",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.466878197841584,
       "BRANCH_RADIUS": 0.4969417506524579,
       "BRANCH_VOLUME": 1.9138528826835453,
@@ -7622,7 +7622,7 @@
     },
     {
       "BRANCH_UID": "B155",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.496198524264651,
       "BRANCH_RADIUS": 0.7115117258989082,
       "BRANCH_VOLUME": 5.560451811578963,
@@ -7631,7 +7631,7 @@
     },
     {
       "BRANCH_UID": "B156",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.0456105818060377,
       "BRANCH_RADIUS": 0.07565952842452855,
       "BRANCH_VOLUME": 0.018803864048027107,
@@ -7640,7 +7640,7 @@
     },
     {
       "BRANCH_UID": "B157",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.1514296940857864,
       "BRANCH_RADIUS": 0.6154794872437078,
       "BRANCH_VOLUME": 3.7504610724238963,
@@ -7649,7 +7649,7 @@
     },
     {
       "BRANCH_UID": "B158",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.372041883178967,
       "BRANCH_RADIUS": 0.6642835536132694,
       "BRANCH_VOLUME": 4.674657895408874,
@@ -7667,7 +7667,7 @@
     },
     {
       "BRANCH_UID": "B160",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.042974774484781,
       "BRANCH_RADIUS": 0.41277931186372163,
       "BRANCH_VOLUME": 1.0935753751725656,
@@ -7685,7 +7685,7 @@
     },
     {
       "BRANCH_UID": "B162",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.6201775685284805,
       "BRANCH_RADIUS": 0.3261564715593954,
       "BRANCH_VOLUME": 0.5414576425569492,
@@ -7694,7 +7694,7 @@
     },
     {
       "BRANCH_UID": "B163",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.4965566126064866,
       "BRANCH_RADIUS": 0.2965578138624034,
       "BRANCH_VOLUME": 0.4134869105874888,
@@ -7703,7 +7703,7 @@
     },
     {
       "BRANCH_UID": "B164",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.0429723745169506,
       "BRANCH_RADIUS": 0.11606967270176267,
       "BRANCH_VOLUME": 0.04414283256478612,
@@ -7712,7 +7712,7 @@
     },
     {
       "BRANCH_UID": "B165",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.976915191274138,
       "BRANCH_RADIUS": 0.8002198160518074,
       "BRANCH_VOLUME": 8.000457192143688,
@@ -7721,7 +7721,7 @@
     },
     {
       "BRANCH_UID": "B166",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.016830338046594,
       "BRANCH_RADIUS": 0.6098935813779831,
       "BRANCH_VOLUME": 3.5254039362544454,
@@ -7730,7 +7730,7 @@
     },
     {
       "BRANCH_UID": "B167",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.6333791041816177,
       "BRANCH_RADIUS": 0.527489350205939,
       "BRANCH_VOLUME": 2.3019222432080237,
@@ -7739,7 +7739,7 @@
     },
     {
       "BRANCH_UID": "B168",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.91470767961191,
       "BRANCH_RADIUS": 0.7864748817359835,
       "BRANCH_VOLUME": 7.607096474184198,
@@ -7748,7 +7748,7 @@
     },
     {
       "BRANCH_UID": "B169",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.3696985205065872,
       "BRANCH_RADIUS": 0.6760510521479357,
       "BRANCH_VOLUME": 4.838379239122749,
@@ -7757,7 +7757,7 @@
     },
     {
       "BRANCH_UID": "B170",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.8300997043455527,
       "BRANCH_RADIUS": 0.5744534923863442,
       "BRANCH_VOLUME": 2.934008426575534,
@@ -7766,7 +7766,7 @@
     },
     {
       "BRANCH_UID": "B171",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.0733611818670408,
       "BRANCH_RADIUS": 0.6209633681989158,
       "BRANCH_VOLUME": 3.7230205762253377,
@@ -7775,7 +7775,7 @@
     },
     {
       "BRANCH_UID": "B172",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.854426359114194,
       "BRANCH_RADIUS": 0.7804776633571016,
       "BRANCH_VOLUME": 7.376164306155979,
@@ -7802,7 +7802,7 @@
     },
     {
       "BRANCH_UID": "B175",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.69992298557864,
       "BRANCH_RADIUS": 0.5247036985775094,
       "BRANCH_VOLUME": 2.3352291324595957,
@@ -7820,7 +7820,7 @@
     },
     {
       "BRANCH_UID": "B177",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.6419486101864336,
       "BRANCH_RADIUS": 0.5155018904276878,
       "BRANCH_VOLUME": 2.205640678724506,
@@ -7829,7 +7829,7 @@
     },
     {
       "BRANCH_UID": "B178",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.3599232510753773,
       "BRANCH_RADIUS": 0.045584565806145526,
       "BRANCH_VOLUME": 0.002349608045922205,
@@ -7838,7 +7838,7 @@
     },
     {
       "BRANCH_UID": "B179",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.093703689166166,
       "BRANCH_RADIUS": 0.1531693356328564,
       "BRANCH_VOLUME": 0.08061079550099311,
@@ -7847,7 +7847,7 @@
     },
     {
       "BRANCH_UID": "B180",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.5957616916796202,
       "BRANCH_RADIUS": 0.7303293108400323,
       "BRANCH_VOLUME": 6.0252938997818335,
@@ -7865,7 +7865,7 @@
     },
     {
       "BRANCH_UID": "B182",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.3571634149619727,
       "BRANCH_RADIUS": 0.4667658183445433,
       "BRANCH_VOLUME": 1.6133836598469846,
@@ -7874,7 +7874,7 @@
     },
     {
       "BRANCH_UID": "B183",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.806081828459672,
       "BRANCH_RADIUS": 0.5426100623735987,
       "BRANCH_VOLUME": 2.5955290292523028,
@@ -7883,7 +7883,7 @@
     },
     {
       "BRANCH_UID": "B184",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.729672954370759,
       "BRANCH_RADIUS": 0.5504870762085026,
       "BRANCH_VOLUME": 2.5986916109930354,
@@ -7892,7 +7892,7 @@
     },
     {
       "BRANCH_UID": "B185",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.820628168715341,
       "BRANCH_RADIUS": 0.5722435210021212,
       "BRANCH_VOLUME": 2.901733208263269,
@@ -7919,7 +7919,7 @@
     },
     {
       "BRANCH_UID": "B188",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.5212618324895577,
       "BRANCH_RADIUS": 0.47930873798378376,
       "BRANCH_VOLUME": 1.8196946361970174,
@@ -7928,7 +7928,7 @@
     },
     {
       "BRANCH_UID": "B189",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.4557006805187165,
       "BRANCH_RADIUS": 0.2932329672682687,
       "BRANCH_VOLUME": 0.3932308190827983,
@@ -7937,7 +7937,7 @@
     },
     {
       "BRANCH_UID": "B190",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.221924808928559,
       "BRANCH_RADIUS": 0.6399093669138927,
       "BRANCH_VOLUME": 4.14478691628178,
@@ -7946,7 +7946,7 @@
     },
     {
       "BRANCH_UID": "B191",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.780097280090403,
       "BRANCH_RADIUS": 0.7698892556649486,
       "BRANCH_VOLUME": 7.038974092429601,
@@ -7955,7 +7955,7 @@
     },
     {
       "BRANCH_UID": "B192",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.54468625963915,
       "BRANCH_RADIUS": 0.5177500811419119,
       "BRANCH_VOLUME": 2.1430113378570486,
@@ -7964,7 +7964,7 @@
     },
     {
       "BRANCH_UID": "B193",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.896667697453894,
       "BRANCH_RADIUS": 0.5793749606444363,
       "BRANCH_VOLUME": 3.05469597697241,
@@ -8000,7 +8000,7 @@
     },
     {
       "BRANCH_UID": "B197",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 1.5639677247875774,
       "BRANCH_RADIUS": 0.28530697282552914,
       "BRANCH_VOLUME": 0.3999469882497709,
@@ -8009,7 +8009,7 @@
     },
     {
       "BRANCH_UID": "B198",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.2864779600566076,
       "BRANCH_RADIUS": 0.6604006605412969,
       "BRANCH_VOLUME": 4.502934137705004,
@@ -8018,7 +8018,7 @@
     },
     {
       "BRANCH_UID": "B199",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.0874771647143233,
       "BRANCH_RADIUS": 0.6097521767832796,
       "BRANCH_VOLUME": 3.6062874929103,
@@ -8027,7 +8027,7 @@
     },
     {
       "BRANCH_UID": "B200",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.707006018563953,
       "BRANCH_RADIUS": 0.5383736852236307,
       "BRANCH_VOLUME": 2.4649422133280328,
@@ -8036,7 +8036,7 @@
     },
     {
       "BRANCH_UID": "B201",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.3674512192655404,
       "BRANCH_RADIUS": 0.26408182595558166,
       "BRANCH_VOLUME": 0.299597885514809,
@@ -8054,7 +8054,7 @@
     },
     {
       "BRANCH_UID": "B203",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.5789054528505677,
       "BRANCH_RADIUS": 0.09676882744863045,
       "BRANCH_VOLUME": 0.017030542029968346,
@@ -8063,7 +8063,7 @@
     },
     {
       "BRANCH_UID": "B204",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.9915847553304995,
       "BRANCH_RADIUS": 0.6019211994895661,
       "BRANCH_VOLUME": 3.4051046425268114,
@@ -8072,7 +8072,7 @@
     },
     {
       "BRANCH_UID": "B205",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.2431461378163853,
       "BRANCH_RADIUS": 0.6636140157673595,
       "BRANCH_VOLUME": 4.486911371591401,
@@ -8081,7 +8081,7 @@
     },
     {
       "BRANCH_UID": "B206",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.443932989685498,
       "BRANCH_RADIUS": 0.49676539937816,
       "BRANCH_VOLUME": 1.8947060598014829,
@@ -8090,7 +8090,7 @@
     },
     {
       "BRANCH_UID": "B207",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.1884281879156333,
       "BRANCH_RADIUS": 0.6480714519682236,
       "BRANCH_VOLUME": 4.206997891846897,
@@ -8099,7 +8099,7 @@
     },
     {
       "BRANCH_UID": "B208",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.3199368901843527,
       "BRANCH_RADIUS": 0.26147780960553463,
       "BRANCH_VOLUME": 0.2835128293136314,
@@ -8108,7 +8108,7 @@
     },
     {
       "BRANCH_UID": "B209",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 3.252097901770417,
       "BRANCH_RADIUS": 0.662587090028863,
       "BRANCH_VOLUME": 4.485381871122039,
@@ -8117,7 +8117,7 @@
     },
     {
       "BRANCH_UID": "B210",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.3565528115671053,
       "BRANCH_RADIUS": 0.6600461545464505,
       "BRANCH_VOLUME": 4.594010333855826,
@@ -8126,7 +8126,7 @@
     },
     {
       "BRANCH_UID": "B211",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.739987791740204,
       "BRANCH_RADIUS": 0.333594720987588,
       "BRANCH_VOLUME": 0.6083232463029052,
@@ -8135,7 +8135,7 @@
     },
     {
       "BRANCH_UID": "B212",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.8791850365361316,
       "BRANCH_RADIUS": 0.5885339130790976,
       "BRANCH_VOLUME": 3.1330147228747505,
@@ -8144,7 +8144,7 @@
     },
     {
       "BRANCH_UID": "B213",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 1.8575403034416358,
       "BRANCH_RADIUS": 0.3645129131696825,
       "BRANCH_VOLUME": 0.7753788570551057,
@@ -8153,7 +8153,7 @@
     },
     {
       "BRANCH_UID": "B214",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 0.874887622454258,
       "BRANCH_RADIUS": 0.16474886478407705,
       "BRANCH_VOLUME": 0.07460140495118642,
@@ -8162,7 +8162,7 @@
     },
     {
       "BRANCH_UID": "B215",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.972306579555234,
       "BRANCH_RADIUS": 0.39845744948017137,
       "BRANCH_VOLUME": 0.983757820029367,
@@ -8171,7 +8171,7 @@
     },
     {
       "BRANCH_UID": "B216",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.236448723619113,
       "BRANCH_RADIUS": 0.20320189185467458,
       "BRANCH_VOLUME": 0.16039154738710545,
@@ -8180,7 +8180,7 @@
     },
     {
       "BRANCH_UID": "B217",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.8855092078083246,
       "BRANCH_RADIUS": 0.7906461087339125,
       "BRANCH_VOLUME": 7.630659785065152,
@@ -8198,7 +8198,7 @@
     },
     {
       "BRANCH_UID": "B219",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 3,
       "BRANCH_LENGTH": 2.1866023747840173,
       "BRANCH_RADIUS": 0.4111291428789514,
       "BRANCH_VOLUME": 1.1611176152939098,
@@ -8207,7 +8207,7 @@
     },
     {
       "BRANCH_UID": "B220",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.7444223083282402,
       "BRANCH_RADIUS": 0.34492334349316756,
       "BRANCH_VOLUME": 0.6519986239709026,
@@ -8216,7 +8216,7 @@
     },
     {
       "BRANCH_UID": "B221",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 1.473459675455204,
       "BRANCH_RADIUS": 0.22006065326596894,
       "BRANCH_VOLUME": 0.22416764188631727,
@@ -8225,7 +8225,7 @@
     },
     {
       "BRANCH_UID": "B222",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.144290682185147,
       "BRANCH_RADIUS": 0.43421115260068777,
       "BRANCH_VOLUME": 1.270092873211483,
@@ -8234,7 +8234,7 @@
     },
     {
       "BRANCH_UID": "B223",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.7616051101027095,
       "BRANCH_RADIUS": 0.563418561984957,
       "BRANCH_VOLUME": 2.7540622478154244,
@@ -8243,7 +8243,7 @@
     },
     {
       "BRANCH_UID": "B224",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.511727132925288,
       "BRANCH_RADIUS": 0.49382570158273353,
       "BRANCH_VOLUME": 1.92428639172048,
@@ -8252,7 +8252,7 @@
     },
     {
       "BRANCH_UID": "B225",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 3.616062096427179,
       "BRANCH_RADIUS": 0.7167712832415829,
       "BRANCH_VOLUME": 5.836425513159362,
@@ -8261,7 +8261,7 @@
     },
     {
       "BRANCH_UID": "B226",
-      "BRANCH_ORDER": 1,
+      "BRANCH_ORDER": 2,
       "BRANCH_LENGTH": 2.856369511962056,
       "BRANCH_RADIUS": 0.5784356650049697,
       "BRANCH_VOLUME": 3.0024403433940265,
