@@ -326,11 +326,13 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
               layout.tree_path(plot_dir, plot_uid, uid, "raw_skeleton"))
         _move(os.path.join(flat_it, f"{uid}_trimmed_skeleton.json"),
               layout.tree_path(plot_dir, plot_uid, uid, "trimmed_skeleton"))
-        # las
-        _move(layout.cloud_file(flat_it, f"{uid}_raw"),
-              layout.tree_path(plot_dir, plot_uid, uid, "raw_las"))
-        _move(layout.cloud_file(flat_it, f"{uid}_trimmed"),
-              layout.tree_path(plot_dir, plot_uid, uid, "trimmed_las"))
+        # per-tree clouds are internal staging only (item W6): trimmed
+        # geometry survives in the plot clouds + skeleton JSONs, and the
+        # extraction stage is the only thing that writes per-object las
+        for suffix in (f"{uid}_raw", f"{uid}_trimmed"):
+            staged = layout.cloud_file(flat_it, suffix)
+            if staged and os.path.exists(staged):
+                os.remove(staged)
         # stem map crop + mask
         _move(os.path.join(flat_it, f"{plot_uid}_tree_{uid}_stem_map_bounding_box.tif"),
               layout.tree_path(plot_dir, plot_uid, uid, "stem_feature_raw"))

@@ -570,8 +570,35 @@ def run_checks(fixroot, plot_dir):
         check("core-only run writes no normalized cloud",
               not any(f.endswith("_normalized.laz")
                       for f in os.listdir(os.path.join(cplace, "las"))))
+        obj_las = glob.glob(os.path.join(cd, "individual_*",
+                                        "*", "las", "*.laz"))
+        check("core-only run writes no per-object clouds",
+              obj_las == [], str(obj_las[:2]))
     finally:
         core_cleanup()
+
+    # ---- extraction: crops == tree_id slices of the plot cloud (item W6) --
+    print("== L. individual extraction (spec Section 5, item W6) ==")
+    plot_cloud_las = os.path.join(place, "las", f"{uid_tag}_trimmed.laz")
+    pxyz, pcols = read_canonical_las(plot_cloud_las, level="plot")
+    scene = json.load(open(os.path.join(place, "textual",
+                                         f"{uid_tag}_scene.json")))
+    for _, row in table.iterrows():
+        uid = str(row["TREE_UID"])
+        sk = json.load(open(os.path.join(treed(uid), "textual",
+                                         f"{uid_tag}_{uid}_trimmed_skeleton.json")))
+        tid = int(sk["tree_id"])
+        ext, _cols = read_canonical_las(
+            os.path.join(treed(uid), "las", f"{uid_tag}_{uid}_trimmed.laz"),
+            level="tree")
+        sel = pxyz[pcols["tree_id"] == tid]
+        check(f"{uid} extracted crop == plot-cloud tree_id slice",
+              ext.shape == sel.shape
+              and np.allclose(ext, sel, atol=1e-9),
+              f"{ext.shape} vs {sel.shape}")
+        links = scene["trees"].get(uid, {})
+        check(f"{uid} scene links the extracted trimmed cloud",
+              "trimmed_las" in links, str(links))
 
 
 if __name__ == "__main__":

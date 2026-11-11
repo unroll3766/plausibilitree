@@ -209,11 +209,13 @@ def _skeletons(plot_dir, plot_uid):
 # ---------------------------------------------------------------------------
 # per-tree info
 # ---------------------------------------------------------------------------
-def _foliage_xyz(las_path):
-    if not os.path.exists(las_path):
+def _foliage_xyz_slice(xyz, cols, tree_id):
+    """Foliage points of one tree from a decoded plot cloud (tree_id slice)."""
+    if xyz is None:
         return np.zeros((0, 3))
-    xyz, cols = read_canonical_las(las_path, level="tree")
-    return xyz[cols["semantic_code"].astype(int) == schema.SEM_FOLIAGE]
+    m = cols["tree_id"].astype(int) == int(tree_id)
+    f = m & (cols["semantic_code"].astype(int) == schema.SEM_FOLIAGE)
+    return xyz[f]
 
 
 def _tree_centroid_z(plot_cloud, tree_id, xyz_tree):
@@ -237,20 +239,26 @@ def _tree_centroid_z(plot_cloud, tree_id, xyz_tree):
 
 def build_tree_info(plot_dir, plot_uid, uid, skel, coord_system, units,
                     foliage_voxel, voxel_threshold, tree_id=None,
-                    plot_cloud=None, anchor=None):
+                    plot_cloud=None, anchor=None,
+                    trim_cloud=None, raw_cloud=None):
+    """Tree info from the single plot cloud (item W6): geometry is a
+    tree_id slice of the plot-level trimmed (or raw) cloud, not a
+    per-tree sub-cloud."""
     tag = layout.tree_tag(plot_uid, uid)
-    raw_las = layout.tree_path(plot_dir, plot_uid, uid, "raw_las", create=False)
-    trim_las = layout.tree_path(plot_dir, plot_uid, uid, "trimmed_las", create=False)
 
-    # clouds / bbox
+    # clouds / bbox: tree_id slices of the plot-level clouds
     xyz_all = np.zeros((0, 3))
-    if os.path.exists(trim_las):
-        xyz_all, _ = read_canonical_las(trim_las, level="tree")
-    elif os.path.exists(raw_las):
-        xyz_all, _ = read_canonical_las(raw_las, level="tree")
+    if trim_cloud is not None:
+        tm = trim_cloud[1]["tree_id"].astype(int) == int(tree_id)
+        xyz_all = trim_cloud[0][tm]
+    elif raw_cloud is not None:
+        rm = raw_cloud[1]["tree_id"].astype(int) == int(tree_id)
+        xyz_all = raw_cloud[0][rm]
 
-    fol_raw = _foliage_xyz(raw_las)
-    fol_trim = _foliage_xyz(trim_las)
+    fol_raw = (_foliage_xyz_slice(raw_cloud[0], raw_cloud[1], tree_id)
+               if raw_cloud is not None else np.zeros((0, 3)))
+    fol_trim = (_foliage_xyz_slice(trim_cloud[0], trim_cloud[1], tree_id)
+                if trim_cloud is not None else np.zeros((0, 3)))
     # single post-trim foliage source (spec 3.2): the surviving points
     fol_src = fol_trim if len(fol_trim) else fol_raw
 
@@ -564,13 +572,29 @@ def build_info(csv_path, plot_dir=None, *, coord_system="local", units="meters",
     plot_cloud = _load_plot_cloud(plot_dir, plot_uid)
     anchor = georef.load_anchor(plot_dir, plot_uid)
 
+    # single plot-cloud decode pair for every tree's geometry (item W6:
+    # per-tree values are tree_id slices of the plot clouds)
+    trim_c = None
+    trim_las = layout.plot_path(plot_dir, plot_uid, "trimmed_las", create=False)
+    if os.path.exists(trim_las):
+        trim_c = read_canonical_las(trim_las, level="plot")
+    raw_c = None
+    raw_las = layout.plot_path(plot_dir, plot_uid, "raw_las", create=False)
+    if os.path.exists(raw_las):
+        raw_c = read_canonical_las(raw_las, level="plot")
+    if trim_c is None and raw_c is None:
+        raise FileNotFoundError(
+            f"no plot-level cloud for {plot_uid} (need "
+            f"{layout.PLOT_PLACEMENT}/las/ raw or trimmed); per-tree "
+            f"sub-clouds are no longer core outputs (spec Section 4)")
+
     # per-tree info
     tree_infos = {}
     for tid, (uid, sk) in skels.items():
         info, xyz_all = build_tree_info(
             plot_dir, plot_uid, uid, sk, coord_system, units,
             foliage_voxel, voxel_threshold, tree_id=tid, plot_cloud=plot_cloud,
-            anchor=anchor)
+            anchor=anchor, trim_cloud=trim_c, raw_cloud=raw_c)
         nb = _neighborhood(plot_dir, plot_uid, uid,
                            info["BOUNDING_BOX"], plot_cloud,
                            foliage_voxel, voxel_threshold,

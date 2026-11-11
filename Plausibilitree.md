@@ -194,11 +194,11 @@ extension) — one post-trim value each, no pre-trim variants
 
 ## 4. Core outputs
 
-**[partial]** — the design target is exactly one point cloud per plot, plus
-per-tree and per-shrub JSONs carrying everything needed to extract
-individuals (position, bounding box, tree_id/shrub_id, volumes). Per-tree
-sub-clouds are never written as outputs. Today the pipeline writes per-tree
-clouds at every stage instead (Section 11, item W6).
+**[implemented]** — exactly one point cloud per plot, plus per-tree and
+per-shrub JSONs carrying everything needed to extract individuals
+(position, bounding box, tree_id/shrub_id, volumes). Per-tree sub-clouds
+are never written as outputs (individual extraction is the opt-in stage
+of Section 5).
 
 All point clouds are LAZ (compressed LAS, lazrs backend). All artifacts are
 written into the canonical per-plot layout (Section 8.2), and one
@@ -216,17 +216,28 @@ bounds, rotations and reflections.
 - **DTM** (GeoTIFF, EPSG:4326 per Section 10) when one was generated.
 
 (Per-tree clouds still exist as internal runtime artifacts — trimming
-operates on them — but they are not deliverables.)
+operates on them — but they are not deliverables: generate/assemble stage
+them in the flat working area and restructure deletes them, so nothing
+per-tree ever lands in `individual_trees/*/las/` from a core run. The same
+applies to per-shrub clouds; the extraction stage is the only writer of
+per-object `las/` subtrees.)
 
 ## 5. Derived output stages (opt-in)
 
 Each is a separate stage over the core outputs, never part of the core run.
 
-- **Individual-tree extraction** — optional convenience stage: crop per-tree
-  clouds (optionally with surrounding-plot points) from the single plot
-  cloud using `tree_id` and the per-tree JSONs. The core outputs alone are
-  sufficient for anyone to do this themselves. **[partial]**: today per-tree
-  sub-clouds are instead written directly by every core run (item W6).
+- **Individual-tree extraction** **[implemented (item W6)]** — optional
+  convenience stage (`extract_trees.py`, orchestrated as `--extract-trees`):
+  crop per-object clouds from the single plot cloud using `tree_id` /
+  `shrub_id` — trees and shrubs alike, each written to the canonical
+  `individual_trees/<TREE_UID>/las/` / `individual_shrubs/<SHRUB_UID>/las/`
+  positions under the source name (`--source` resolves understory ->
+  terrain -> trimmed -> raw; the extracted file is named for that source
+  so the scene links, normalize and the editor read it unchanged).
+  `--surroundings N` widens each crop to an N-metre window of the plot so
+  the extracted cloud carries background points; without it a crop is the
+  object's own points only. The core outputs alone are sufficient for
+  anyone to do this themselves.
 - **Stem map** **[implemented as an opt-in stage (`--stem-map`)]** — a 2-band raster of
   the breast-height slab (DBH_HT +/- STEM_SECTION, cell STEM_RESOLUTION),
   both bands covering the whole plot: band 1 (uint16) counts all points

@@ -65,35 +65,8 @@ def build_shrub_outputs(plot_dir, plot_uid, shrub_geom,
         mine = shrub_pt & (sid == s)
         n_pts = int(mine.sum())
 
-        # ---- raw cloud: this shrub's points only ----
-        raw_out = layout.shrub_path(plot_dir, plot_uid, uid, "raw_las")
-        export_canonical_las(
-            raw_out, xyz[mine],
-            {"shrub_id": cols["shrub_id"][mine],
-             "semantic_code": cols["semantic_code"][mine],
-             "classification": cols["classification"][mine],
-             "height_above_ground": cols["height_above_ground"][mine]},
-            level="tree")
-
-        # ---- understory cloud: shrub + surrounding context (bbox crop) ----
-        # context window = shrub footprint bbox padded by its width, all points
-        # (any class) inside it, so the shrub sits in its neighbourhood.
-        cx, cy = geom["center_xy"]
-        half = max(geom["width_m"], 0.1)
-        pad = half  # one shrub-width of context around the footprint
-        in_box = ((xyz[:, 0] >= cx - half - pad) & (xyz[:, 0] <= cx + half + pad) &
-                  (xyz[:, 1] >= cy - half - pad) & (xyz[:, 1] <= cy + half + pad))
-        u_out = layout.shrub_path(plot_dir, plot_uid, uid, "understory_las")
-        export_canonical_las(
-            u_out, xyz[in_box],
-            {"tree_id": cols["tree_id"][in_box],
-             "shrub_id": cols["shrub_id"][in_box],
-             "semantic_code": cols["semantic_code"][in_box],
-             "classification": cols["classification"][in_box],
-             "branch_code": cols["branch_code"][in_box],
-             "branch_id": cols["branch_id"][in_box],
-             "height_above_ground": cols["height_above_ground"][in_box]},
-            level="tree")
+        # (per-shrub sub-clouds retired, item W6: the plot understory
+        # cloud + shrub_id are the record; extraction crops them on demand)
 
         # ---- volume JSON: sampled shape (primitive + mesh) ----
         vol_doc = {

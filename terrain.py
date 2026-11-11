@@ -406,8 +406,7 @@ def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=None,
                 anchor, layout.plot_path(plot_dir, plot_uid, "dtm_tif"))
 
     # --- per-tree terrain clouds: tree + surrounding points in canopy bbox ---
-    n_tree_files = _write_tree_terrain(plot_dir, plot_uid, all_pts, all_hag,
-                                       all_sem, all_code, all_bid,
+    n_tree_files = _write_tree_terrain(plot_dir, plot_uid,
                                        dtm=(dtm if generate else None))
 
     # record in scene
@@ -439,16 +438,14 @@ def build_terrain(csv_path, dtm_path=None, plot_dir=None, *, density=None,
         dist = {int(k): int(v) for k, v in zip(*vc)}
         print(f"{plot_uid}: terrain cloud {len(all_pts):,} points "
               f"({len(veg):,} veg + {len(ground):,} ground), "
-              f"veg classes {dist}, {n_tree_files} tree files")
+              f"veg classes {dist}, {n_tree_files} tree DTM crops")
     return out
 
 
-def _write_tree_terrain(plot_dir, plot_uid, all_pts, all_hag, all_sem, all_code,
-                        all_bid, dtm=None):
-    """Write each tree's terrain.las: all points inside its canopy x-y bbox.
-
-    When `dtm` is given (a generated DTM), also writes the DTM slice under each
-    tree's canopy bounding box as <tag>_dtm.asc in the tree's textual/ dir.
+def _write_tree_terrain(plot_dir, plot_uid, dtm=None):
+    """Write each tree's DTM crop <tag>_dtm.asc under its canopy x-y bbox
+    (item W6 retired the per-tree terrain sub-clouds; the plot terrain
+    cloud + tree_id are the record, extraction crops on demand).
     """
     scene_path = layout.plot_path(plot_dir, plot_uid, "scene", create=False)
     tree_uids = []
@@ -459,7 +456,6 @@ def _write_tree_terrain(plot_dir, plot_uid, all_pts, all_hag, all_sem, all_code,
         tree_uids = [n.rsplit("_", 1)[-1] for n in sorted(os.listdir(d))
                      if os.path.isdir(os.path.join(d, n))]
 
-    x, y = all_pts[:, 0], all_pts[:, 1]
     n = 0
     for uid in tree_uids:
         bbox_path = layout.tree_path(plot_dir, plot_uid, uid, "canopy_bbox_json",
@@ -469,21 +465,6 @@ def _write_tree_terrain(plot_dir, plot_uid, all_pts, all_hag, all_sem, all_code,
         bw = json.load(open(bbox_path)).get("bbox_world")
         if not bw:
             continue
-        m = ((x >= bw["x_min"]) & (x <= bw["x_max"]) &
-             (y >= bw["y_min"]) & (y <= bw["y_max"]))
-        if not m.any():
-            continue
-        out = layout.tree_path(plot_dir, plot_uid, uid, "terrain_las")
-        export_canonical_las(
-            out, all_pts[m, :3],
-            {"tree_id": all_pts[m, 4].astype(np.int32),
-             "semantic_code": all_sem[m],
-             "classification": all_pts[m, 3].astype(np.uint8),
-             "branch_code": all_code[m],
-             "branch_id": all_bid[m],
-             "height_above_ground": all_hag[m].astype(np.float32)},
-            level="tree")
-
         # DTM crop under the tree's canopy bbox (generated DTMs only)
         if dtm is not None:
             sub = dtm.crop(bw["x_min"], bw["y_min"], bw["x_max"], bw["y_max"])

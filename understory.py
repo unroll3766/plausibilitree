@@ -195,10 +195,6 @@ def build_understory(csv_path, plot_dir=None, *, dtm_path=None, seed=0,
          "height_above_ground": all_hag},
         level="plot")
 
-    n_tree_files = _write_tree_understory(
-        plot_dir, plot_uid, all_xyz, all_tid, all_sid, all_sem, all_cls,
-        all_code, all_bid, all_hag)
-
     # per-shrub individual outputs (clouds, volume JSON, canopy + DBH maps)
     n_shrub_files = 0
     if shrub_outputs and shrub_geom:
@@ -231,8 +227,7 @@ def build_understory(csv_path, plot_dir=None, *, dtm_path=None, seed=0,
 
     if verbose:
         print(f"{plot_uid}: understory +{len(s_pts):,} shrub ({len(s_centers)} "
-              f"shrubs) +{len(g_pts):,} grass -> {len(all_xyz):,} total, "
-              f"{n_tree_files} tree files")
+              f"shrubs) +{len(g_pts):,} grass -> {len(all_xyz):,} total")
     return out
 
 
@@ -249,44 +244,6 @@ def _tree_footprints(xyz, tid, tsem):
         radii.append(max(r, 0.1))
     return (np.asarray(positions) if positions else np.zeros((0, 2)),
             np.asarray(radii) if radii else np.zeros(0))
-
-
-def _write_tree_understory(plot_dir, plot_uid, all_xyz, all_tid, all_sid,
-                           all_sem, all_cls, all_code, all_bid, all_hag):
-    """Per-tree understory crop: all points inside the tree's canopy x-y bbox."""
-    scene_path = layout.plot_path(plot_dir, plot_uid, "scene", create=False)
-    tree_uids = []
-    if os.path.exists(scene_path):
-        tree_uids = list(json.load(open(scene_path)).get("trees", {}).keys())
-    if not tree_uids:
-        d = os.path.join(plot_dir, layout.INDIVIDUAL_TREES)
-        tree_uids = [n.rsplit("_", 1)[-1] for n in sorted(os.listdir(d))
-                     if os.path.isdir(os.path.join(d, n))]
-
-    x, y = all_xyz[:, 0], all_xyz[:, 1]
-    n = 0
-    for uid in tree_uids:
-        bbox_path = layout.tree_path(plot_dir, plot_uid, uid, "canopy_bbox_json",
-                                     create=False)
-        if not os.path.exists(bbox_path):
-            continue
-        bw = json.load(open(bbox_path)).get("bbox_world")
-        if not bw:
-            continue
-        m = ((x >= bw["x_min"]) & (x <= bw["x_max"]) &
-             (y >= bw["y_min"]) & (y <= bw["y_max"]))
-        if not m.any():
-            continue
-        out = layout.tree_path(plot_dir, plot_uid, uid, "understory_las")
-        export_canonical_las(
-            out, all_xyz[m],
-            {"tree_id": all_tid[m], "shrub_id": all_sid[m],
-             "semantic_code": all_sem[m], "classification": all_cls[m],
-             "branch_code": all_code[m], "branch_id": all_bid[m],
-             "height_above_ground": all_hag[m].astype(np.float32)},
-            level="tree")
-        n += 1
-    return n
 
 
 def main():

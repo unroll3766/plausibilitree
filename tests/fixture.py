@@ -80,7 +80,8 @@ def build_full_fixture(outdir: str, ppm: int = 64, seed: int = SEED) -> str:
     rc = run_pipeline(outdir, radius=RADIUS_M, seed=seed,
                      points_per_metre=ppm, limit=1,
                      generate_dtm=True, understory=True,
-                     stem_map=True, canopy_map=True, normalize=True)
+                     stem_map=True, canopy_map=True, normalize=True,
+                     extract_trees=True, extract_source="trimmed")
     if rc not in (0, None):
         raise RuntimeError(f"fixture pipeline failed with exit code {rc}")
     return os.path.join(outdir, PLOT_UID)
@@ -122,6 +123,7 @@ def build_geo_fixture(outdir: str, ppm: int = 32, seed: int = 7) -> str:
     rc = run_pipeline(outdir, radius=12.0, seed=seed, points_per_metre=ppm,
                       limit=1, generate_dtm=True, understory=True,
                       stem_map=True, canopy_map=True, normalize=True,
+                      extract_trees=True, extract_source="trimmed",
                       shrub_cover=0.9, shrub_width_min=0.8,
                       shrub_width_max=1.6)
     if rc not in (0, None):
