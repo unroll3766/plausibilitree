@@ -1317,3 +1317,32 @@ record per se.
 - check.py exit 0; run_all.py exit 0 — 260 PASS, 0 FAIL with new suite
   section K (anchored mini plot end to end + unanchored assertions).
   Demo regeneration byte-identical except the scene's geo:null marker.
+
+### 2026-11-11 — W5 review pass: instance masks corrected, UTM coverage sublimit (commit 8def58d)
+
+- Found: restructure's plot-level instance masks were derived from the
+  feature tif's transform, which W5 made EPSG:4326 in degrees — so the
+  mask helpers overlaid metre-space skeleton discs / cloud points onto a
+  degree grid (label content degenerate) and wrote rasters that were
+  either CRS-less (first W5 run) or double-converted (first review fix).
+- Fix at the root: georef.local_grid_from_geo inverts geo_transform
+  (corner via utm.from_latlon, cell unscaled at the plot latitude);
+  _grid_from_tif takes the anchor and returns the local-metre grid, so
+  masks compute in metres exactly as before and write out through
+  geo_transform like every other anchored export. Verified on the smoke
+  plot: both masks EPSG:4326, transform within 8e-10 deg of their feature
+  rasters, tree ids 1-3 labelled, support sane (stem 137 cells, canopy
+  1391). Suite section K now asserts CRS, transform parity (<1e-6 deg)
+  and the three labels.
+- Found: ingest limits of agreement admit lat +-90 but UTM spans only
+  80S-84N; polar centers crashed with utm's OutOfRangeError. Fix:
+  explicit UTM_LAT_RANGE check -> plain ValueError naming the
+  sublimit (documented in spec Section 10; -80/84 inclusive).
+- Verified: southern-hemisphere anchor (Sydney -> EPSG 32756/S/zone 56)
+  with offset round-trips within 1e-5 m; no-elev anchor; lon/elev limit
+  edges inclusive, outside raises; scene geo round-trip and
+  missing/null tolerance; CSV tree list + report-sidecar plot_center
+  anchors end-to-end (geo block, PLOT_CENTER, BOUNDING_BOX).
+- check.py exit 0; run_all.py exit 0 (266 PASS, 0 FAIL); demo regen
+  (seed 42) byte-identical to examples/plot_demo except the four
+  generated_utc timestamps — unanchored plots unaffected.
