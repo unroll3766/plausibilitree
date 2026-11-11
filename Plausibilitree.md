@@ -840,14 +840,18 @@ Implementation (item W5, `georef.py`):
   and the source lat/lon. The UTM conversion is the `utm` library with
   the zone derived from the plot center (EPSG 326zz north / 327zz
   south); the limits of agreement are validated there and violations
-  raise. `elev` is the EPSG:5773 height of the plot center.
+  raise. The UTM system itself spans only 80 deg S .. 84 deg N — a plot
+  center inside the ingest limits of agreement but outside that
+  envelope (a polar plot) raises a plain `ValueError` at anchoring;
+  polar plots cannot be georeferenced until the owner picks a polar
+  CRS. `elev` is the EPSG:5773 height of the plot center.
 - **Internals unchanged.** Local coordinates are metres offset from the
   anchor's UTM position, so placement, trimming, DTM sampling and every
   raster's pixel grid operate exactly as before — georeferencing only
   adds metadata at the edges (same-seed clouds are identical with and
   without a known plot center).
-- **GeoTIFF exports** (stem map, canopy map, per-tree / per-shrub
-  crops): when anchored, written with an EPSG:4326 transform whose
+- **GeoTIFF exports** (stem map, canopy map, plot-level instance
+  masks, per-tree / per-shrub crops): when anchored, written with an EPSG:4326 transform whose
   west/north corner comes from the anchor and whose pixel sizes are the
   metre cells converted to degrees at the plot latitude (x by
   1/cos(lat)); values (counts, masks, heights above ground) are

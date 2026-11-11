@@ -25,8 +25,9 @@ and whole-repo review entries):
      applicability bounds), withdrawn keys absent, bounds fall-through
      (W18)
   K. georeferencing (spec Section 10, W5): an anchored mini plot's UTM
-     anchor, EPSG:4326 raster exports, compound-CRS DTM GeoTIFF and
-     geo info JSONs; the unanchored fixture stays CRS-less
+     anchor, EPSG:4326 raster exports (features and instance masks),
+     compound-CRS DTM GeoTIFF and geo info JSONs; the unanchored
+     fixture stays CRS-less
   I. SCENE LINK AUDIT every relative path in the scene JSON resolves
 
 Exit 0 = all checks passed.
@@ -464,6 +465,24 @@ def run_checks(fixroot, plot_dir):
                 check(f"{key} corner is lon/lat near the plot center",
                       abs(west + 120.6) < 1e-3 and abs(north - 38.9) < 1e-3,
                       f"({west:.6f}, {north:.6f})")
+        # plot-level instance masks: anchored like their feature rasters
+        for lkey, fkey in (("stem_label_raw", "stem_feature_raw"),
+                          ("canopy_label_raw", "canopy_feature_raw")):
+            with (rasterio.open(layout.plot_path(gd, "plot_geo", lkey,
+                                               create=False)) as lab,
+                  rasterio.open(layout.plot_path(gd, "plot_geo", fkey,
+                                               create=False)) as feat):
+                arr = lab.read(1)
+                check(f"{lkey} CRS is EPSG:4326", lab.crs.to_epsg() == 4326)
+                drift = max(abs(lab.transform.a - feat.transform.a),
+                            abs(lab.transform.e - feat.transform.e),
+                            abs(lab.transform.c - feat.transform.c),
+                            abs(lab.transform.f - feat.transform.f))
+                check(f"{lkey} transform matches its feature raster (<1e-6 deg)",
+                      drift < 1e-6, f"drift {drift:.2e}")
+                check(f"{lkey} labels all three planted trees",
+                      set(np.unique(arr).tolist()) >= {1, 2, 3},
+                      str(np.unique(arr).tolist()))
         shrub_tifs = [rp for rp in glob.glob(
             os.path.join(gd, "individual_shrubs", "plot_geo_shrub_*",
                          "deep_learning", "**", "*.tif"), recursive=True)]

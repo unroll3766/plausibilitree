@@ -44,6 +44,7 @@ import pandas as pd
 import rasterio
 from rasterio.transform import from_origin
 
+import georef
 import layout
 from las import read_points_las, read_canonical_las
 from stem_map import BREAST_HEIGHT_M, STEM_SECTION, STEM_CLASS
@@ -78,13 +79,21 @@ def _read_raster(path):
         return ds.read(1)
 
 
-def _grid_from_tif(path):
-    """(height, width, cell, x_min, y_max) read from a GeoTIFF's transform."""
+def _grid_from_tif(path, anchor=None):
+    """(height, width, cell, x_min, y_max) of a GeoTIFF's grid.
+
+    Values are in the LOCAL METRE frame: an anchored raster's EPSG:4326
+    transform is inverted through the anchor first, because the mask
+    helpers overlay metre-space skeleton/cloud geometry."""
     with rasterio.open(path) as ds:
         h, w = ds.height, ds.width
         t = ds.transform
-        cell = float(t.a)                       # pixel width
-        return h, w, cell, float(t.c), float(t.f)   # c=x of UL, f=y of UL
+        if anchor is not None and ds.crs is not None:
+            x_min, y_max, cell = georef.local_grid_from_geo(anchor, t)
+        else:
+            cell = float(t.a)                       # pixel width
+            x_min, y_max = float(t.c), float(t.f)   # c=x of UL, f=y of UL
+        return h, w, cell, x_min, y_max
 
 
 def _to_pixel(x, y, x_min, y_max, cell, w, h):
@@ -109,21 +118,28 @@ def _tree_uids(plot_dir):
 # plot-level instance masks
 # ---------------------------------------------------------------------------
 
-def _write_instance_geotiff(path, array, x_min, y_max, cell):
-    """uint16 single-band GeoTIFF, LZW, geotransform embedded (rasterio)."""
+def _write_instance_geotiff(path, array, x_min, y_max, cell, anchor=None):
+    """uint16 single-band GeoTIFF, LZW, geotransform embedded (rasterio).
+
+    EPSG:4326 through the anchor when the plot is georeferenced (same
+    degree-cell transform as the aligned feature raster; spec Section 10),
+    else the local metre frame with no CRS."""
     array = np.ascontiguousarray(array)
-    transform = from_origin(x_min, y_max, cell, cell)
+    if anchor is not None:
+        transform, crs = georef.geo_transform(anchor, x_min, y_max, cell)
+    else:
+        transform, crs = from_origin(x_min, y_max, cell, cell), None
     with rasterio.open(
         path, "w", driver="GTiff",
         height=array.shape[0], width=array.shape[1],
-        count=1, dtype=array.dtype, transform=transform,
+        count=1, dtype=array.dtype, transform=transform, crs=crs,
         compress="lzw",
     ) as dst:
         dst.write(array, 1)
 
 
 def _stem_instance_mask(feature_tif, pts, dbh_height, threshold,
-                        trees_dir=None, plot_uid=None):
+                        trees_dir=None, plot_uid=None, anchor=None):
     """tree_id per cell of the filled stem cross-section, from skeleton geometry.
 
     The stem geometry is ground truth from each tree's skeleton (centerline +
@@ -133,7 +149,7 @@ def _stem_instance_mask(feature_tif, pts, dbh_height, threshold,
     assigned to the NEARER stem centre.
     """
     from stem_map import _load_skeletons, stem_discs_in_band, RasterGrid
-    h, w, cell, x0, y1 = _grid_from_tif(feature_tif)
+    h, w, cell, x0, y1 = _grid_from_tif(feature_tif, anchor)
     feat = _read_raster(feature_tif)
     z_lo, z_hi = dbh_height - threshold, dbh_height + threshold
 
@@ -167,7 +183,7 @@ def _stem_instance_mask(feature_tif, pts, dbh_height, threshold,
     return lab, (x0, y1, cell)
 
 
-def _canopy_instance_mask(feature_tif, pts):
+def _canopy_instance_mask(feature_tif, pts, anchor=None):
     """tree_id of the highest point in each cell (matches the CHM feature).
 
     The CHM feature is built with a zero-initialised max, so a cell whose only
@@ -176,7 +192,7 @@ def _canopy_instance_mask(feature_tif, pts):
     clear any cell the feature treats as empty, so the label and feature agree
     cell-for-cell.
     """
-    h, w, cell, x0, y1 = _grid_from_tif(feature_tif)
+    h, w, cell, x0, y1 = _grid_from_tif(feature_tif, anchor)
     feat = _read_raster(feature_tif)
     col, row = _to_pixel(pts[:, 0], pts[:, 1], x0, y1, cell, w, h)
     lab = np.zeros((h, w), dtype=np.uint32)
@@ -262,18 +278,20 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
     vols = _per_tree_volumes(raw_pts, trimmed_pts if has_trim else None)
 
     # ---- plot-level instance masks (aligned to their feature rasters) -----
+    anchor = georef.anchor_from_scene(scene)
     if os.path.exists(stem_feat_flat):
         lab, (x0, y1, cell) = _stem_instance_mask(
             stem_feat_flat, raw_pts, BREAST_HEIGHT_M, STEM_SECTION,
-            trees_dir=flat_it, plot_uid=plot_uid)
+            trees_dir=flat_it, plot_uid=plot_uid, anchor=anchor)
         _write_instance_geotiff(
             layout.plot_path(plot_dir, plot_uid, "stem_label_raw"),
-            lab, x0, y1, cell)
+            lab, x0, y1, cell, anchor=anchor)
     if os.path.exists(canopy_feat_flat):
-        lab, (x0, y1, cell) = _canopy_instance_mask(canopy_feat_flat, raw_pts)
+        lab, (x0, y1, cell) = _canopy_instance_mask(canopy_feat_flat, raw_pts,
+                                                     anchor=anchor)
         _write_instance_geotiff(
             layout.plot_path(plot_dir, plot_uid, "canopy_label_raw"),
-            lab, x0, y1, cell)
+            lab, x0, y1, cell, anchor=anchor)
 
     # ---- move plot-level files into place ---------------------------------
     _move(os.path.join(plot_dir, "manifest.csv"),

@@ -30,6 +30,9 @@ M_PER_DEG_LAT = 111320.0        # documented metre-per-degree factor (Section 10
 LAT_RANGE = (-90.0, 90.0)
 LON_RANGE = (-180.0, 180.0)
 ELEV_RANGE = (-500.0, 5000.0)   # EPSG:5773 limits of agreement (Section 10)
+# UTM itself only spans 80 deg S .. 84 deg N; the ingest limits of
+# agreement admit polar plot centers that UTM cannot represent.
+UTM_LAT_RANGE = (-80.0, 84.0)
 
 # horizontal WGS 84 + vertical NAVD88 height (EPSG:4326 + EPSG:5773)
 DTM_CRS_EPSG = 9707
@@ -58,6 +61,11 @@ def anchor_from_latlon(lat, lon, elev=None) -> dict | None:
     elev = _checked(elev, "elev", ELEV_RANGE)
     if lat is None or lon is None:
         return None
+    if not (UTM_LAT_RANGE[0] <= lat <= UTM_LAT_RANGE[1]):
+        raise ValueError(
+            f"plot center lat={lat} outside the UTM coverage "
+            f"[{UTM_LAT_RANGE[0]}, {UTM_LAT_RANGE[1]}] -- polar plot "
+            f"centers cannot be UTM-anchored (spec Section 10)")
     import utm
     easting, northing, zone, _ = utm.from_latlon(lat, lon)
     northern = lat >= 0.0
@@ -166,3 +174,18 @@ def geo_transform(anchor: dict, x_min: float, y_max: float,
     west, north = local_to_deg(anchor, x_min, y_max)
     cell_x, cell_y = deg_cell_size(cell_m, anchor["lat"])
     return from_origin(west, north, cell_x, cell_y), GEOGRAPHIC_CRS
+
+
+def local_grid_from_geo(anchor: dict, transform) -> tuple[float, float, float]:
+    """(x_min, y_max, cell_m): the local-metre grid behind an anchored
+    EPSG:4326 raster transform written by geo_transform (its inverse:
+    the corner reprojects through the anchor's UTM zone, the cell
+    unscales at the plot latitude)."""
+    import utm
+    easting, northing, _, _ = utm.from_latlon(float(transform.f),
+                                              float(transform.c))
+    ax, ay = anchor["local_xy"]
+    cell_m = abs(float(transform.a)) * M_PER_DEG_LAT * math.cos(
+        math.radians(anchor["lat"]))
+    return (easting - anchor["easting"] + ax,
+            northing - anchor["northing"] + ay, cell_m)

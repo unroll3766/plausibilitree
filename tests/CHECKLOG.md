@@ -116,3 +116,20 @@ Re-entries only when behavior changes. Long-form narrative lives in
   landed in _TREE (KeyError in terrain), and load_anchor missed the
   pre-restructure scene location — stem/canopy maps run before
   restructure files the scene).
+
+2026-11-11 — W5 review: restructure's plot-level instance masks were built from the
+  anchored feature tif's degree transform (metre geometry vs degree grid -> wrong labels,
+  no/double CRS). Fix: georef.local_grid_from_geo inverts the geo transform; masks compute
+  in local metres, write EPSG:4326 with anchor; re-run smoke: labels 1-3 present, mask
+  transform within 8e-10 deg of the feature raster.
+2026-11-11 — W5 review: polar plot centers (lat outside UTM's -80..84) now raise a plain
+  ValueError at anchoring (utm lib would die with its own OutOfRangeError past the ingest
+  limits of agreement); -80/84 edges inclusive. Probe: conda run -n ssf georef edge
+  battery (sydney anchor EPSG 32756/S, no-elev anchor, limit edges, scene round-trip).
+2026-11-11 — W5 review: CSV tree list + plot_<UID>_report.json sidecar plot_center anchors
+  end-to-end (geo block, PLOT_CENTER, BOUNDING_BOX all set; /tmp smoke run).
+2026-11-11 — W5 review: suite section K asserts both label masks are EPSG:4326, transform
+  within 1e-6 deg of the feature raster, and label all three trees; test suite exit 0.
+2026-11-11 — W5 review: run_all.py exit 0, 266 PASS 0 FAIL; demo regen (seed 42) differs
+  from examples/plot_demo only in the four generated_utc timestamps (byte-identical
+  clouds/rasters/JSONs).
