@@ -570,9 +570,9 @@ def run_checks(fixroot, plot_dir):
         check("core-only run writes no normalized cloud",
               not any(f.endswith("_normalized.laz")
                       for f in os.listdir(os.path.join(cplace, "las"))))
-        obj_las = glob.glob(os.path.join(cd, "individual_*",
-                                        "*", "las", "*.laz"))
-        check("core-only run writes no per-object clouds",
+        obj_las = glob.glob(os.path.join(cd, "individual_*", "**", "*.la[sz]"),
+                           recursive=True)
+        check("core-only run writes no per-object clouds (any position)",
               obj_las == [], str(obj_las[:2]))
     finally:
         core_cleanup()

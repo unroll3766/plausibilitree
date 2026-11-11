@@ -473,7 +473,7 @@ def _write_tree_terrain(plot_dir, plot_uid, dtm=None):
                                        "textual",
                                        f"{layout.tree_tag(plot_uid, uid)}_dtm.asc")
                 sub.write_asc(dtm_out)
-        n += 1
+                n += 1
     return n
 
 

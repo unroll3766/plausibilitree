@@ -153,3 +153,16 @@ Re-entries only when behavior changes. Long-form narrative lives in
 2026-11-11 — W6: demo regenerated with the full derived set (--stem-map
   --canopy-map --normalize --extract-trees); second regen byte-identical
   except the four generated_utc timestamps; run_all.py exit 0.
+
+2026-11-11 — W6 review: extraction battery — core-only extract resolves terrain
+  (chain order), re-extract idempotent (byte-identical), missing plot cloud raises
+  FileNotFoundError, --surroundings crops carry background tree ids; committed demo
+  scene link audit: every link resolves (7 plot / 28 tree / 2 shrub).
+2026-11-11 — W6 review: build_info slice values recompute independently from the
+  plot cloud (tree 001 bbox exact, VOL_FOLIAGE 2.044 == 2.044); placement clouds
+  carry only codes 1/2/3 so the CHM vegetation filter is inert there (probed).
+2026-11-11 — W6 review: fixed terrain's "N tree DTM crops" counter (counted trees
+  with canopy bboxes even when no DTM was written); widened the core-only
+  no-per-object-clouds check to every individual_*/**/*.la[sz]; spec's "extraction
+  is the only writer" claim corrected (normalize writes per-object _normalized
+  variants of extracted crops); run_all exit 0.

@@ -219,8 +219,10 @@ bounds, rotations and reflections.
 operates on them — but they are not deliverables: generate/assemble stage
 them in the flat working area and restructure deletes them, so nothing
 per-tree ever lands in `individual_trees/*/las/` from a core run. The same
-applies to per-shrub clouds; the extraction stage is the only writer of
-per-object `las/` subtrees.)
+applies to per-shrub clouds; the extraction stage is the only stage that
+crops per-object clouds out of the plot cloud — normalize still writes
+per-object `_normalized.laz` variants, but only for objects the
+extraction produced.)
 
 ## 5. Derived output stages (opt-in)
 
