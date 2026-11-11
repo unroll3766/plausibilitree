@@ -114,10 +114,16 @@ adds facts specific to this repository.
   Generator.
 
 ## Register snapshot (2026-11-11)
-- Closed: W1-W7, W11-W19 (W5 and W6 closed 2026-11-10/11; the notes.md
-  alignment round W14-W19 complete).
+- Closed: W1-W7, W11-W19, W21-W25, W27 (the 2026-11 review round:
+  normalization retired, fork-order split rule, shrub placement/record
+  fixes, JSON cleanups; see Plausibilitree.md Section 11).
 - Open: W8 (HELIOS++), W9 (polygon mesh), W10 (downed woody debris), W20
-  (param editor: derive a dictionary from a tree list).
+  (param editor: derive a dictionary from a tree list), W26 (tree
+  skeleton viewer helper).
+- Owner rulings (2026-11 review round): deep learning is out of scope —
+  normalize.py and the per-shrub deep_learning volume labels are retired,
+  the remaining per-tree/plot deep_learning artifacts stay; at a fork the
+  larger daughter keeps the parent order (radius, ties by stem length).
 - Owner ruling (2026-11-07): no record of trimmed points or branches is
   kept anywhere — no flags, no summaries, no counts, no collision logs,
   no pre-trim volume variants. The trimmed skeleton/cloud *is* the
