@@ -1346,3 +1346,37 @@ record per se.
 - check.py exit 0; run_all.py exit 0 (266 PASS, 0 FAIL); demo regen
   (seed 42) byte-identical to examples/plot_demo except the four
   generated_utc timestamps — unanchored plots unaffected.
+
+### 2026-11-11 — W6 closed: one plot cloud; derived stages opt-in
+
+- Phase 1 (d86b23e): the raw stem map and CHM are 2-band per notes.md —
+  stem band 1 counts slab points (uint16), band 2 is 0/1 where a tree
+  point (tree_id != 0) lies in the slab; CHM band 1 is the max height
+  above ground over vegetation points (codes 1, 2, 3, 8 — grass 9 is
+  ground cover and never canopy), band 2 the foliage-presence mask
+  (float32). Suite section K asserts band count, dtypes, and that band-2
+  support implies band-1 support.
+- Phase 2 (a4aca8c): --stem-map / --canopy-map / --normalize, all off by
+  default; restructure tolerates the absent map artifacts (conditional
+  scene links, no empty deep_learning dirs); build_info writes null
+  CHM_PATH/STEM_PATH when a map did not run. Core-only fixture + suite
+  section assert the off-by-default contract.
+- Phase 3 (63c697a, demo 4486c28): per-tree sub-clouds are internal
+  staging only — generate/assemble write them flat, restructure deletes
+  them; terrain/understory/shrub_outputs no longer write per-object crops
+  (per-tree DTM crops remain, gated on the canopy map); build_info slices
+  the plot trimmed/raw clouds by tree_id instead of reading per-tree las.
+  New opt-in stage extract_trees.py crops per-object clouds from the
+  resolved plot cloud (tree_id / shrub_id; --surroundings window) into the
+  canonical las/ positions and links them in the scene (a per-shrub shrubs
+  link section). Extracted trimmed crops equal the plot-cloud tree_id
+  slices within 4e-15 m (LAS offset arithmetic; suite L asserts allclose
+  1e-9). normalize keeps its per-object loop, so extraction + normalize
+  gives per-object normalized clouds (demo: plot + 4 trees + 2 shrubs).
+- check.py exit 0; run_all.py exit 0 with the new core-only and extraction
+  sections; demo regenerated with the full derived set and re-ran
+  byte-identically except generated_utc timestamps. Two W6-era bugs found
+  en route: restructure created empty deep_learning dirs for missing
+  maps (fixed: existence-gated moves), and my first extraction skeleton
+  index double-prefixed the tree tags (fixed to match build_info's
+  loader).

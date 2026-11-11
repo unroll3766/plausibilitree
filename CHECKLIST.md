@@ -80,30 +80,33 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
       diamond-square fractal terrain, ESRI ASCII grid output.
 - [ ] **Terrain** (optional, `terrain.py`): drape onto a provided or generated
       DTM, per-tree rigid vertical drop, ground-point sampling with noise, LAS
-      classification by height above ground, HAG column, per-tree terrain crops
-      (bbox + neighboring points).
+      classification by height above ground, HAG column, per-tree DTM crops.
+      (Per-tree terrain sub-clouds retire under W6: the plot terrain cloud +
+      tree_id are the record.)
 - [ ] **Understory** (optional, requires terrain; `understory.py` +
       `vegetation.py`): seeded shrub layer (jittered ellipsoid meshes, avoided
       around tree canopies) and grass layer (Poisson thinning of a
-      diamond-square vigor field, attenuated under canopy), per-shrub ids,
-      per-tree understory crops.
+      diamond-square vigor field, attenuated under canopy), per-shrub ids.
+      (Per-tree understory sub-clouds retire under W6.)
 - [ ] **Interactive scene editor** (`scene_editor.py`): GUI to tune terrain,
       shrub and grass settings on already-generated (restructured) plots,
       regenerate the environment via the stage CLIs, view the resulting cloud
       colored by semantic code, and export the settings as an env sidecar in
       the replicate schema.
-- [ ] **Per-shrub outputs** (`shrub_outputs.py`): shrub raw/understory clouds,
-      volume JSONs (primitive / mesh, the sampled-shape volumes), per-shrub
-      canopy and stem maps.
+- [ ] **Per-shrub outputs** (`shrub_outputs.py`): volume JSONs (primitive /
+      mesh, the sampled-shape volumes), per-shrub canopy and stem maps.
+      (Per-shrub sub-clouds retire under W6: the plot understory cloud +
+      shrub_id are the record.)
 
 ## 3. Labels and outputs for ML/DL
 
-- [ ] **Stem map** (`stem_map.py`): breast-height (1.37 m +/- threshold)
-      point-count raster (GeoTIFF), per-tree stem bounding boxes (pixel +
-      world) JSON, per-tree crops and semantic masks.
-- [ ] **Canopy map** (`canopy_map.py`): CHM raster (max height per cell),
-      per-tree 3D canopy bounding boxes, convex hulls with volumes, per-tree
-      crops and masks.
+- [ ] **Stem map** (opt-in, `stem_map.py`): 2-band breast-height (1.37 m +/-
+      threshold) raster (GeoTIFF: counts; binary tree-point mask), per-tree
+      stem bounding boxes (pixel + world) JSON, per-tree crops and semantic
+      masks.
+- [ ] **Canopy map** (opt-in, `canopy_map.py`): 2-band CHM raster (max
+      vegetation height per cell; foliage-presence mask), per-tree 3D canopy
+      bounding boxes, convex hulls with volumes, per-tree crops and masks.
 - [ ] **Restructure** (`restructure.py`): move flat stage outputs into the
       canonical layout; derive plot-level instance masks (stem: ground-truth
       skeleton discs with nearest-center arbitration; canopy: highest point's
@@ -113,12 +116,19 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
       plot metadata — occupied-voxel volumes, DBH and height, generation
       params, neighborhood statistics (other trees/shrubs/grass within the
       bbox, with voxel-volume proportions).
+- [ ] **Individual extraction** (opt-in derived stage, `extract_trees.py`):
+      per-tree `tree_id` / per-shrub `shrub_id` crops from the resolved plot
+      cloud (understory -> terrain -> trimmed -> raw) into the canonical
+      per-object `las/` positions, linked in the scene; optional
+      `--surroundings N` context window. The only writer of per-object
+      clouds under W6.
 - [ ] **Normalization** (optional DL preprocessing, `normalize.py`): max
       points-per-m3 cap, rescale to the unit cube, optional density
       voxelization (cube L^3 or LxLxZ lattices with density / num_trees /
       per-order ratio columns); categorical is `branch_code` or
       `semantic_code` depending on the source cloud; run-wide category union so
-      every `_normalized.las` shares one schema; runs at plot, tree and shrub
+      every `_normalized.las` shares one schema; plot level always, tree
+      and shrub level when extraction produced their clouds
       levels.
 
 ## 4. Deep learning (separate companion project)

@@ -133,3 +133,23 @@ Re-entries only when behavior changes. Long-form narrative lives in
 2026-11-11 — W5 review: run_all.py exit 0, 266 PASS 0 FAIL; demo regen (seed 42) differs
   from examples/plot_demo only in the four generated_utc timestamps (byte-identical
   clouds/rasters/JSONs).
+
+2026-11-11 — W6: stem map and CHM are 2-band per notes.md (stem band 2 = tree-point
+  mask in the slab, uint16; CHM band 1 = max vegetation height (codes 1/2/3/8,
+  grass 9 excluded as ground cover), band 2 = foliage mask, float32); smoke-run +
+  suite section K asserts count/dtypes/band-2-implies-band-1; run_all exit 0.
+2026-11-11 — W6: derived stages opt-in (--stem-map/--canopy-map/--normalize,
+  default off). Core-only smoke: no map stages, no deep_learning dirs, scene
+  without map links/blocks, CHM_PATH/STEM_PATH null, no normalized cloud.
+2026-11-11 — W6: core run writes zero per-object clouds (generate/assemble flat
+  staging deleted by restructure; terrain/understory/shrub_outputs per-object
+  crops removed); build_info per-tree geometry = tree_id slices of the plot
+  trimmed/raw clouds; extracted crops equal the slices (allclose 1e-9; float
+  noise ~4e-15 from LAS offset arithmetic), suite sections core + L.
+2026-11-11 — W6: extract_trees crops by tree_id/shrub_id from the resolved plot
+  cloud, links into the scene (trees + new shrubs section); --surroundings
+  window verified (crop gains neighbouring tree ids); shrub normalized clouds
+  flow through normalize after extraction (demo: 7 normalized clouds).
+2026-11-11 — W6: demo regenerated with the full derived set (--stem-map
+  --canopy-map --normalize --extract-trees); second regen byte-identical
+  except the four generated_utc timestamps; run_all.py exit 0.

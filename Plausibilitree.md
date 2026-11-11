@@ -900,7 +900,7 @@ matches the design).
 | W3 | Formal generator module interface | extract the Section 7.1 contract; move SST specifics behind it | closed |
 | W4 | Flat-plane topography | implement topography dict None -> uniform plane ground sampling + warnings | closed |
 | W5 | UTM internals + EPSG:4326 exports | convert EPSG:4326 inputs to UTM metres internally (`utm` library, zone from plot center; Section 10); export GeoTIFFs back to EPSG:4326/5773; metres-thinking preserved | closed |
-| W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) | open |
+| W6 | One plot cloud; derived stages opt-in | stop writing per-tree sub-clouds at every stage (plot cloud + per-tree/shrub JSONs are the core outputs); individual-tree extraction becomes an opt-in derived stage; stem/canopy maps and normalization become opt-in; stem map gains a second (mask) band (Sections 4-5) | closed (CHM band 1 now takes the max over vegetation codes 1/2/3/8 — grass 9 excluded as ground cover — and band 2 is the foliage mask; both maps' band contracts live in Section 5; per-tree DTM crops remain, map-gated) |
 | W7 | Random reflection | add mirror reflection to placement draws | closed |
 | W8 | HELIOS++ stage | planned; needs scanner parameter design and voxel export | open |
 | W9 | Polygon mesh export | planned; per-element semantics/ids; feeds HELIOS++ polygon pathway | open |
