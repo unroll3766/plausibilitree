@@ -84,8 +84,15 @@ def plot_basics(table_path, *, default_radius_m=7.315, default_shape="circle",
     length = plot.get("plot_length_m") or default_length_m
     width = plot.get("plot_width_m") or default_width_m
     side = plot.get("plot_side_m")
-    area = plot_area_m2(shape, radius_m=radius, length_m=length,
-                        width_m=width, side_m=side)
+    try:
+        area = plot_area_m2(shape, radius_m=radius, length_m=length,
+                            width_m=width, side_m=side)
+    except TypeError:
+        raise RuntimeError(
+            f"{table_path}: incomplete plot geometry for shape {shape!r} "
+            f"(radius={radius!r}, length={length!r}, width={width!r}, "
+            f"side={side!r}); pass --plot-shape/--radius/--plot-length/"
+            f"--plot-width or add a *_report.json sidecar") from None
     if area <= 0:
         raise RuntimeError(f"{table_path}: plot area {area} <= 0 (shape "
                            f"{shape!r}, radius {radius!r})")
