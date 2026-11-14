@@ -217,3 +217,18 @@ Re-entries only when behavior changes. Long-form narrative lives in
   contract (links, retired artifacts, item 9/10/7 schemas). 21 checks,
   ~10 s, exit 0; mutation-tested (inverted dominance -> 5 FAIL, disabled disc
   filter -> 3 FAIL, both reverted); run_all.py exit 0 with three suites.
+2026-11-14 — W28: stem-map mask rules. stem_map.py band 2 now masks only
+  branch-order-0 band points (branch_code == 1) of non-excluded trees; trees with
+  any fork below the DBH band (< DBH_HT - STEM_SECTION) are excluded from every
+  stem mask (band 2, plot instance label, per-tree masks) and listed under
+  excluded_trees in the bbox JSON / scene block; skeleton-derived masks use
+  order-0 polylines only (new helpers polyline_orders, fork_below_band; raw plot
+  cloud now carries branch_code at assembly so the default raw source can apply
+  the order-0 rule). Probes: review-round suite section D (fork_below_band
+  boundary, polyline_orders fallback, disc order filter + synthetic 3-tree
+  build_stem_map e2e, 20 checks) and invariant suite section M (band 2 recomputed
+  from the raw cloud, exclusion + per-tree mask presence, 6 checks); check.py
+  clean; run_all.py exit 0, 335 PASS 0 FAIL. Demo regenerated (seed 42): diff vs
+  committed demo = raw.laz branch_code column, scene stem_map mask_rule keys,
+  generated_utc timestamps; xyz and all stem rasters identical (demo forks are
+  above the band, band points all order-0).

@@ -22,7 +22,9 @@ produced here.
 
 The plot-level masks are INSTANCE labels keyed by tree_id (0 = background),
 uint32, aligned pixel-for-pixel with their feature raster:
-  - stem mask:   tree_id of the stem points in each breast-height-band cell.
+  - stem mask:   tree_id of the branch-order-0 stem cross-section in each
+    breast-height-band cell (order-0 skeleton polylines only; trees that
+    split below the DBH band are excluded -- item W28).
   - canopy mask: tree_id of the highest point in each cell (matches the CHM
     feature, which stores that point's height). Note this differs from the
     per-tree canopy masks, which mark ALL of a tree's branch cells including
@@ -147,8 +149,13 @@ def _stem_instance_mask(feature_tif, pts, dbh_height, threshold,
     with that tree_id -- a solid disc, not a hollow ring, and present even where
     the scan left no points. Where two trees' discs overlap a cell, the cell is
     assigned to the NEARER stem centre.
+
+    Same mask rules as the stem map itself (spec Section 5, item W28): only
+    order-0 trunk polylines contribute, and a tree that splits below the DBH
+    band (fork height < z_lo) is excluded from the mask entirely.
     """
-    from stem_map import _load_skeletons, stem_discs_in_band, RasterGrid
+    from stem_map import (_load_skeletons, stem_discs_in_band, RasterGrid,
+                          polyline_orders, fork_below_band)
     h, w, cell, x0, y1 = _grid_from_tif(feature_tif, anchor)
     feat = _read_raster(feature_tif)
     z_lo, z_hi = dbh_height - threshold, dbh_height + threshold
@@ -159,7 +166,10 @@ def _stem_instance_mask(feature_tif, pts, dbh_height, threshold,
     skeletons = _load_skeletons(trees_dir, plot_uid) if trees_dir else {}
     grid = RasterGrid(x0, y1 - h * cell, x0 + w * cell, y1, cell)
     for t, skel in skeletons.items():
-        discs = stem_discs_in_band(skel, z_lo, z_hi)
+        if fork_below_band(skel, z_lo) is not None:
+            continue                    # below-band fork: excluded from the mask
+        discs = stem_discs_in_band(skel, z_lo, z_hi,
+                                   orders=polyline_orders(skel))
         if not discs:
             continue
         tmask = grid.rasterize_discs(discs, value=1).astype(bool)
@@ -382,6 +392,7 @@ def restructure_plot(csv_path, plot_dir=None, verbose=True):
     # the provenance to the canonical paths (same files, new location)
     if scene.get("stem_map") is not None and stem_bbox_doc is not None:
         scene["stem_map"]["bounding_boxes_inline"] = stem_bbox_doc.get("boxes", [])
+        scene["stem_map"]["excluded_trees_inline"] = stem_bbox_doc.get("excluded_trees", [])
         scene["stem_map"].pop("bounding_boxes", None)
         scene["stem_map"]["feature"] = scene["plot_files"]["stem_map_feature"]
         scene["stem_map"]["label"] = scene["plot_files"]["stem_map_label"]

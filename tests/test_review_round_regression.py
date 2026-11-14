@@ -25,6 +25,13 @@ plus a contract audit of the committed demo (the only tracked plot):
      VOL_SHRUB == the per-shrub info mesh sum. This section fails
      whenever the demo is regenerated with a contract-breaking state,
      which is its job (the W6/W16 rounds both shipped stale demos).
+  D. STEM-MAP MASK RULES (W28): only branch-order-0 points enter the stem
+     map mask, and a tree that splits below the DBH range (fork height <
+     DBH_HT - STEM_SECTION) is excluded from the mask entirely. Unit
+     probes pin fork_below_band's boundary semantics, polyline_orders'
+     segment/element fallback, and the order-0 disc filter; a synthetic
+     3-tree plot run through stem_map.build_stem_map pins the end-to-end
+     behaviour (band 2 cells, bounding-box JSON, per-tree masks).
 
 Exit 0 = all checks passed.
 """
@@ -278,11 +285,224 @@ def check_demo_contract(keep: bool = False):
               for f in tree_infos))
 
 
+# ---------------------------------------------------------------------------
+# D. stem-map mask rules (W28): order-0 only + below-band-fork exclusion
+# ---------------------------------------------------------------------------
+
+def _w28_skel(tree_id, base_xy, polylines, orders, splits, h=10.0, r=0.15):
+    """Minimal trimmed-style skeleton: polylines as (N,3) lists, per-segment
+    branch_order, and a split log with height_m entries."""
+    segs = []
+    for pl, o in zip(polylines, orders):
+        arr = np.asarray(pl, dtype=float)
+        segs.append({"z_range": [float(arr[:, 2].min()), float(arr[:, 2].max())],
+                     "length_m": float(np.linalg.norm(np.diff(arr, axis=0),
+                                                      axis=1).sum()),
+                     "branch_order": int(o)})
+    return {
+        "tree_id": int(tree_id),
+        "base_xy": [float(base_xy[0]), float(base_xy[1])],
+        "height_m": float(h), "base_radius_m": float(r),
+        "fork": 2 if splits else 1, "n_splits": len(splits),
+        "splits": splits,
+        "trunk": {"polylines": [[list(p) for p in pl] for pl in polylines],
+                  "segments": segs},
+        "branches": [], "n_branches": 0,
+        "elements": [],
+    }
+
+
+def check_stem_mask_rules(keep: bool = False):
+    print("== D. stem-map mask rules (W28) ==")
+    import shutil
+    import tempfile
+    import rasterio
+    import stem_map as sm
+    from las import export_canonical_las
+
+    z_lo = sm.BREAST_HEIGHT_M - sm.STEM_SECTION      # 1.12
+    z_hi = sm.BREAST_HEIGHT_M + sm.STEM_SECTION      # 1.62
+
+    # --- unit: fork_below_band (a tree is excluded iff a fork lies strictly
+    # below the bottom of the DBH band) ---
+    def _sp(h):
+        return [{"split_index": 0, "parent_polyline": 0, "height_m": float(h)}]
+    check("fork_below_band: split at 0.5 m (< 1.12) is below the band",
+          sm.fork_below_band(_w28_skel(1, (0, 0), [[[0, 0, 0], [0, 0, 10]]],
+                                      [0], _sp(0.5)), z_lo) == 0.5)
+    check("fork_below_band: split exactly at z_lo is NOT below (boundary)",
+          sm.fork_below_band(_w28_skel(1, (0, 0), [[[0, 0, 0], [0, 0, 10]]],
+                                      [0], _sp(z_lo)), z_lo) is None)
+    check("fork_below_band: split within the band (1.3 m) is NOT below",
+          sm.fork_below_band(_w28_skel(1, (0, 0), [[[0, 0, 0], [0, 0, 10]]],
+                                      [0], _sp(1.3)), z_lo) is None)
+    check("fork_below_band: no splits -> None",
+          sm.fork_below_band(_w28_skel(1, (0, 0), [[[0, 0, 0], [0, 0, 10]]],
+                                      [0], []), z_lo) is None)
+    two = [{"split_index": 0, "parent_polyline": 0, "height_m": 5.0},
+           {"split_index": 1, "parent_polyline": 2, "height_m": 0.8}]
+    check("fork_below_band: lowest below-band split wins",
+          sm.fork_below_band(_w28_skel(1, (0, 0), [[[0, 0, 0], [0, 0, 10]]],
+                                      [0], two), z_lo) == 0.8)
+
+    # --- unit: polyline_orders (segments first, element graph fallback) ---
+    sk = _w28_skel(1, (0, 0), [[[0, 0, 0], [0, 0, 5]],
+                               [[0, 0, 5], [0.1, 0, 10]],
+                               [[0, 0, 5], [-0.1, 0, 8]]], [0, 0, 1],
+                   _sp(5.0))
+    check("polyline_orders reads per-segment branch_order",
+          sm.polyline_orders(sk) == [0, 0, 1])
+    sk_no_seg_order = json.loads(json.dumps(sk))
+    for s in sk_no_seg_order["trunk"]["segments"]:
+        s.pop("branch_order")
+    sk_no_seg_order["elements"] = [
+        {"BRANCH_UID": "T00", "BRANCH_ORDER": 0},
+        {"BRANCH_UID": "T01", "BRANCH_ORDER": 0},
+        {"BRANCH_UID": "T02", "BRANCH_ORDER": 1},
+        {"BRANCH_UID": "B000", "BRANCH_ORDER": 1}]
+    check("polyline_orders falls back to the T{i} element graph",
+          sm.polyline_orders(sk_no_seg_order) == [0, 0, 1])
+    sk_bare = json.loads(json.dumps(sk_no_seg_order))
+    sk_bare["elements"] = []
+    check("polyline_orders defaults to 0 with no order info anywhere",
+          sm.polyline_orders(sk_bare) == [0, 0, 0])
+
+    # --- unit: stem_discs_in_band honours the order-0 filter ---
+    sk2 = _w28_skel(2, (0, 0), [[[0, 0, 0], [0, 0, 10]],
+                                [[0, 0, 0.5], [1.0, 0, 10]]], [0, 1], _sp(0.5))
+    n_all = len(sm.stem_discs_in_band(sk2, z_lo, z_hi))
+    n_o0 = len(sm.stem_discs_in_band(sk2, z_lo, z_hi,
+                                     orders=sm.polyline_orders(sk2)))
+    check("stem_discs_in_band: order-0 filter drops the order-1 polyline's discs",
+          n_all == 2 * n_o0 and n_o0 > 0, f"all={n_all} order0={n_o0}")
+
+    # --- end-to-end on a synthetic 3-tree flat plot ---
+    # tree 1: single stem (in mask); tree 2: fork at 0.5 m (below the band ->
+    # excluded); tree 3: fork at 1.3 m (within the band -> kept, but only its
+    # order-0 polylines may mask)
+    tmp = tempfile.mkdtemp(prefix="w28_stem_")
+    try:
+        plot_uid = "plot_w28"
+        csv_path = os.path.join(tmp, f"{plot_uid}.csv")
+        with open(csv_path, "w") as f:
+            f.write("TREE_UID,X,Y,DBH,HT,TREE_CODE\n"
+                    "001,0.0,0.0,0.3,10.0,HW\n"
+                    "002,5.0,0.0,0.3,10.0,HW\n"
+                    "003,0.0,5.0,0.3,10.0,HW\n")
+        plot_dir = os.path.join(tmp, plot_uid)
+        place = os.path.join(plot_dir, "plot_placement")
+        trees_dir = os.path.join(plot_dir, "individual_trees")
+        os.makedirs(place, exist_ok=True)
+
+        pts = np.array([
+            [0.00, 0.0, 1.20],   # tree 1, order 0 -> masks
+            [0.12, 0.0, 1.30],   # tree 1, branch_code 2 -> must NOT mask
+            [5.00, 0.0, 1.30],   # tree 2 (excluded) -> must NOT mask
+            [0.00, 5.0, 1.20],   # tree 3, order 0 -> masks
+            [9.00, 9.0, 1.30],   # ground -> never masks
+        ])
+        export_canonical_las(
+            os.path.join(place, f"{plot_uid}_raw.laz"), pts,
+            {"tree_id": np.array([1, 1, 2, 3, 0], dtype=np.int32),
+             "semantic_code": np.array([1, 2, 1, 1, 0], dtype=np.int8),
+             "branch_code": np.array([1, 2, 1, 1, 0], dtype=np.int8)},
+            level="plot")
+
+        skels = {
+            1: _w28_skel(1, (0, 0), [[[0, 0, 0], [0, 0, 10]]], [0], []),
+            2: _w28_skel(2, (5, 0), [[[5, 0, 0], [5, 0, 0.5]],
+                                     [[5, 0, 0.5], [5.1, 0, 10]],
+                                     [[5, 0, 0.5], [4.9, 0, 8]]], [0, 0, 1],
+                         _sp(0.5)),
+            3: _w28_skel(3, (0, 5), [[[0, 5, 0], [0, 5, 1.3]],
+                                     [[0, 5, 1.3], [0.1, 5, 10]],
+                                     [[0, 5, 1.3], [-2.0, 5, 4.0]]], [0, 0, 1],
+                         _sp(1.3)),
+        }
+        for tid, skel in skels.items():
+            uid = f"{tid:03d}"
+            d = os.path.join(trees_dir, f"{plot_uid}_{uid}", "textual")
+            os.makedirs(d, exist_ok=True)
+            with open(os.path.join(d, f"{plot_uid}_{uid}_trimmed_skeleton.json"),
+                      "w") as f:
+                json.dump(skel, f)
+
+        meta = sm.build_stem_map(csv_path, plot_dir=plot_dir, verbose=False)
+
+        bbox_doc = json.load(open(os.path.join(
+            place, f"{plot_uid}_raw_placement_stem_map_bounding_boxes.json")))
+        check("e2e: below-band-fork tree is excluded, others get boxes",
+              [b["tree_id"] for b in bbox_doc["boxes"]] == [1, 3]
+              and [e["tree_id"] for e in bbox_doc["excluded_trees"]] == [2]
+              and bbox_doc["excluded_trees"][0]["lowest_fork_below_band_m"] == 0.5,
+              str(bbox_doc.get("excluded_trees")))
+        check("e2e: scene meta records the exclusion",
+              meta["n_trees_excluded"] == 1 and meta["n_trees_with_stem"] == 2)
+
+        # band 2 == cells holding a branch_code==1 point of a non-excluded tree
+        with rasterio.open(os.path.join(
+                place, f"{plot_uid}_raw_placement_stem_map.tif")) as src:
+            b1, b2 = src.read(1), src.read(2)
+            t = src.transform
+        cell = float(t.a); x0 = float(t.c); y1 = float(t.f)
+        grid = sm.RasterGrid(x0, y1 - b1.shape[0] * cell,
+                             x0 + b1.shape[1] * cell, y1, cell)
+        tid = np.array([1, 1, 2, 3, 0])
+        code = np.array([1, 2, 1, 1, 0])
+        sel = ((pts[:, 2] >= z_lo) & (pts[:, 2] <= z_hi)
+               & (tid != 0) & (code == 1) & (tid != 2))
+        exp = (grid.counts(pts[sel, 0], pts[sel, 1]) > 0).astype(np.uint16)
+        check("e2e: band 2 masks exactly the order-0 points of non-excluded trees",
+              np.array_equal(exp, b2) and int((b2 > 0).sum()) == 2,
+              f"cells={int((b2 > 0).sum())} expected={int((exp > 0).sum())}")
+        check("e2e: band 2 is still binary and implies band-1 support",
+              set(np.unique(b2).tolist()) <= {0, 1}
+              and not np.any((b2 > 0) & (b1 <= 0)))
+
+        # per-tree crops/masks exist only for non-excluded trees
+        for tid, want in ((1, True), (2, False), (3, True)):
+            uid = f"{tid:03d}"
+            p = os.path.join(trees_dir,
+                             f"{plot_uid}_tree_{uid}_stem_map_semantic_mask.tif")
+            check(f"e2e: per-tree stem mask written iff not excluded (tree {tid})",
+                  os.path.exists(p) == want)
+
+        # tree 3's mask == its order-0 discs only (the order-1 fork daughter
+        # veers to x=-2 m and must not contribute)
+        box3 = next(b for b in bbox_doc["boxes"] if b["tree_id"] == 3)
+        bp = box3["bbox_pixel"]
+        with rasterio.open(os.path.join(
+                trees_dir,
+                f"{plot_uid}_tree_003_stem_map_semantic_mask.tif")) as src:
+            mask3 = src.read(1)
+        discs_o0 = sm.stem_discs_in_band(skels[3], z_lo, z_hi,
+                                        orders=sm.polyline_orders(skels[3]))
+        discs_all = sm.stem_discs_in_band(skels[3], z_lo, z_hi)
+        full_o0 = grid.rasterize_discs(discs_o0)
+        full_all = grid.rasterize_discs(discs_all)
+        crop_o0 = full_o0[bp["row_min"]:bp["row_max"] + 1,
+                         bp["col_min"]:bp["col_max"] + 1]
+        crop_all = full_all[bp["row_min"]:bp["row_max"] + 1,
+                            bp["col_min"]:bp["col_max"] + 1]
+        check("e2e: per-tree mask == order-0 skeleton discs",
+              np.array_equal(mask3, crop_o0.astype(mask3.dtype)),
+              f"mask cells={int((mask3 > 0).sum())} expected={int((crop_o0 > 0).sum())}")
+        check("e2e: order-1 fork daughter would add cells (filter is load-bearing)",
+              int((crop_all > 0).sum()) > int((crop_o0 > 0).sum())
+              and not np.array_equal(mask3, crop_all.astype(mask3.dtype)))
+        check("e2e: box n_discs counts order-0 discs only",
+              box3["n_discs"] == len(discs_o0) < len(discs_all))
+    finally:
+        if not keep:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main(keep: bool = False) -> int:
-    print("review-round regression suite (W22/W23/W24/W25/W21 probes)")
+    print("review-round regression suite (W22-W28 probes)")
     check_shrub_placement(keep)
     check_split_rule(keep)
     check_demo_contract(keep)
+    check_stem_mask_rules(keep)
     print()
     if fails:
         print(f"REVIEW-ROUND SUITE FAILED ({len(fails)}): {fails}")

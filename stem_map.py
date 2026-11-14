@@ -21,6 +21,14 @@ Outputs, under the plot directory:
         binary mask, same size as the crop: 1 where a cell holds >=1 stem
         point of that tree
 
+Mask rules (spec Section 5, item W28): only branch-order-0 geometry enters
+any stem map mask -- band 2 of the plot raster counts only order-0 points
+(`branch_code == 1`), and the skeleton-derived masks (per-tree semantic
+masks, plot instance label) use only order-0 trunk polylines. A tree that
+splits below the DBH range (any fork height < DBH_HT - STEM_SECTION) is
+excluded from the stem map mask entirely: no band-2 cells, no per-tree
+crop/mask; it is listed under "excluded_trees" in the bounding-box JSON.
+
 Relative links to the raster and the bounding-box JSON are added to the plot
 scene JSON (plot_placement/<PLOT_UID>_scene.json) under "stem_map".
 
@@ -57,7 +65,41 @@ def _taper_radius(base_radius, total_height, h):
     return max(0.0, base_radius * (1.0 - h / total_height))
 
 
-def stem_discs_in_band(skel, z_lo, z_hi, n_samples=9):
+def polyline_orders(skel):
+    """Branch order per trunk polyline (spec Section 7.4 split rule).
+
+    Trimmed skeletons carry `branch_order` on each trunk segment (parallel to
+    `polylines`); raw skeletons do not, so fall back to the element graph's
+    T{i} elements (polyline i == stem i == element T{i:02d}). Missing orders
+    default to 0 (the main stem).
+    """
+    trunk = skel.get("trunk", {})
+    segs = trunk.get("segments", [])
+    n = len(trunk.get("polylines", []))
+    elem_order = {}
+    for e in skel.get("elements", []) or []:
+        uid = str(e.get("BRANCH_UID", ""))
+        if uid.startswith("T") and uid[1:].isdigit():
+            elem_order[int(uid[1:])] = int(e.get("BRANCH_ORDER", 0))
+    orders = []
+    for i in range(n):
+        if i < len(segs) and segs[i].get("branch_order") is not None:
+            orders.append(int(segs[i]["branch_order"]))
+        else:
+            orders.append(elem_order.get(i, 0))
+    return orders
+
+
+def fork_below_band(skel, z_lo):
+    """Lowest fork height below the DBH band, or None if the tree never splits
+    below z_lo (spec Section 5, item W28: such trees are excluded from the
+    stem map mask)."""
+    below = [float(s["height_m"]) for s in skel.get("splits", []) or []
+             if s.get("height_m") is not None and float(s["height_m"]) < z_lo]
+    return min(below) if below else None
+
+
+def stem_discs_in_band(skel, z_lo, z_hi, n_samples=9, orders=None):
     """Ground-truth stem cross-section discs across a breast-height band.
 
     Uses the tree skeleton (not the point cloud): for every trunk polyline that
@@ -66,17 +108,23 @@ def stem_discs_in_band(skel, z_lo, z_hi, n_samples=9):
     plot metres -- the union of these discs is the stem mask for the band.
 
     A band of zero width (z_lo == z_hi) yields exactly one disc per polyline at
-    that height (the single-slice case). Forked trees contribute one disc per
-    fork polyline present in the band, so the general multi-stem case is handled.
-    Radii come from the taper model, so a stem with no scanned points in the band
-    still produces a correct filled disc.
+    that height (the single-slice case). Radii come from the taper model, so a
+    stem with no scanned points in the band still produces a correct filled
+    disc.
+
+    `orders` (per-polyline branch orders, as from polyline_orders()) restricts
+    the discs to order-0 polylines when given -- the stem map mask covers only
+    branch-order-0 geometry (item W28), so fork daughters above a split never
+    contribute.
     """
     base_r = float(skel.get("base_radius_m", 0.0))
     h_t = float(skel.get("height_m", 0.0))
     discs = []
     heights = (np.array([z_lo]) if z_hi <= z_lo
                else np.linspace(z_lo, z_hi, n_samples))
-    for pl in skel.get("trunk", {}).get("polylines", []):
+    for i, pl in enumerate(skel.get("trunk", {}).get("polylines", [])):
+        if orders is not None and orders[i] != 0:
+            continue                                # not an order-0 stem
         arr = np.asarray(pl, dtype=float)          # (N,3) x,y,z
         if len(arr) < 2:
             continue
@@ -95,8 +143,9 @@ def stem_discs_in_band(skel, z_lo, z_hi, n_samples=9):
 BREAST_HEIGHT_M = 1.37       # DBH reference height (matches generate_trees.py)
 STEM_RESOLUTION = 0.05       # metres per pixel (spec STEM_RESOLUTION)
 STEM_SECTION = 0.25          # half-thickness of the DBH z-band, metres (spec STEM_SECTION)
-STEM_CLASS = schema.SEM_TREE       # trunk; stem map also includes SEM_BRANCH (2)
+STEM_CLASS = schema.SEM_TREE       # trunk semantic; the mask itself is order-0
 STEM_CLASSES = (schema.SEM_TREE, schema.SEM_BRANCH)   # all woody stem
+ORDER0_CODE = 1              # branch_code of a branch-order-0 point (order + 1)
 
 
 # ---------------------------------------------------------------------------
@@ -229,6 +278,13 @@ def build_stem_map(csv_path, plot_dir=None,
     every side (default 1), clipped to the raster. The padded box is the one
     used for the crop and mask and stored as bbox_pixel; the tight box is kept
     as bbox_pixel_tight.
+
+    Mask rules (spec Section 5, item W28): band 2 and every per-tree mask
+    cover branch-order-0 geometry only (band 2: band points with
+    branch_code == 1; masks: order-0 trunk polylines), and a tree with any
+    fork below the DBH band (height < dbh_height - threshold) is excluded
+    from the mask entirely and listed under "excluded_trees" in the
+    bounding-box JSON.
     """
     plot_uid = os.path.splitext(os.path.basename(csv_path))[0]
     if plot_dir is None:
@@ -245,28 +301,49 @@ def build_stem_map(csv_path, plot_dir=None,
     xyz, cols = read_canonical_las(las_path, level="plot")
     sem = cols["semantic_code"].astype(int)
     tid = cols["tree_id"].astype(int)
+    code = cols["branch_code"].astype(int)
 
     # breast-height band. Band POINTS are only used for the secondary count
     # raster and an initial grid extent -- the stem MASK is skeleton-based, so an
     # empty band (e.g. threshold 0, or a sparsely-scanned slice) is fine; the
     # grid is then seeded from the whole cloud and widened to the discs below.
     z_lo, z_hi = dbh_height - threshold, dbh_height + threshold
+
+    # stem-map mask rules (spec Section 5, item W28): only branch-order-0
+    # points enter the mask, and a tree that splits below the DBH range (any
+    # fork height < z_lo) is excluded from the mask entirely. Both come from
+    # the skeletons, so load them before rasterising.
+    skeletons = _load_skeletons(trees_dir, plot_uid)
+    if not skeletons:
+        raise RuntimeError(
+            f"no tree skeletons found under {trees_dir}; the stem mask is built "
+            f"from skeleton geometry, so assembly must have run first")
+    excluded = {}
+    for t, skel in skeletons.items():
+        h = fork_below_band(skel, z_lo)
+        if h is not None:
+            excluded[int(t)] = h
+    excl_ids = (np.array(sorted(excluded), dtype=int) if excluded
+                else np.zeros(0, dtype=int))
+
     band = (xyz[:, 2] >= z_lo) & (xyz[:, 2] <= z_hi)
     if band.any():
         bx, by = xyz[band, 0], xyz[band, 1]
-        bsem, btid = sem[band], tid[band]
+        btid, bcode = tid[band], code[band]
         grid = RasterGrid(bx.min(), by.min(), bx.max(), by.max(), cell_size)
     else:
         # no points in the band: empty count raster over the plot's x-y extent,
         # discs will define the real footprint.
         bx = by = np.zeros(0)
-        bsem = btid = np.zeros(0, dtype=int)
+        btid = bcode = np.zeros(0, dtype=int)
         grid = RasterGrid(xyz[:, 0].min(), xyz[:, 1].min(),
                           xyz[:, 0].max(), xyz[:, 1].max(), cell_size)
     stem_map = grid.counts(bx, by)                  # count of band points (may be 0)
-    # band 2 (raw stem map): 1 where a TREE point (tree_id != 0) lies in
-    # the slab (0 elsewhere) -- ground/shrub returns never set it
-    t_sel = btid != 0
+    # band 2 (raw stem map): 1 where a branch-order-0 TREE point
+    # (branch_code == 1) of a tree not excluded by a below-band fork lies in
+    # the slab (0 elsewhere) -- ground/shrub/foliage/higher-order returns
+    # never set it
+    t_sel = (btid != 0) & (bcode == ORDER0_CODE) & ~np.isin(btid, excl_ids)
     stem_mask = (grid.counts(bx[t_sel], by[t_sel]) > 0).astype(np.uint16)
 
     raster_name = f"{plot_uid}_raw_placement_stem_map.tif"
@@ -277,19 +354,16 @@ def build_stem_map(csv_path, plot_dir=None,
     # per-tree stem geometry is ground truth from the skeleton (centerline +
     # taper), NOT the point cloud: the mask is the filled stem cross-section
     # across the band, so it's a solid disc (interior included) even where the
-    # scan left a hollow ring or no points at all. Every tree with a skeleton
-    # gets a stem, including sparsely-scanned ones.
-    skeletons = _load_skeletons(trees_dir, plot_uid)
-    stem_mask_band = np.isin(bsem, (schema.SEM_TREE, schema.SEM_BRANCH))
+    # scan left a hollow ring or no points at all. Only order-0 polylines
+    # contribute (item W28), and trees forked below the band are excluded
+    # entirely -- they get no discs, no bbox, no crop/mask.
+    stem_mask_band = ((btid != 0) & (bcode == ORDER0_CODE)
+                      & ~np.isin(btid, excl_ids))
     pad = int(bbox_padding)
     boxes = []
+    excluded_boxes = []
     per_tree = {}       # tree_id -> padded (col_min, row_min, col_max, row_max)
     tree_discs = {}     # tree_id -> [(cx, cy, r), ...] across the band
-
-    if not skeletons:
-        raise RuntimeError(
-            f"no tree skeletons found under {trees_dir}; the stem mask is built "
-            f"from skeleton geometry, so assembly must have run first")
 
     # the grid must cover every disc's extent (discs can reach slightly past the
     # band points for sparse stems); widen it to include disc bounds.
@@ -297,10 +371,20 @@ def build_stem_map(csv_path, plot_dir=None,
     gx_min, gy_min = grid.x_min, grid.y_max - grid.height * grid.cell
     gx_max, gy_max = grid.x_min + grid.width * grid.cell, grid.y_max
     for t, skel in skeletons.items():
-        discs = stem_discs_in_band(skel, z_lo, z_hi)
+        t = int(t)
+        if t in excluded:
+            excluded_boxes.append({
+                "tree_id": t,
+                "lowest_fork_below_band_m": round(excluded[t], 4),
+                "band_z_range_m": [round(z_lo, 3), round(z_hi, 3)],
+                "reason": "splits below the DBH range; excluded from the stem "
+                          "map mask (spec Section 5, item W28)",
+            })
+            continue
+        discs = stem_discs_in_band(skel, z_lo, z_hi, orders=polyline_orders(skel))
         if not discs:
             continue
-        all_discs[int(t)] = discs
+        all_discs[t] = discs
         for cx, cy, r in discs:
             gx_min = min(gx_min, cx - r); gx_max = max(gx_max, cx + r)
             gy_min = min(gy_min, cy - r); gy_max = max(gy_max, cy + r)
@@ -374,6 +458,10 @@ def build_stem_map(csv_path, plot_dir=None,
                                       "y_max": grid.y_max},
         "n_trees_with_stem": len(boxes),
         "boxes": boxes,
+        "mask_rule": "branch-order-0 points only (branch_code == 1); trees "
+                     "splitting below the DBH range are excluded (W28)",
+        "n_trees_excluded": len(excluded_boxes),
+        "excluded_trees": sorted(excluded_boxes, key=lambda b: b["tree_id"]),
     }
     with open(bbox_path, "w") as f:
         json.dump(bbox_doc, f, indent=2)
@@ -413,6 +501,10 @@ def build_stem_map(csv_path, plot_dir=None,
         "source_cloud": f"{rel}/{os.path.basename(las_path)}",
         "raster_size": {"width": grid.width, "height": grid.height},
         "n_trees_with_stem": len(boxes),
+        "mask_rule": "branch-order-0 points only (branch_code == 1); trees "
+                     "splitting below the DBH range are excluded (W28)",
+        "n_trees_excluded": len(excluded_boxes),
+        "excluded_trees": sorted(excluded_boxes, key=lambda b: b["tree_id"]),
     }
     scene_path = os.path.join(place_dir, f"{plot_uid}_scene.json")
     if os.path.exists(scene_path):
@@ -427,6 +519,7 @@ def build_stem_map(csv_path, plot_dir=None,
         print(f"{plot_uid}: stem map {grid.width}x{grid.height} px @ "
               f"{cell_size*100:g} cm, band {z_lo:.2f}-{z_hi:.2f} m, "
               f"{band.sum():,} band points, {len(boxes)} stems, "
+              f"{len(excluded_boxes)} excluded (below-band fork), "
               f"{n_written} tree crops+masks")
     return stem_map_meta
 

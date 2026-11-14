@@ -29,6 +29,9 @@ and whole-repo review entries):
      compound-CRS DTM GeoTIFF and geo info JSONs; the unanchored
      fixture stays CRS-less
   I. SCENE LINK AUDIT every relative path in the scene JSON resolves
+  M. stem map mask rules (W28): band 2 recomputed from the raw cloud's
+     order-0 points of non-excluded trees; below-band-fork exclusion in
+     the scene block, per-tree masks and instance label
 
 Exit 0 = all checks passed.
 """
@@ -636,6 +639,73 @@ def run_checks(fixroot, plot_dir):
         links = scene["trees"].get(uid, {})
         check(f"{uid} scene links the extracted trimmed cloud",
               "trimmed_las" in links, str(links))
+
+    print("== M. stem map mask rules (spec Section 5, item W28) ==")
+    import rasterio
+    from stem_map import (BREAST_HEIGHT_M, STEM_SECTION, RasterGrid,
+                          fork_below_band, polyline_orders, stem_discs_in_band)
+    z_lo, z_hi = BREAST_HEIGHT_M - STEM_SECTION, BREAST_HEIGHT_M + STEM_SECTION
+    sm_meta = scene.get("stem_map", {})
+    skels, uid_of = {}, {}
+    for _, row in table.iterrows():
+        uid = str(row["TREE_UID"])
+        sk = json.load(open(os.path.join(treed(uid), "textual",
+                                         f"{uid_tag}_{uid}_trimmed_skeleton.json")))
+        skels[int(sk["tree_id"])] = sk
+        uid_of[int(sk["tree_id"])] = uid
+    excl = sorted(t for t, s in skels.items()
+                  if fork_below_band(s, z_lo) is not None)
+    check("scene stem_map n_trees_excluded == recomputed below-band forks",
+          sm_meta.get("n_trees_excluded") == len(excl),
+          f"{sm_meta.get('n_trees_excluded')} vs {len(excl)} {excl}")
+    check("scene excluded_trees_inline lists exactly the below-band-fork trees",
+          [e["tree_id"] for e in sm_meta.get("excluded_trees_inline", [])] == excl,
+          str(sm_meta.get("excluded_trees_inline")))
+
+    # band 2 of the plot stem raster == cells with a branch_code==1 band point
+    # of a non-excluded tree, recomputed from the raw plot cloud
+    rxyz, rcols = read_canonical_las(os.path.join(place, "las",
+                                                  f"{uid_tag}_raw.laz"),
+                                     level="plot")
+    rtid = rcols["tree_id"].astype(int)
+    rcode = rcols["branch_code"].astype(int)
+    check("raw plot cloud carries real branch_code values (not all 0)",
+          set(np.unique(rcode).tolist()) - {0} != set(),
+          str(np.unique(rcode).tolist()))
+    feat = layout.plot_path(plot_dir, uid_tag, "stem_feature_raw", create=False)
+    with rasterio.open(feat) as src:
+        b1, b2 = src.read(1), src.read(2)
+        tr = src.transform
+    cell = float(tr.a); x0 = float(tr.c); y1 = float(tr.f)
+    grid = RasterGrid(x0, y1 - b1.shape[0] * cell, x0 + b1.shape[1] * cell,
+                      y1, cell)
+    band = (rxyz[:, 2] >= z_lo) & (rxyz[:, 2] <= z_hi)
+    sel = band & (rtid != 0) & (rcode == 1) & ~np.isin(rtid, excl)
+    exp = (grid.counts(rxyz[sel, 0], rxyz[sel, 1]) > 0).astype(np.uint16)
+    check("stem map band 2 == order-0 band points of non-excluded trees "
+          "(recomputed from the raw cloud)",
+          np.array_equal(exp, b2),
+          f"raster cells={int((b2 > 0).sum())} expected={int((exp > 0).sum())}")
+
+    # per-tree stem masks exist exactly for non-excluded trees with order-0
+    # geometry in the band; the plot instance label never names an excluded tree
+    expect_labels = {t for t, s in skels.items() if t not in excl
+                     and stem_discs_in_band(s, z_lo, z_hi,
+                                            orders=polyline_orders(s))}
+    have_labels = {t for t in skels
+                   if os.path.exists(layout.tree_path(
+                       plot_dir, uid_tag, uid_of[t], "stem_label_raw",
+                       create=False))}
+    check("per-tree stem masks exist exactly for non-excluded trees with "
+          "order-0 stems in the band",
+          have_labels == expect_labels,
+          f"have={sorted(have_labels)} expected={sorted(expect_labels)}")
+    lab = layout.plot_path(plot_dir, uid_tag, "stem_label_raw", create=False)
+    with rasterio.open(lab) as src:
+        lab_arr = src.read(1)
+    check("plot instance stem label never labels an excluded tree",
+          set(np.unique(lab_arr).tolist()) - {0} <= set(skels) - set(excl),
+          str(np.unique(lab_arr).tolist()))
 
 
 if __name__ == "__main__":

@@ -70,6 +70,9 @@
       "height": 208
     },
     "n_trees_with_stem": 4,
+    "mask_rule": "branch-order-0 points only (branch_code == 1); trees splitting below the DBH range are excluded (W28)",
+    "n_trees_excluded": 0,
+    "excluded_trees": [],
     "bounding_boxes_inline": [
       {
         "tree_id": 1,
@@ -188,6 +191,7 @@
         }
       }
     ],
+    "excluded_trees_inline": [],
     "feature": "plot_demo/plot_placement/deep_learning/stem_map/features/plot_demo_stem_map_raw.tif",
     "label": "plot_demo/plot_placement/deep_learning/stem_map/labels/plot_demo_stem_mask_raw.tif"
   },

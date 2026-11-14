@@ -115,10 +115,14 @@ adds facts specific to this repository.
   never use global random state in pipeline stages — take a seeded
   Generator.
 
-## Register snapshot (2026-11-11)
+## Register snapshot (2026-11-14)
 - Closed: W1-W7, W11-W19, W21-W25, W27 (the 2026-11 review round:
   normalization retired, fork-order split rule, shrub placement/record
-  fixes, JSON cleanups; see Plausibilitree.md Section 11).
+  fixes, JSON cleanups; see Plausibilitree.md Section 11), W28 (2026-11-14:
+  stem-map mask rules — only branch-order-0 points in the mask; trees that
+  split below the DBH range are excluded from the stem map mask; the raw
+  plot cloud now carries branch_code so the default raw-source stem map can
+  apply the order-0 rule).
 - Open: W8 (HELIOS++), W9 (polygon mesh), W10 (downed woody debris), W20
   (param editor: derive a dictionary from a tree list), W26 (tree
   skeleton viewer helper).

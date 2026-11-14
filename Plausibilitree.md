@@ -246,12 +246,21 @@ Each is a separate stage over the core outputs, never part of the core run.
 - **Stem map** **[implemented as an opt-in stage (`--stem-map`)]** — a 2-band raster of
   the breast-height slab (DBH_HT +/- STEM_SECTION, cell STEM_RESOLUTION),
   both bands covering the whole plot: band 1 (uint16) counts all points
-  in the slab; band 2 (uint16, 0/1) is a binary mask, 1 where a *tree*
-  point (`tree_id != 0`) lies in the slab, 0 elsewhere — so band 2 is
-  tree points only, never ground or shrub/shrub-and-grass returns.
+  in the slab; band 2 (uint16, 0/1) is a binary mask, 1 where a
+  **branch-order-0** tree point (`branch_code == 1`, i.e. a trunk-stem
+  point on an order-0 element per Section 7.4) lies in the slab, 0
+  elsewhere — so band 2 is trunk points only, never ground, shrub/grass,
+  foliage or higher-order branch-stem returns. Two mask rules (item W28):
+  only branch-order-0 points enter any stem map mask, and a tree that
+  **splits below the DBH range** (any fork height < DBH_HT - STEM_SECTION)
+  is excluded from the stem map mask entirely — band 2, the plot-level
+  instance label and the per-tree masks all omit it (it is recorded in the
+  bounding-box JSON / scene block, but gets no per-tree crop or mask).
   Per-tree stem bounding boxes (JSON) accompany it. Per-tree instance
   masks (integer `tree_id` labels, skeleton-derived) remain separate
-  per-tree rasters.
+  per-tree rasters; like band 2, the plot-level instance label and the
+  per-tree masks are built from order-0 skeleton polylines only, under the
+  same below-band-fork exclusion.
 - **Canopy map (CHM)** **[implemented as an opt-in stage (`--canopy-map`)]** — a 2-band
   raster at CHM_RESOLUTION: band 1 (float32) is the max height above
   ground per cell over vegetation points (semantic codes 1, 2, 3, 8; grass
@@ -694,7 +703,7 @@ x, y, z plus:
 | shrub_id | int32 | 0 = not a shrub |
 | semantic_code | int8 | object identity, below |
 | classification | uint8 | LAS class by height above ground: 2 ground, 3 low (<=0.5 m), 4 medium (0.5-2 m), 5 high (>2 m), 7 noise |
-| branch_code | int8 | 0 not a tree/branch point (BRANCH_ORDER -1 per notes.md); 1 trunk (order 0); 2+ = element order + 1 (order 1 = connected to trunk, 3 = connected to a 2, ...) |
+| branch_code | int8 | 0 not a tree/branch point (BRANCH_ORDER -1 per notes.md); 1 trunk (order 0); 2+ = element order + 1 (order 1 = connected to trunk, 3 = connected to a 2, ...). Assigned at assembly on the trimmed scene cloud and on the raw plot cloud (item W28 — the raw cloud needs it for the stem map's order-0 mask on the default raw source); per-tree raw clouds from generation still carry the default 0 |
 | branch_id | int32 | branch element identity within the plot (0 = unassigned) |
 | height_above_ground | float32 | z minus DTM at (x, y) |
 
@@ -970,6 +979,7 @@ matches the design).
 | W25 | Tree info convex hull + realized DBH (2026-11 review items 9, 10) | generation.json's realized record carries the taper-implied DBH; the per-tree canopy convex-hull volume extension (null unless the optional canopy-map stage ran) is removed (Sections 7.1, 8.4) | closed |
 | W26 | Tree skeleton viewer helper (2026-11 review item 11) | 3D GUI skeleton JSON viewer: radius/ID/angle toggles, branch-order colorization, zoom/rotate, render to png/jpeg (Section 6.5). Full implementation TBD | open |
 | W27 | Review-round housekeeping (2026-11 review items 1, 3) | pin utm in requirements.txt (notes.md comments say the pipeline uses the utm library); drop the redundant --basis stem (it is the default) from quickstart instructions | closed |
+| W28 | Stem-map mask rules (2026-11 review follow-up on the stem map export) | only branch-order-0 points enter the stem map mask (`branch_code == 1`): band 2 of the plot raster, the plot-level instance label and the per-tree semantic masks are built from order-0 geometry only; a tree with any split below the DBH range (fork height < DBH_HT - STEM_SECTION) is excluded from every stem map mask (listed in the bounding-box JSON / scene block as excluded, no per-tree crop or mask). The assembled raw plot cloud now carries `branch_code` (previously default 0) so the default raw-source stem map can apply the order-0 rule (Sections 5, 7.4, 8.3) | closed |
 
 Registry of resolved decisions (for provenance):
 
@@ -991,8 +1001,9 @@ Registry of resolved decisions (for provenance):
 - Point budget: Np = POINTS_PER_METRE x ceil(HT) x base diameter —
   per-height-slice density normalized by trunk thickness (Section 7.2).
 - Downed woody debris (logs, stumps) is planned future work (W10).
-- Stem map: 2-band design — point count + tree-point mask in the breast
-  height slab (Section 5).
+- Stem map: 2-band design — point count + branch-order-0 tree-point mask
+  in the breast-height slab; trees forked below the slab are excluded
+  from the mask (Section 5, item W28).
 - Defaults: CIRCLE plots, PLOT_RADIUS 7.315 m (FIA subplot); finer rasters
   (DTM 0.25, CHM 0.05, stem cell 0.05) with a robust +/-0.25 m stem slab
   (W11).

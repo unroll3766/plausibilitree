@@ -21,11 +21,27 @@ plot_11519/
 ## What the raster is
 
 A top-down (x-y) image of the point cloud in a thin horizontal band at DBH
-(breast height, 1.37 m) ± a threshold. Each cell holds the **count of points**
-falling in it. A stem appears as a dense compact cluster; the band is thin
-enough that foliage contributes little. Built from the placed scene
-`plot_placement/<PLOT_UID>_raw.laz` (use `--source trimmed` for the trimmed
-cloud instead).
+(breast height, 1.37 m) ± a threshold. Band 1 holds the **count of all
+points** falling in each cell. Band 2 is the stem **mask**: 1 only where a
+**branch-order-0** tree point (`branch_code == 1`, i.e. a trunk-stem point on
+an order-0 element per spec Section 7.4) lies in the slab — never ground,
+shrub/grass, foliage or higher-order branch-stem returns. Built from the
+placed scene `plot_placement/<PLOT_UID>_raw.laz` (use `--source trimmed` for
+the trimmed cloud instead; the raw plot cloud carries `branch_code` from
+assembly, so the order-0 rule applies on either source).
+
+Two mask rules (spec Section 5, item W28):
+
+- **Order 0 only.** Only branch-order-0 points enter the mask. The
+  skeleton-derived masks (per-tree semantic masks, plot instance label) use
+  only order-0 trunk polylines — a fork daughter with order ≥ 1 never
+  contributes, even where it crosses the band.
+- **Below-band forks excluded.** A tree with any fork below the DBH range
+  (split height < DBH_HT − STEM_SECTION, here < 1.12 m) is excluded from the
+  stem map mask entirely: no band-2 cells, no per-tree crop/mask. It is
+  listed under `excluded_trees` in the bounding-box JSON (and the scene
+  block) with its lowest below-band fork height, so the exclusion is
+  auditable rather than silent.
 
 Because every tree is generated with its base at z = 0 and placement only
 shifts x-y, breast height is a single global z-band across the whole plot — no
@@ -38,7 +54,8 @@ value type is uint16 (counts stay small — max 5 per cell in the example).
 
 ## Bounding boxes
 
-`_bounding_boxes.json` lists, per tree that has stem points in the band:
+`_bounding_boxes.json` lists, per tree that has an order-0 stem in the band
+(plus `n_trees_excluded` / `excluded_trees` for below-band-fork trees):
 
 - `tree_id`, `n_stem_points`, `padding_px`
 - `bbox_pixel` — the **padded** box (inclusive col/row min/max plus
@@ -47,8 +64,9 @@ value type is uint16 (counts stay small — max 5 per cell in the example).
 - `bbox_pixel_tight` — the tight box around the stem points, before padding.
 - `bbox_world` — the padded box in metres (cell corners).
 
-Boxes come from **stem points only** (`semantic == 1`), while the raster counts
-**all** band points, so a box is the stem's footprint inside the fuller image.
+Boxes come from the **order-0 stem cross-section** (skeleton discs), while the
+raster's band 1 counts **all** band points, so a box is the stem's footprint
+inside the fuller image.
 
 ### Padding
 
@@ -69,13 +87,14 @@ grid before clipping.
 
 ## Per-tree crops and masks
 
-For each tree with a stem in the band:
+For each non-excluded tree with an order-0 stem in the band:
 
 - `_stem_map_bounding_box.tif` — the stem map cropped to that tree's **padded**
   pixel bbox.
 - `_stem_map_semantic_mask.tif` — a binary (0/1) raster the **same size** as the
-  crop, 1 wherever a cell holds ≥1 stem point of that tree. With padding, the
-  stem cells sit inside an empty border the width of the padding.
+  crop: the filled order-0 stem cross-section (skeleton discs), 1 inside the
+  stem disc. With padding, the stem cells sit inside an empty border the width
+  of the padding.
 
 The two align pixel-for-pixel, so they're a ready image/label pair: every mask
 cell has a positive count in the matching crop.
@@ -106,11 +125,9 @@ synthetic cloud simply contains no stem points for many trees. Thinner slices
 give rounder stem discs but fewer usable stems — pick per how dense your clouds
 are.
 
-**Forked trees give wide stem boxes.** A tree that has forked below breast
-height presents two (or more) separate stem clusters at 1.37 m, so its stem
-bbox spans the gap between them — e.g. example tree 41's box is 139 × 89 cm,
-not a single ~25 cm stem. The raster and box are faithful to the point cloud;
-this is a property of the `stem` labelling (both apical stems above a fork are
-stem-class), not a rasterisation error. If you want one box per apical stem,
-that would need connected-component splitting on the mask, or keying boxes on
-`branch_id` / a per-fork id rather than `tree_id`.
+**Below-band forks are excluded, not boxed.** A tree that has forked below
+the DBH range (fork height < DBH_HT − STEM_SECTION) gets no box, crop or
+mask — it is recorded in `excluded_trees` instead, because a cross-section
+above a low fork is not a measurable DBH stem. A fork *within* the band keeps
+its box, but only the order-0 daughter's cross-section enters the mask, so
+the box is the dominant stem's, not the gap between both apical stems.

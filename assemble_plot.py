@@ -719,11 +719,9 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
     # ---- merged raw scene ------------------------------------------------
     raw = np.vstack(clouds)                 # x y z semantic_code tree_id
     raw_path = layout.cloud_file(place_dir, f"{plot_uid}_raw")
-    export_canonical_las(
-        raw_path, raw[:, :3],
-        {"tree_id": raw[:, 4].astype(np.int32),
-         "semantic_code": raw[:, 3].astype(np.int8)},
-        level="plot")
+    # (exported after the per-tree loop below: the raw cloud also carries
+    # branch_code there, so the stem map's order-0 mask works on the default
+    # raw source -- item W28)
 
     if plot_radius_m is None:
         plot_radius_m = float(np.hypot(df["X"].astype(float),
@@ -739,8 +737,17 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
     # record; the surviving points are the stage's only output.
     _branch_id_remap = {}          # full branch_id_int -> compact int32 id
     scene_xyz, scene_tid, scene_sem, scene_code, scene_bid = [], [], [], [], []
+    raw_codes = []                 # branch_code per tree on the RAW cloud (W28)
     for tree, pts in zip(trees, clouds):
         elem = assign_points(pts, tree)                 # skeleton element / point
+
+        # branch_code on the untrimmed points too: the raw plot cloud is the
+        # stem map's default source, and its order-0 mask (item W28) reads
+        # branch_code from it
+        raw_code = np.zeros(len(pts), dtype=np.int8)
+        ev_all = elem >= 0
+        raw_code[ev_all] = (tree.order[elem[ev_all]] + 1).astype(np.int8)
+        raw_codes.append(raw_code)
 
         valid = elem >= 0
         keep = np.ones(len(pts), dtype=bool)
@@ -802,6 +809,15 @@ def assemble_plot(table_path: str, plot_dir: str | None = None,
         if verbose and (~keep).any():
             print(f"  {tree.tree_uid}: {int(tree.trimmed.sum())} elements, "
                   f"{int((~keep).sum())} points removed (trimmed)")
+
+    # merged raw scene: every generated point (pre-trim), canonical schema
+    # including branch_code (item W28)
+    export_canonical_las(
+        raw_path, raw[:, :3],
+        {"tree_id": raw[:, 4].astype(np.int32),
+         "semantic_code": raw[:, 3].astype(np.int8),
+         "branch_code": np.concatenate(raw_codes).astype(np.int8)},
+        level="plot")
 
     # merged trimmed scene: collision-culled geometry, canonical schema.
     export_canonical_las(
