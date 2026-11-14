@@ -39,6 +39,13 @@ plus a contract audit of the committed demo (the only tracked plot):
      and canopy_footprint_hull; a synthetic 3-tree plot run through
      canopy_map.build_canopy_map (+ restructure's instance mask) pins band 2,
      per-tree masks, hull JSON footprints and taller-crown-wins overlap.
+  F. PER-PLOT ENVIRONMENT DRAWS (W30): vary_env.py gives every plot in a
+     batch its own env sidecar; shrub+grass cover is a joint draw with
+     total T ~ U[min(BA/A,0.5), max(1-BA/A,0.5)] split uniformly, so the two
+     covers sum to T. Unit probes pin the bounds/sum/clamp and per-plot seed
+     determinism; a two-plot e2e pins the output layout (copied tables +
+     report sidecars + sidecars + manifest) and that run_pipeline picks the
+     sidecars up.
 
 Exit 0 = all checks passed.
 """
@@ -661,13 +668,138 @@ def check_chm_mask_rules(keep: bool = False):
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+def check_vary_env(keep: bool = False):
+    print("== F. per-plot environment draws (W30) ==")
+    import shutil
+    import tempfile
+    import numpy as np
+    import replicate
+    import tree_list
+    import vary_env
+
+    # --- unit: joint cover draw honours the BA/A bound, sums exactly ---
+    for ba_frac in (0.0, 0.01, 0.3, 0.5, 0.7):
+        rng = np.random.default_rng(1234)
+        lo = min(ba_frac, 0.5)
+        hi = max(1.0 - ba_frac, 0.5)
+        for _ in range(50):
+            patch, rec = vary_env.joint_cover_draw(rng, ba_frac)
+            t = rec["cover_total"]
+            check_ok = (lo - 1e-9 <= t <= hi + 1e-9
+                        and abs(patch["shrub_cover"] + patch["grass_cover"] - t)
+                        < 1e-9
+                        and 0.0 <= patch["shrub_cover"] <= 1.0
+                        and 0.0 <= patch["grass_cover"] <= 1.0
+                        and rec["cover_bounds"] == [round(lo, 6), round(hi, 6)])
+            if not check_ok:
+                check(f"joint_cover_draw bounds/sum at BA/A={ba_frac}", False,
+                      str(rec))
+                break
+        else:
+            check(f"joint_cover_draw: 50 draws within bounds, covers sum to T, "
+                  f"BA/A={ba_frac} (bounds [{lo}, {hi}])", True)
+
+    # --- unit: per-plot seed is deterministic and order-independent ---
+    check("per_plot_seed stable for same seed+uid",
+          vary_env.per_plot_seed(7, "plot_a") == vary_env.per_plot_seed(7, "plot_a"))
+    check("per_plot_seed differs across uids and seeds",
+          len({vary_env.per_plot_seed(7, "plot_a"), vary_env.per_plot_seed(7, "plot_b"),
+               vary_env.per_plot_seed(8, "plot_a")}) == 3)
+    env1, _ = vary_env.draw_plot_env(np.random.default_rng(vary_env.per_plot_seed(7, "p")),
+                                     dict(replicate.DEFAULT_RANGES), 0.01)
+    env2, _ = vary_env.draw_plot_env(np.random.default_rng(vary_env.per_plot_seed(7, "p")),
+                                     dict(replicate.DEFAULT_RANGES), 0.01)
+    check("same seed+uid -> identical env draw", env1 == env2)
+    check("env draw keys are exactly the run_pipeline ENV_KEYS (no dtm)",
+          set(env1) <= set(replicate.ENV_KEYS) - {"dtm"}, str(sorted(env1)))
+
+    # --- e2e: two CSV plots + report sidecars -> copied batch with sidecars ---
+    tmp = tempfile.mkdtemp(prefix="w30_vary_")
+    try:
+        src = os.path.join(tmp, "src")
+        os.makedirs(src)
+        for uid, dbhs, radius in (("plot_a", [0.3, 0.4, 0.5], 10.0),
+                                  ("plot_b", [0.2], 20.0)):
+            rows = "\n".join(f"{i+1:03d},{x},{y},{d},20.0,HW"
+                             for i, (x, y, d) in enumerate(zip(
+                                 np.linspace(1, 5, len(dbhs)),
+                                 np.linspace(1, 5, len(dbhs)), dbhs)))
+            with open(os.path.join(src, f"{uid}.csv"), "w") as f:
+                f.write("TREE_UID,X,Y,DBH,HT,TREE_CODE\n" + rows + "\n")
+            with open(os.path.join(src, f"{uid}_report.json"), "w") as f:
+                json.dump({"parameters": {"plot_shape": "circle",
+                                           "plot_radius_m": radius}}, f)
+        out = os.path.join(tmp, "out")
+        man = vary_env.vary([src], out, seed=7, force=True, verbose=False)
+
+        check("e2e: one env sidecar per plot table, tables + reports copied",
+              all(os.path.exists(os.path.join(out, f"{u}{e}"))
+                  for u in ("plot_a", "plot_b") for e in (".csv", ".env.json"))
+              and all(os.path.exists(os.path.join(out, f"{u}_report.json"))
+                      for u in ("plot_a", "plot_b"))
+              and os.path.exists(os.path.join(out, "vary_env_manifest.json"))
+              and len(man["plots"]) == 2)
+
+        import run_pipeline
+        for rec in man["plots"]:
+            uid = rec["plot_uid"]
+            env = run_pipeline._load_env(os.path.join(out, f"{uid}.csv"))
+            check(f"e2e: {uid} sidecar picked up by run_pipeline._load_env",
+                  env is not None and "shrub_cover" in env, str(env))
+            lo, hi = rec["cover_bounds"]
+            check(f"e2e: {uid} T within BA/A bounds, covers sum to T",
+                  lo - 1e-9 <= rec["cover_total"] <= hi + 1e-9
+                  and abs(env["shrub_cover"] + env["grass_cover"]
+                          - rec["cover_total"]) < 1e-9,
+                  f"T={rec['cover_total']} bounds={rec['cover_bounds']} "
+                  f"shrub={env['shrub_cover']} grass={env['grass_cover']}")
+            # BA from the table's DBH, A from the copied report sidecar
+            ba_exp = float((np.pi * (np.array([0.3, 0.4, 0.5] if uid == "plot_a"
+                                               else [0.2]) / 2) ** 2).sum())
+            area_exp = float(np.pi * (10.0 if uid == "plot_a" else 20.0) ** 2)
+            check(f"e2e: {uid} manifest BA/A from table DBH + report geometry",
+                  abs(rec["basal_area_m2"] - ba_exp) < 1e-6
+                  and abs(rec["plot_area_m2"] - area_exp) < 1e-6
+                  and abs(rec["ba_frac"] - ba_exp / area_exp) < 1e-6,
+                  f"{rec['basal_area_m2']} vs {ba_exp}")
+            # the copied table still resolves its geometry via the report
+            plot = tree_list.load_plot(os.path.join(out, f"{uid}.csv"))
+            check(f"e2e: {uid} copied CSV resolves plot_radius_m from copied report",
+                  plot.get("plot_radius_m") == (10.0 if uid == "plot_a" else 20.0))
+
+        # determinism: same seed -> byte-identical sidecars
+        out2 = os.path.join(tmp, "out2")
+        vary_env.vary([src], out2, seed=7, force=True, verbose=False)
+        same = all(open(os.path.join(out, f"plot_{u}.env.json")).read()
+                   == open(os.path.join(out2, f"plot_{u}.env.json")).read()
+                   for u in ("a", "b"))
+        check("e2e: same seed reproduces identical sidecars", same)
+        # different seed -> different draws
+        out3 = os.path.join(tmp, "out3")
+        vary_env.vary([src], out3, seed=8, force=True, verbose=False)
+        diff = any(open(os.path.join(out, f"plot_{u}.env.json")).read()
+                   != open(os.path.join(out3, f"plot_{u}.env.json")).read()
+                   for u in ("a", "b"))
+        check("e2e: different seed changes the draws", diff)
+        # non-empty out dir without --force refuses
+        try:
+            vary_env.vary([src], out, seed=7, force=False, verbose=False)
+            check("e2e: non-empty out-dir refused without force", False)
+        except RuntimeError:
+            check("e2e: non-empty out-dir refused without force", True)
+    finally:
+        if not keep:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main(keep: bool = False) -> int:
-    print("review-round regression suite (W22-W29 probes)")
+    print("review-round regression suite (W22-W30 probes)")
     check_shrub_placement(keep)
     check_split_rule(keep)
     check_demo_contract(keep)
     check_stem_mask_rules(keep)
     check_chm_mask_rules(keep)
+    check_vary_env(keep)
     print()
     if fails:
         print(f"REVIEW-ROUND SUITE FAILED ({len(fails)}): {fails}")

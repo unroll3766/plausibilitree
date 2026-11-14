@@ -249,3 +249,16 @@ Re-entries only when behavior changes. Long-form narrative lives in
   0 FAIL. Demo regenerated (seed 42): canopy mask tifs + hull/bbox JSONs + scene
   + timestamps only; plot canopy band 2 grows 6444 -> 50502 cells (interior
   filled); clouds unchanged.
+2026-11-14 — W30: vary_env.py, per-plot environment draws for batch runs (spec
+  Section 6.5). One env sidecar per plot table, copied with the table and its
+  *_report.json to an output dir (must be empty unless --force); run_pipeline's
+  _load_env picks them up unchanged. Terrain/ground keys reuse replicate.py's
+  ranges/draw_env; shrub_cover+grass_cover are a joint draw with
+  T ~ U[min(BA/A,0.5), max(1-BA/A,0.5)] (BA from table DBH, A from table/report
+  geometry, CLI fallback) split uniformly, covers summing to T at 4 dp;
+  per-plot seeds = sha256(run seed + plot UID). Probes: review-round suite
+  section F (bounds/sum/clamp over BA/A in {0,.01,.3,.5,.7}, seed
+  determinism, ENV_KEYS subset, two-plot e2e incl. _load_env pickup,
+  manifest BA/A, report-geometry resolution, seed reproducibility,
+  non-empty out-dir refusal; 20 checks) + CLI smoke on a 2-plot dir.
+  check.py 30 modules clean; run_all.py exit 0, 400 PASS 0 FAIL.

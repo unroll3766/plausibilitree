@@ -126,7 +126,10 @@ adds facts specific to this repository.
   footprint — filled 2D convex hull of each tree's foliage points, unioned
   with the point cells — for band 2, per-tree canopy masks and the plot
   instance label; taller crown wins overlaps; degenerate hulls contribute
-  point cells only).
+  point cells only), W30 (2026-11-14: vary_env.py — per-plot env draws for a
+  batch of plots; terrain ranges reused from replicate.py; shrub+grass
+  cover drawn jointly with T ~ U[min(BA/A,0.5), max(1-BA/A,0.5)] and a
+  uniform split, manifest vary_env_manifest.json).
 - Open: W8 (HELIOS++), W9 (polygon mesh), W10 (downed woody debris), W20
   (param editor: derive a dictionary from a tree list), W26 (tree
   skeleton viewer helper).

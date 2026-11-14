@@ -382,7 +382,30 @@ original and edited clouds; save the dicts. (`scene_editor.py`.)
 Replicates a tree list N times, each with a randomly drawn terrain/shrub/
 grass sidecar JSON that the pipeline applies per plot (`replicate.py`).
 
-### 6.5 Tree skeleton viewer — **[planned]** (item W26)
+### 6.5 Per-plot environment draws (batch variation) — **[implemented]** (item W30)
+
+The batch counterpart of 6.4: given a directory of *distinct* plot tables,
+draws one environment per plot — terrain/shrub/grass settings written as
+each plot's `plot_<UID>.env.json` sidecar next to a byte-copy of its table
+(plus its `*_report.json` sidecar, which CSV tables need for plot
+geometry) in the output directory — so a single `run_pipeline.py` run over
+that directory generates every plot with different topography and
+understory values while the trees stay on the global seed (`vary_env.py`).
+Terrain/ground keys are uniform draws over CLI ranges (as in 6.4). The
+shrub/grass covers are a joint draw conditioned on the plot's own trees:
+with BA = sum pi (DBH/2)^2 from the table's DBH column and A the plot area
+from the table (report sidecar; CLI geometry as fallback), the total
+understory cover T = shrub_cover + grass_cover is drawn uniformly from
+[min(BA/A, 0.5), max(1 - BA/A, 0.5)] — clamped at BA/A = 0.5, where the
+interval would be empty — and split uniformly (shrub = T*b, grass =
+T*(1-b), b ~ U(0,1)), so the two always sum to T. The bound applies to the
+nominal parameters: realized understory area sits below T because grass is
+attenuated under canopies and shrubs keep a tree margin. Every draw,
+BA/A, the bounds and the split are recorded in the output manifest
+(`vary_env_manifest.json`) for provenance; per-plot seeds derive from the
+run seed + plot UID, so draws are order-independent (principle 6).
+
+### 6.6 Tree skeleton viewer — **[planned]** (item W26)
 
 A 3D GUI helper that loads a tree skeleton JSON (raw or trimmed). Toggles:
 branch radii (cylinders vs polylines), branch ID display, branch angle
@@ -986,10 +1009,11 @@ matches the design).
 | W23 | Shrubs inside the plot footprint (2026-11 review items 6, 7) | circular plots seeded shrubs over the bounding square, and the disc clip removed whole corner shrubs while their records persisted (0-point shrubs, null bb/neighborhood). Shrub cells are constrained to the plot disc; a shrub with no surviving points is dropped with a warning (Section 3.4) | closed |
 | W24 | Shrub volume label + shrub info cleanup (2026-11 review items 7, 8) | remove per-shrub deep_learning volume labels (volume lives in the shrub info JSON and the plot shrub index); drop dbh_m and the always-null volume_m3.voxel key; VOL_SHRUB is summed from the per-shrub info JSONs (Section 8.4) | closed |
 | W25 | Tree info convex hull + realized DBH (2026-11 review items 9, 10) | generation.json's realized record carries the taper-implied DBH; the per-tree canopy convex-hull volume extension (null unless the optional canopy-map stage ran) is removed (Sections 7.1, 8.4) | closed |
-| W26 | Tree skeleton viewer helper (2026-11 review item 11) | 3D GUI skeleton JSON viewer: radius/ID/angle toggles, branch-order colorization, zoom/rotate, render to png/jpeg (Section 6.5). Full implementation TBD | open |
+| W26 | Tree skeleton viewer helper (2026-11 review item 11) | 3D GUI skeleton JSON viewer: radius/ID/angle toggles, branch-order colorization, zoom/rotate, render to png/jpeg (Section 6.6). Full implementation TBD | open |
 | W27 | Review-round housekeeping (2026-11 review items 1, 3) | pin utm in requirements.txt (notes.md comments say the pipeline uses the utm library); drop the redundant --basis stem (it is the default) from quickstart instructions | closed |
 | W28 | Stem-map mask rules (2026-11 review follow-up on the stem map export) | only branch-order-0 points enter the stem map mask (`branch_code == 1`): band 2 of the plot raster, the plot-level instance label and the per-tree semantic masks are built from order-0 geometry only; a tree with any split below the DBH range (fork height < DBH_HT - STEM_SECTION) is excluded from every stem map mask (listed in the bounding-box JSON / scene block as excluded, no per-tree crop or mask). The assembled raw plot cloud now carries `branch_code` (previously default 0) so the default raw-source stem map can apply the order-0 rule (Sections 5, 7.4, 8.3) | closed |
 | W29 | CHM mask filled like the stem map (2026-11 review follow-up on the canopy map) | the canopy mask is a filled footprint, not point-occupancy: band 2 of the CHM, the per-tree canopy masks and the plot-level instance label are built from each tree's filled 2D convex hull of foliage points, unioned with the point cells (interior included, cells without points included — so band 2 may exceed band 1's support); where footprints overlap the instance label goes to the taller crown; a foliage set that cannot form a hull (degenerate) contributes its point cells only (Section 5) | closed |
+| W30 | Per-plot environment draws for batch runs | new helper `vary_env.py` (Section 6.5): one env sidecar per plot table in a batch, copied with its report sidecar to an output dir; terrain/ground keys uniform over CLI ranges (reusing replicate.py's draw machinery); shrub_cover + grass_cover drawn jointly, conditioned on the plot's BA/A with total T ~ U[min(BA/A,0.5), max(1-BA/A,0.5)] and a uniform split, recorded in vary_env_manifest.json | closed |
 
 Registry of resolved decisions (for provenance):
 
