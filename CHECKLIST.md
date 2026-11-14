@@ -42,6 +42,13 @@ rebuild or port. Read [README.md](README.md) first for the overall workflow.
       orchestrator; draws are uniform over CLI-given `min:max` ranges, with an
       optional `--dtm-dir` to draw real DTMs, and a manifest records every
       draw for provenance.
+- [ ] **Per-plot environment draws** (`vary_env.py`): one env sidecar per plot
+      in a batch of distinct tables, copied with the table and its
+      `*_report.json`; terrain keys uniform over CLI ranges, while
+      `shrub_cover + grass_cover` are drawn jointly with total
+      `T ~ U[min(BA/A, 0.5), max(1-BA/A, 0.5)]` (BA from the table's DBH, A the
+      plot area) and a uniform split; per-plot seeds derive from run seed +
+      plot UID; `vary_env_manifest.json` records every draw.
 
 ## 2. Point-cloud generation
 

@@ -82,6 +82,10 @@ for the column contract) — FIA data is not required.
 - Environment replicates: `replicate.py` — N copies of a table, each with a
   randomly drawn terrain/shrub/grass sidecar the pipeline applies per plot
   ([README_replicate.md](README_replicate.md))
+- Per-plot environment draws: `vary_env.py` — one drawn environment per plot
+  in a batch of distinct tables (shrub+grass cover drawn jointly, bounded by
+  the plot's basal-area fraction), written as sidecars next to copied tables
+  ([README_vary_env.md](README_vary_env.md))
 
 ### 2. Generating trees and plots
 
@@ -170,6 +174,7 @@ switch remain readable without regeneration.
 | Demo plot (committed, ready to explore) | [examples/README.md](examples/README.md) |
 | Tree lists from FIA | [README_fia_helper.md](README_fia_helper.md) |
 | Environment replicates | [README_replicate.md](README_replicate.md) |
+| Per-plot environment draws (batch) | [README_vary_env.md](README_vary_env.md) |
 | Interactive parameter editor | [README_param_editor.md](README_param_editor.md) |
 | Interactive scene editor (terrain/shrubs/grass) | [README_scene_editor.md](README_scene_editor.md) |
 | Orchestrator | [README_run_pipeline.md](README_run_pipeline.md) |
