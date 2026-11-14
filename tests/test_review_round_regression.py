@@ -32,6 +32,13 @@ plus a contract audit of the committed demo (the only tracked plot):
      segment/element fallback, and the order-0 disc filter; a synthetic
      3-tree plot run through stem_map.build_stem_map pins the end-to-end
      behaviour (band 2 cells, bounding-box JSON, per-tree masks).
+  E. CHM MASK = FILLED CANOPY FOOTPRINT (W29): the canopy mask is generated
+     from geometry like the stem map's — the filled 2D convex hull of each
+     tree's foliage points, interior included — not from point occupancy.
+     Unit probes pin rasterize_polygon (interior fill, degenerate fallback)
+     and canopy_footprint_hull; a synthetic 3-tree plot run through
+     canopy_map.build_canopy_map (+ restructure's instance mask) pins band 2,
+     per-tree masks, hull JSON footprints and taller-crown-wins overlap.
 
 Exit 0 = all checks passed.
 """
@@ -497,12 +504,170 @@ def check_stem_mask_rules(keep: bool = False):
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+def check_chm_mask_rules(keep: bool = False):
+    print("== E. CHM mask = filled canopy footprint (W29) ==")
+    import shutil
+    import tempfile
+    import rasterio
+    import canopy_map as cm
+    import stem_map as sm
+    from las import export_canonical_las
+
+    # --- unit: RasterGrid.rasterize_polygon fills the interior ---
+    g = sm.RasterGrid(0.0, 0.0, 1.0, 1.0, 0.05)     # 20x20 cells over [0,1]^2
+    square = np.array([[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]])
+    m = g.rasterize_polygon(square)
+    ccol, crow = g.to_pixel([0.5], [0.5])
+    ocol, orow = g.to_pixel([0.02], [0.02])
+    ccol, crow = int(ccol[0]), int(crow[0])
+    ocol, orow = int(ocol[0]), int(orow[0])
+    check("rasterize_polygon fills the interior cell (centre of the square)",
+          m[crow, ccol] == 1)
+    check("rasterize_polygon leaves outside cells 0", m[orow, ocol] == 0)
+    deg = g.rasterize_polygon(np.array([[0.2, 0.2], [0.8, 0.8]]))
+    d1 = g.to_pixel([0.2], [0.2]); d2 = g.to_pixel([0.8], [0.8])
+    d1 = (int(d1[0][0]), int(d1[1][0])); d2 = (int(d2[0][0]), int(d2[1][0]))
+    check("rasterize_polygon degenerate (<3 verts): vertex cells only",
+          int(deg.sum()) == 2 and deg[d1[1], d1[0]] == 1 and deg[d2[1], d2[0]] == 1)
+
+    # --- unit: canopy_footprint_hull ---
+    check("canopy_footprint_hull: square -> 4 vertices",
+          len(cm.canopy_footprint_hull(square)) == 4)
+    check("canopy_footprint_hull: collinear -> None (fallback)",
+          cm.canopy_footprint_hull(np.array([[0.0, 0.0], [1.0, 1.0],
+                                             [2.0, 2.0]])) is None)
+    check("canopy_footprint_hull: <3 points -> None",
+          cm.canopy_footprint_hull(np.array([[0.0, 0.0], [1.0, 0.0]])) is None)
+
+    # --- end-to-end on a synthetic 3-tree flat plot ---
+    # tree 1: foliage on a 1 m square's corners at z=8 (interior empty);
+    # tree 2: three collinear foliage points (degenerate hull -> point cells);
+    # tree 3: foliage on a 0.8 m square at z=12, overlapping tree 1 (taller).
+    tmp = tempfile.mkdtemp(prefix="w29_chm_")
+    try:
+        plot_uid = "plot_w29"
+        csv_path = os.path.join(tmp, f"{plot_uid}.csv")
+        with open(csv_path, "w") as f:
+            f.write("TREE_UID,X,Y,DBH,HT,TREE_CODE\n"
+                    "001,0.0,0.0,0.3,10.0,HW\n"
+                    "002,6.0,0.0,0.2,6.0,HW\n"
+                    "003,0.0,0.0,0.3,12.0,HW\n")
+        plot_dir = os.path.join(tmp, plot_uid)
+        place = os.path.join(plot_dir, "plot_placement")
+        os.makedirs(place, exist_ok=True)
+
+        pts = np.array([
+            # tree 1 corners (z=8) + one trunk point away from the centre cell
+            [-0.5, -0.5, 8.0], [0.5, -0.5, 8.0], [0.5, 0.5, 8.0], [-0.5, 0.5, 8.0],
+            [0.3, 0.3, 1.0],
+            # tree 2: collinear foliage
+            [5.0, 0.0, 3.0], [6.0, 0.0, 3.0], [7.0, 0.0, 3.0],
+            # tree 3 corners (z=12), inside tree 1's square
+            [-0.4, -0.4, 12.0], [0.4, -0.4, 12.0], [0.4, 0.4, 12.0], [-0.4, 0.4, 12.0],
+        ])
+        sem = np.array([3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 3], dtype=np.int8)
+        tid = np.array([1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3], dtype=np.int32)
+        code = np.where(sem == 3, 2, 1).astype(np.int8)
+        export_canonical_las(os.path.join(place, f"{plot_uid}_raw.laz"), pts,
+                             {"tree_id": tid, "semantic_code": sem,
+                              "branch_code": code}, level="plot")
+
+        cm.build_canopy_map(csv_path, plot_dir=plot_dir, verbose=False)
+
+        feat_path = os.path.join(place, f"{plot_uid}_raw_placement_canopy_map.tif")
+        with rasterio.open(feat_path) as src:
+            b1, b2 = src.read(1), src.read(2)
+            tr = src.transform
+        cell = float(tr.a); x0 = float(tr.c); y1 = float(tr.f)
+        grid = sm.RasterGrid(x0, y1 - b1.shape[0] * cell,
+                             x0 + b1.shape[1] * cell, y1, cell)
+
+        # interior cell of tree 1's square with NO point in it: band 2 fills it
+        icol, irow = grid.to_pixel([0.0], [0.0])
+        icol, irow = int(icol[0]), int(irow[0])
+        check("e2e: band 2 fills a canopy-interior cell that holds no point",
+              int(b2[irow, icol]) == 1 and int(b1[irow, icol]) == 0,
+              f"b2={b2[irow, icol]} b1={b1[irow, icol]}")
+        for wx, wy in ((-0.5, -0.5), (0.5, 0.5), (-0.4, 0.4)):
+            cc, rr = grid.to_pixel([wx], [wy])
+            cc, rr = int(cc[0]), int(rr[0])
+            check(f"e2e: band 2 covers foliage corner ({wx},{wy})",
+                  int(b2[rr, cc]) == 1)
+        # tree 2's midpoint is NOT filled (degenerate hull -> point cells only)
+        mcol, mrow = grid.to_pixel([5.5], [0.0])
+        mcol, mrow = int(mcol[0]), int(mrow[0])
+        check("e2e: degenerate-hull tree fills point cells only (midpoint empty)",
+              int(b2[mrow, mcol]) == 0)
+        for wx in (5.0, 6.0, 7.0):
+            cc, rr = grid.to_pixel([wx], [0.0])
+            cc, rr = int(cc[0]), int(rr[0])
+            check(f"e2e: tree 2 point cell ({wx},0) set", int(b2[rr, cc]) == 1)
+
+        # per-tree masks: tree 1 filled (interior set), tree 2 point cells only
+        trees_dir = os.path.join(plot_dir, "individual_trees")
+        for uid, want_interior, npts in (("001", True, None), ("002", False, 3),
+                                         ("003", True, None)):
+            mp = os.path.join(trees_dir,
+                              f"{plot_uid}_tree_{uid}_canopy_semantic_mask.tif")
+            check(f"e2e: per-tree canopy mask written (tree {uid})",
+                  os.path.exists(mp))
+            with rasterio.open(mp) as src:
+                mm = src.read(1)
+                mtr = src.transform
+            mcell = float(mtr.a); mx0 = float(mtr.c); my1 = float(mtr.f)
+            mgrid = sm.RasterGrid(mx0, my1 - mm.shape[0] * mcell,
+                                  mx0 + mm.shape[1] * mcell, my1, mcell)
+            if want_interior:
+                cc, rr = mgrid.to_pixel([0.0], [0.0])
+                cc, rr = int(cc[0]), int(rr[0])
+                check(f"e2e: tree {uid} mask fills the interior cell",
+                      int(mm[rr, cc]) == 1)
+            else:
+                check("e2e: tree 002 mask has exactly its 3 point cells",
+                      int((mm > 0).sum()) == npts, str(int((mm > 0).sum())))
+
+        # hull JSON carries the footprint used for the mask
+        hull_doc = json.load(open(os.path.join(
+            place, f"{plot_uid}_raw_placement_canopy_convex_hull.json")))
+        fp_by_tree = {h["tree_id"]: h for h in hull_doc["hulls"]}
+        check("e2e: hull JSON records the 2D footprint per tree",
+              len(fp_by_tree[1]["footprint_xy"]) == 4
+              and fp_by_tree[1]["footprint_degenerate"] is False
+              and fp_by_tree[2]["footprint_degenerate"] is True
+              and fp_by_tree[2]["footprint_xy"] == [])
+
+        # plot instance label: filled footprints, taller crown wins overlaps
+        import restructure as rst
+        pts5 = np.column_stack([pts, sem.astype(float), tid.astype(float)])
+        lab, _ = rst._canopy_instance_mask(feat_path, pts5, anchor=None)
+        cc, rr = grid.to_pixel([0.0], [0.0])
+        cc, rr = int(cc[0]), int(rr[0])
+        check("e2e: instance label fills the interior cell, taller tree 3 wins "
+              "the overlap", int(lab[rr, cc]) == 3, str(int(lab[rr, cc])))
+        oc, orr = grid.to_pixel([0.45], [0.45])   # inside tree 1, outside tree 3
+        oc, orr = int(oc[0]), int(orr[0])
+        check("e2e: instance label gives tree 1 the non-overlapping footprint",
+              int(lab[orr, oc]) == 1, str(int(lab[orr, oc])))
+        mc, mr = grid.to_pixel([6.0], [0.0])
+        mc, mr = int(mc[0]), int(mr[0])
+        check("e2e: instance label marks tree 2's point cell",
+              int(lab[mr, mc]) == 2)
+        mcol2, mrow2 = grid.to_pixel([5.5], [0.0])
+        mcol2, mrow2 = int(mcol2[0]), int(mrow2[0])
+        check("e2e: instance label leaves tree 2's midpoint empty",
+              int(lab[mrow2, mcol2]) == 0)
+    finally:
+        if not keep:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main(keep: bool = False) -> int:
-    print("review-round regression suite (W22-W28 probes)")
+    print("review-round regression suite (W22-W29 probes)")
     check_shrub_placement(keep)
     check_split_rule(keep)
     check_demo_contract(keep)
     check_stem_mask_rules(keep)
+    check_chm_mask_rules(keep)
     print()
     if fails:
         print(f"REVIEW-ROUND SUITE FAILED ({len(fails)}): {fails}")

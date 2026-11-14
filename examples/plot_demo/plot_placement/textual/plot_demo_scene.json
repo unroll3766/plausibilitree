@@ -204,6 +204,7 @@
       "height": 303
     },
     "n_trees_with_canopy": 4,
+    "mask_rule": "filled canopy footprint (2D convex hull of foliage points, interior included; point-cell fallback for degenerate hulls) \u2014 item W29",
     "total_canopy_volume": {
       "volume_m3": 1134.6608,
       "method": "sum of per-tree convex hull volumes"

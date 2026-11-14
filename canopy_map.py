@@ -5,9 +5,11 @@ canopy volume.
 
     python canopy_map.py plot_11519.csv --cell-size 0.01
 
-The CHM is a top-down (x-y) raster whose value in each cell is the height of the
-highest point falling in it (0 where no point falls, i.e. no tree). Built from
-the placed scene (plot_placement/<PLOT_UID>_raw.las).
+The CHM is a 2-band top-down (x-y) raster: band 1's value in each cell is the
+height of the highest point falling in it (0 where no point falls, i.e. no
+tree); band 2 is the canopy mask -- 1 inside any tree's filled canopy
+footprint (interior included), 0 elsewhere. Built from the placed scene
+(plot_placement/<PLOT_UID>_raw.las).
 
 Outputs, under the plot directory:
 
@@ -20,10 +22,10 @@ Outputs, under the plot directory:
     individual_trees/<PLOT_UID>_tree_<UID>_canopy_bounding_box.tif
         the CHM cropped to that tree's canopy x-y bbox plus a buffer
     individual_trees/<PLOT_UID>_tree_<UID>_canopy_semantic_mask.tif
-        binary mask, same size as the crop: 1 where a cell holds >=1 branch
-        point of that tree (using ALL of that tree's branch points -- so an
-        understory tree's mask covers cells whose CHM height belongs to a
-        taller tree above it)
+        binary mask, same size as the crop: the tree's filled canopy
+        footprint (2D convex hull of its foliage points, interior included --
+        item W29), not just the cells holding a point; degenerate hulls fall
+        back to point cells. Plot band 2 is the union of these footprints.
 
 The plot scene JSON (plot_placement/<PLOT_UID>_scene.json) gains a "canopy_map"
 block with relative links and the total canopy volume (raw, and trimmed if the
@@ -56,6 +58,30 @@ DEFAULT_BUFFER_PX = 2        # crop buffer around a canopy bbox, pixels
 # ---------------------------------------------------------------------------
 # Convex hull
 # ---------------------------------------------------------------------------
+
+def canopy_footprint_hull(xy):
+    """2D convex hull vertices of a canopy's foliage (x, y) points.
+
+    This is the canopy mask's geometry (item W29): rasterised filled, it is a
+    solid footprint with the interior included, like the stem map's filled
+    discs. Returns an (N, 2) array of hull vertices, or None when the set is
+    too small or collinear to hull (the caller falls back to point cells so a
+    thin canopy never vanishes).
+    """
+    from scipy.spatial import ConvexHull
+    try:
+        from scipy.spatial import QhullError
+    except ImportError:                              # older scipy
+        from scipy.spatial.qhull import QhullError
+    pts = np.asarray(xy, dtype=np.float64).reshape(-1, 2)
+    if len(pts) < 3:
+        return None
+    try:
+        hull = ConvexHull(pts)
+    except QhullError:
+        return None
+    return pts[np.unique(hull.simplices)]
+
 
 def canopy_hull(points):
     """Convex hull of a set of 3D points.
@@ -143,13 +169,27 @@ def build_canopy_map(csv_path, plot_dir=None,
     veg = np.isin(sem, (schema.SEM_TREE, schema.SEM_BRANCH,
                         schema.SEM_FOLIAGE, schema.SEM_SHRUB))
     chm = max_height_raster(grid, xyz[veg, 0], xyz[veg, 1], xyz[veg, 2])
-    # band 2: foliage-presence mask (1 where a code-3 point lies in the cell)
+
+    # band 2: the canopy MASK, a filled footprint like the stem map's (item
+    # W29) -- 1 inside any tree's canopy hull (interior included, even where
+    # no point falls), unioned with the trees' point cells so a hull-boundary
+    # point is never lost. Degenerate hulls contribute their point cells only.
     fol = sem == schema.SEM_FOLIAGE
-    foliage_mask = (grid.counts(xyz[fol, 0], xyz[fol, 1]) > 0).astype(np.float32)
+    tree_hulls = {}         # tree_id -> (N,2) footprint vertices or None
+    for t in np.unique(tid[fol]):
+        m = fol & (tid == t)
+        tree_hulls[int(t)] = canopy_footprint_hull(xyz[m, :2])
+    canopy_mask = np.zeros((grid.height, grid.width), dtype=np.uint16)
+    for t, hull in tree_hulls.items():
+        m = fol & (tid == t)
+        canopy_mask |= (grid.counts(xyz[m, 0], xyz[m, 1]) > 0).astype(np.uint16)
+        if hull is not None:
+            grid.rasterize_polygon(hull, out=canopy_mask, value=1)
+    canopy_mask = canopy_mask.astype(np.float32)
 
     raster_name = f"{plot_uid}_raw_placement_canopy_map.tif"
     _write_geotiff(os.path.join(place_dir, raster_name),
-                   [chm, foliage_mask],
+                   [chm, canopy_mask],
                    grid.x_min, grid.y_max, grid.cell, anchor=anchor)
 
     # per-tree canopy geometry from foliage points (semantic 3) -- the leafy
@@ -189,6 +229,8 @@ def build_canopy_map(csv_path, plot_dir=None,
         bbox_entries.append({
             "tree_id": int(t),
             "n_branch_points": int(m.sum()),
+            "mask_source": ("canopy_hull" if tree_hulls.get(int(t)) is not None
+                            else "point_fallback"),
             "bbox_world": {
                 "x_min": _fl(x0), "x_max": _ce(x1),
                 "y_min": _fl(y0), "y_max": _ce(y1),
@@ -207,9 +249,14 @@ def build_canopy_map(csv_path, plot_dir=None,
 
         verts, faces, vol, area = canopy_hull(np.column_stack([cx, cy, cz]))
         raw_volume_total += vol
+        fp = tree_hulls.get(int(t))
         hull_entries.append({
             "tree_id": int(t),
             "n_branch_points": int(m.sum()),
+            "footprint_xy": ([] if fp is None else
+                             [[round(float(p[0]), 4), round(float(p[1]), 4)]
+                              for p in fp]),
+            "footprint_degenerate": fp is None,
             "volume_m3": round(vol, 6),
             "surface_area_m2": round(area, 6),
             "n_vertices": 0 if verts is None else int(len(verts)),
@@ -246,12 +293,16 @@ def build_canopy_map(csv_path, plot_dir=None,
         uid = _tree_uid(t, csv_path)
         crop = chm[br0:br1 + 1, bc0:bc1 + 1]
 
-        # mask: every cell that holds >=1 branch point of THIS tree (all of its
-        # branch points, not just the topmost -- see the understory note)
+        # mask: this tree's filled canopy footprint (item W29) -- the 2D hull
+        # of its foliage points with the interior included, unioned with the
+        # point cells -- cropped to the buffered bbox; degenerate hulls
+        # contribute their point cells only
         m = branch & (tid == t)
-        col, row = grid.to_pixel(xyz[m, 0], xyz[m, 1])
-        mask = np.zeros_like(crop, dtype=np.uint8)
-        mask[row - br0, col - bc0] = 1
+        hull = tree_hulls.get(int(t))
+        full = (grid.counts(xyz[m, 0], xyz[m, 1]) > 0).astype(np.uint16)
+        if hull is not None:
+            grid.rasterize_polygon(hull, out=full, value=1)
+        mask = full[br0:br1 + 1, bc0:bc1 + 1].astype(np.uint8)
 
         x0 = grid.x_min + bc0 * grid.cell
         y0 = grid.y_max - br0 * grid.cell
@@ -279,6 +330,9 @@ def build_canopy_map(csv_path, plot_dir=None,
         "source_cloud": f"{rel}/{os.path.basename(las_path)}",
         "raster_size": {"width": grid.width, "height": grid.height},
         "n_trees_with_canopy": len(bbox_entries),
+        "mask_rule": "filled canopy footprint (2D convex hull of foliage "
+                     "points, interior included; point-cell fallback for "
+                     "degenerate hulls) — item W29",
         "total_canopy_volume": volume,
     }
     scene_path = os.path.join(place_dir, f"{plot_uid}_scene.json")

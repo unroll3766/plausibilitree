@@ -57,17 +57,19 @@ For each tree with a canopy:
 - `_canopy_bounding_box.tif` — the CHM cropped to that tree's canopy **x-y bbox
   plus `--buffer` pixels** (default 2), clipped to the raster.
 - `_canopy_semantic_mask.tif` — a binary (0/1) raster the **same size** as the
-  crop, 1 wherever a cell holds ≥1 branch point of that tree, using **all** of
-  the tree's branch points.
+  crop: the tree's **filled canopy footprint** — the 2D convex hull of its
+  foliage points with the interior filled (item W29), unioned with the point
+  cells so a hull-boundary point is never lost — so cells inside the crown
+  are 1 even where no foliage point falls. A foliage set too small or
+  collinear to hull contributes its point cells only, so a thin canopy never
+  vanishes.
 
-**Understory note (as specified).** The mask marks every cell where the tree has
-a branch point, regardless of whether that point is the highest in the cell. So
-an understory tree's mask covers cells whose CHM value actually belongs to a
-taller tree overhanging it — the height in the crop and the mask membership can
-disagree. This is intended, not a bug: in the example, 6 of 49 trees have mask
-cells where the CHM shows a taller neighbour. If you instead want a mask of only
-the cells this tree is the visible top of, intersect the mask with
-`crop == tree_z` — but that is a different label than the one requested.
+The plot-level CHM band 2 is the same filled footprint unioned over all trees,
+and the plot-level instance label (`canopy_mask_raw.tif`) fills each tree's
+footprint with its `tree_id`, giving the **taller crown** the cell where
+footprints overlap. Like the stem map's masks, these are deliberately not
+clipped to the feature raster's point support — the canopy interior is part of
+the mask, so band 2 may mark cells where band 1 is 0.
 
 ## Total canopy volume
 

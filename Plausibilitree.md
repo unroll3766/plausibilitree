@@ -265,9 +265,18 @@ Each is a separate stage over the core outputs, never part of the core run.
   raster at CHM_RESOLUTION: band 1 (float32) is the max height above
   ground per cell over vegetation points (semantic codes 1, 2, 3, 8; grass
   code 9 is ground cover and contributes nothing to a canopy height map),
-  0 where a cell holds no vegetation; band 2 (float32, 0/1) is 1 where a
-  foliage point (code 3) lies in the cell. Plus per-tree crown bounding
-  boxes and convex hulls.
+  0 where a cell holds no vegetation; band 2 (float32, 0/1) is the
+  **canopy mask**: 1 where a cell lies inside any tree's canopy footprint
+  — the filled 2D convex hull of that tree's foliage points (code 3),
+  interior included even where no point falls, unioned with the trees' point
+  cells so a hull-boundary point is never lost; generated from geometry the
+  way the stem map mask is (item W29) — 0 elsewhere. So band 2 may mark
+  cells where band 1 is 0. Plus per-tree crown bounding boxes and convex
+  hulls; the per-tree canopy masks and the plot-level instance label are
+  filled footprints too (per-tree: that tree's filled hull + point cells;
+  instance label: filled footprints with taller-crown-wins arbitration where
+  they overlap; a tree whose foliage cannot form a hull contributes its point
+  cells only, so a thin canopy never vanishes).
 - **HELIOS++ scan simulation** — **[planned]**. Re-simulate acquisition with
   HELIOS++: input a voxelized point cloud or the polygon meshes of
   Section 5 item below, plus scanner parameters; output a .laz with
@@ -980,6 +989,7 @@ matches the design).
 | W26 | Tree skeleton viewer helper (2026-11 review item 11) | 3D GUI skeleton JSON viewer: radius/ID/angle toggles, branch-order colorization, zoom/rotate, render to png/jpeg (Section 6.5). Full implementation TBD | open |
 | W27 | Review-round housekeeping (2026-11 review items 1, 3) | pin utm in requirements.txt (notes.md comments say the pipeline uses the utm library); drop the redundant --basis stem (it is the default) from quickstart instructions | closed |
 | W28 | Stem-map mask rules (2026-11 review follow-up on the stem map export) | only branch-order-0 points enter the stem map mask (`branch_code == 1`): band 2 of the plot raster, the plot-level instance label and the per-tree semantic masks are built from order-0 geometry only; a tree with any split below the DBH range (fork height < DBH_HT - STEM_SECTION) is excluded from every stem map mask (listed in the bounding-box JSON / scene block as excluded, no per-tree crop or mask). The assembled raw plot cloud now carries `branch_code` (previously default 0) so the default raw-source stem map can apply the order-0 rule (Sections 5, 7.4, 8.3) | closed |
+| W29 | CHM mask filled like the stem map (2026-11 review follow-up on the canopy map) | the canopy mask is a filled footprint, not point-occupancy: band 2 of the CHM, the per-tree canopy masks and the plot-level instance label are built from each tree's filled 2D convex hull of foliage points, unioned with the point cells (interior included, cells without points included — so band 2 may exceed band 1's support); where footprints overlap the instance label goes to the taller crown; a foliage set that cannot form a hull (degenerate) contributes its point cells only (Section 5) | closed |
 
 Registry of resolved decisions (for provenance):
 

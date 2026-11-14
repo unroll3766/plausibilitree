@@ -32,6 +32,9 @@ and whole-repo review entries):
   M. stem map mask rules (W28): band 2 recomputed from the raw cloud's
      order-0 points of non-excluded trees; below-band-fork exclusion in
      the scene block, per-tree masks and instance label
+  N. CHM mask filled footprint (W29): band 2 recomputed as the union of
+     per-tree filled foliage hulls; per-tree masks == filled hull crops;
+     instance label cells inside footprints
 
 Exit 0 = all checks passed.
 """
@@ -497,9 +500,24 @@ def run_checks(fixroot, plot_dir):
                       src.count == 2 and set(src.dtypes) == {dtype},
                       str((src.count, src.dtypes)))
                 b1, b2 = src.read(1), src.read(2)
-                check(f"{key} band 2 is binary and implies band 1 support",
-                      set(np.unique(b2).tolist()) <= {0, 1}
-                      and not np.any((b2 > 0) & (b1 <= 0)))
+                check(f"{key} band 2 is binary",
+                      set(np.unique(b2).tolist()) <= {0, 1})
+                tr = src.transform
+            if key == "stem_feature_raw":
+                # W28: stem band 2 is a point mask, so it implies band 1 support
+                check(f"{key} band 2 implies band 1 support (point mask)",
+                      not np.any((b2 > 0) & (b1 <= 0)))
+            else:
+                # W29: canopy band 2 is the filled footprint, so it may exceed
+                # band 1's point support; the exact coverage invariant
+                # (every foliage-point cell covered) is checked on the
+                # unanchored fixture in section N, where the metre transform
+                # is exact -- here the degree transform roundtrip makes cell
+                # boundaries fp-fragile, so only binary + non-empty are pinned
+                check(f"{key} band 2 is a non-empty filled footprint (W29)",
+                      float(b2.sum()) > 0)
+            with rasterio.open(layout.plot_path(gd, "plot_geo", key,
+                                                create=False)) as src:
                 check(f"{key} CRS is EPSG:4326", src.crs.to_epsg() == 4326)
                 cx, cy = georef.deg_cell_size(cell, 38.9)
                 check(f"{key} degree pixel sizes at plot latitude",
@@ -679,6 +697,7 @@ def run_checks(fixroot, plot_dir):
     cell = float(tr.a); x0 = float(tr.c); y1 = float(tr.f)
     grid = RasterGrid(x0, y1 - b1.shape[0] * cell, x0 + b1.shape[1] * cell,
                       y1, cell)
+    grid.width, grid.height = b1.shape[1], b1.shape[0]     # pin to raster
     band = (rxyz[:, 2] >= z_lo) & (rxyz[:, 2] <= z_hi)
     sel = band & (rtid != 0) & (rcode == 1) & ~np.isin(rtid, excl)
     exp = (grid.counts(rxyz[sel, 0], rxyz[sel, 1]) > 0).astype(np.uint16)
@@ -706,6 +725,111 @@ def run_checks(fixroot, plot_dir):
     check("plot instance stem label never labels an excluded tree",
           set(np.unique(lab_arr).tolist()) - {0} <= set(skels) - set(excl),
           str(np.unique(lab_arr).tolist()))
+
+    print("== N. CHM mask = filled canopy footprint (spec Section 5, item W29) ==")
+    import schema as _schema
+    from canopy_map import canopy_footprint_hull
+    csrc = scene["canopy_map"]["source_cloud"]           # rel to collection root
+    cxyz, ccols = read_canonical_las(os.path.join(os.path.dirname(plot_dir), csrc),
+                                     level="plot")
+    csem = ccols["semantic_code"].astype(int)
+    ctid = ccols["tree_id"].astype(int)
+    cfol = csem == _schema.SEM_FOLIAGE
+    cfeat = layout.plot_path(plot_dir, uid_tag, "canopy_feature_raw", create=False)
+    with rasterio.open(cfeat) as src:
+        cb1, cb2 = src.read(1), src.read(2)
+        ctr = src.transform
+    ccell = float(ctr.a); cx0 = float(ctr.c); cy1 = float(ctr.f)
+    cgrid = RasterGrid(cx0, cy1 - cb1.shape[0] * ccell,
+                       cx0 + cb1.shape[1] * ccell, cy1, ccell)
+    cgrid.width, cgrid.height = cb1.shape[1], cb1.shape[0]   # pin to raster
+    exp_mask = np.zeros(cb1.shape, dtype=np.uint16)
+    hulls = {}
+    for t in np.unique(ctid[cfol]):
+        m = cfol & (ctid == t)
+        h = canopy_footprint_hull(cxyz[m, :2])
+        hulls[int(t)] = h
+        exp_mask |= (cgrid.counts(cxyz[m, 0], cxyz[m, 1]) > 0).astype(np.uint16)
+        if h is not None:
+            cgrid.rasterize_polygon(h, out=exp_mask, value=1)
+    check("canopy band 2 == union of filled per-tree foliage hulls "
+          "(recomputed from the raw cloud)",
+          np.array_equal(exp_mask.astype(np.float32), cb2),
+          f"raster cells={int((cb2 > 0).sum())} expected={int((exp_mask > 0).sum())}")
+    folcells = cgrid.counts(cxyz[cfol, 0], cxyz[cfol, 1]) > 0
+    check("canopy band 2 is binary and covers every foliage-point cell",
+          set(np.unique(cb2).tolist()) <= {0, 1}
+          and not np.any(folcells & (cb2 <= 0)))
+
+    # per-tree canopy masks == that tree's filled hull cropped to its buffered bbox
+    n_mask_checks = 0
+    for _, row in table.iterrows():
+        uid = str(row["TREE_UID"])
+        hp = layout.tree_path(plot_dir, uid_tag, uid, "canopy_hull_json",
+                              create=False)
+        bp = layout.tree_path(plot_dir, uid_tag, uid, "canopy_bbox_json",
+                              create=False)
+        lp = layout.tree_path(plot_dir, uid_tag, uid, "canopy_label_raw",
+                              create=False)
+        if not (os.path.exists(hp) and os.path.exists(bp)
+                and os.path.exists(lp)):
+            continue
+        hull_doc = json.load(open(hp))
+        bbox_doc = json.load(open(bp))
+        tid = int(hull_doc["tree_id"])
+        # recompute from the raw cloud (the JSON footprint is 4-dp rounded)
+        m = cfol & (ctid == tid)
+        full = (cgrid.counts(cxyz[m, 0], cxyz[m, 1]) > 0).astype(np.uint16)
+        h = hulls.get(tid)
+        if h is not None:
+            cgrid.rasterize_polygon(h, out=full, value=1)
+        # the stored footprint matches the recomputed hull to 4 dp
+        fp = hull_doc.get("footprint_xy")
+        if h is not None:
+            check(f"{uid} hull JSON footprint_xy == recomputed hull (4 dp)",
+                  fp is not None and len(fp) == len(h)
+                  and all(abs(a[0] - b[0]) <= 5e-5 and abs(a[1] - b[1]) <= 5e-5
+                          for a, b in zip(sorted(fp), sorted(h.tolist()))))
+        else:
+            check(f"{uid} hull JSON marks the degenerate footprint",
+                  hull_doc.get("footprint_degenerate") is True and fp == [])
+        bb = bbox_doc["bbox_pixel_buffered"]
+        crop = full[bb["row_min"]:bb["row_max"] + 1,
+                    bb["col_min"]:bb["col_max"] + 1]
+        with rasterio.open(lp) as src:
+            got = src.read(1)
+        check(f"{uid} per-tree canopy mask == filled hull crop",
+              got.shape == crop.shape
+              and np.array_equal(got, crop.astype(got.dtype)),
+              f"{got.shape} vs {crop.shape} cells {int((got>0).sum())}/{int((crop>0).sum())}")
+        n_mask_checks += 1
+    check("per-tree canopy masks checked for every tree with a canopy",
+          n_mask_checks == len(hulls), f"{n_mask_checks} vs {len(hulls)}")
+
+    # plot instance canopy label: only real tree ids, and every labelled cell
+    # lies inside some tree's filled footprint
+    clab = layout.plot_path(plot_dir, uid_tag, "canopy_label_raw", create=False)
+    with rasterio.open(clab) as src:
+        clab_arr = src.read(1)
+    check("canopy instance label ids are a subset of the plot's tree ids",
+          set(np.unique(clab_arr).tolist()) - {0} <= set(hulls),
+          str(np.unique(clab_arr).tolist()))
+    # the instance label is built from the RAW cloud (restructure's raw_pts),
+    # so recompute footprints from it, not from the canopy source cloud
+    rxyz2, rcols2 = read_canonical_las(os.path.join(place, "las",
+                                                    f"{uid_tag}_raw.laz"),
+                                       level="plot")
+    rfol = rcols2["semantic_code"].astype(int) == _schema.SEM_FOLIAGE
+    rtid = rcols2["tree_id"].astype(int)
+    union_fp = np.zeros(cb1.shape, dtype=bool)
+    for t in np.unique(rtid[rfol]):
+        m = rfol & (rtid == t)
+        union_fp |= cgrid.counts(rxyz2[m, 0], rxyz2[m, 1]) > 0
+        h = canopy_footprint_hull(rxyz2[m, :2])
+        if h is not None:
+            union_fp |= cgrid.rasterize_polygon(h, value=1).astype(bool)
+    check("every canopy-label cell lies inside a filled footprint",
+          not np.any((clab_arr > 0) & ~union_fp))
 
 
 if __name__ == "__main__":

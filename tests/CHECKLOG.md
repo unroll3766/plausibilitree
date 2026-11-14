@@ -232,3 +232,20 @@ Re-entries only when behavior changes. Long-form narrative lives in
   committed demo = raw.laz branch_code column, scene stem_map mask_rule keys,
   generated_utc timestamps; xyz and all stem rasters identical (demo forks are
   above the band, band points all order-0).
+2026-11-14 — W29: CHM mask is a filled canopy footprint, generated from geometry
+  like the stem map. canopy_map.py band 2, per-tree canopy masks and the plot
+  instance label are the filled 2D convex hull of each tree's foliage points
+  (new RasterGrid.rasterize_polygon, Delaunay point-in-polygon), unioned with
+  the point cells so hull-boundary points are never lost; degenerate hulls
+  contribute point cells only; instance-label overlap goes to the taller crown.
+  Hull JSONs carry footprint_xy/footprint_degenerate, bbox entries mask_source,
+  scene canopy_map carries mask_rule. Probes: review-round suite section E
+  (rasterize_polygon/hull units + synthetic 3-tree build_canopy_map e2e incl.
+  taller-wins overlap, 26 checks) and invariant suite section N (band 2
+  recomputed as union of filled hulls + point cells from the canopy source
+  cloud, per-tree masks == filled hull crops, label cells inside footprints;
+  19 checks); K band-2 check split (stem stays point-subset, canopy binary +
+  non-empty on the anchored export). check.py clean; run_all.py exit 0, 379 PASS
+  0 FAIL. Demo regenerated (seed 42): canopy mask tifs + hull/bbox JSONs + scene
+  + timestamps only; plot canopy band 2 grows 6444 -> 50502 cells (interior
+  filled); clouds unchanged.

@@ -122,7 +122,11 @@ adds facts specific to this repository.
   stem-map mask rules — only branch-order-0 points in the mask; trees that
   split below the DBH range are excluded from the stem map mask; the raw
   plot cloud now carries branch_code so the default raw-source stem map can
-  apply the order-0 rule).
+  apply the order-0 rule), W29 (2026-11-14: CHM mask is a filled canopy
+  footprint — filled 2D convex hull of each tree's foliage points, unioned
+  with the point cells — for band 2, per-tree canopy masks and the plot
+  instance label; taller crown wins overlaps; degenerate hulls contribute
+  point cells only).
 - Open: W8 (HELIOS++), W9 (polygon mesh), W10 (downed woody debris), W20
   (param editor: derive a dictionary from a tree list), W26 (tree
   skeleton viewer helper).

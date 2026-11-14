@@ -3,6 +3,7 @@
   "tree_id": 2,
   "tree_uid": "002",
   "n_branch_points": 2631,
+  "mask_source": "canopy_hull",
   "bbox_world": {
     "x_min": -3.0815,
     "x_max": 3.1156,

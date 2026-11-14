@@ -25,10 +25,10 @@ uint32, aligned pixel-for-pixel with their feature raster:
   - stem mask:   tree_id of the branch-order-0 stem cross-section in each
     breast-height-band cell (order-0 skeleton polylines only; trees that
     split below the DBH band are excluded -- item W28).
-  - canopy mask: tree_id of the highest point in each cell (matches the CHM
-    feature, which stores that point's height). Note this differs from the
-    per-tree canopy masks, which mark ALL of a tree's branch cells including
-    understory ones hidden under a taller crown.
+  - canopy mask: tree_id of each cell inside a tree's filled canopy footprint
+    (2D hull of its foliage points, interior included -- item W29); where
+    footprints overlap the taller crown wins. Not clipped to the feature
+    raster's point support.
 (mask > 0) recovers a binary semantic mask.
 
 Requires: numpy, pandas, scipy, rasterio, laspy (via las.py)
@@ -98,14 +98,6 @@ def _grid_from_tif(path, anchor=None):
         return h, w, cell, x_min, y_max
 
 
-def _to_pixel(x, y, x_min, y_max, cell, w, h):
-    col = np.floor((np.asarray(x) - x_min) / cell).astype(int)
-    row = np.floor((y_max - np.asarray(y)) / cell).astype(int)
-    np.clip(col, 0, w - 1, out=col)
-    np.clip(row, 0, h - 1, out=row)
-    return col, row
-
-
 def _tree_uids(plot_dir):
     """UIDs of generated trees, from the flat *_raw_skeleton.json filenames."""
     d = os.path.join(plot_dir, layout.INDIVIDUAL_TREES)
@@ -165,6 +157,7 @@ def _stem_instance_mask(feature_tif, pts, dbh_height, threshold,
 
     skeletons = _load_skeletons(trees_dir, plot_uid) if trees_dir else {}
     grid = RasterGrid(x0, y1 - h * cell, x0 + w * cell, y1, cell)
+    grid.width, grid.height = w, h      # pin to the raster's exact shape
     for t, skel in skeletons.items():
         if fork_below_band(skel, z_lo) is not None:
             continue                    # below-band fork: excluded from the mask
@@ -194,21 +187,41 @@ def _stem_instance_mask(feature_tif, pts, dbh_height, threshold,
 
 
 def _canopy_instance_mask(feature_tif, pts, anchor=None):
-    """tree_id of the highest point in each cell (matches the CHM feature).
+    """tree_id per cell of the filled canopy footprint (item W29).
 
-    The CHM feature is built with a zero-initialised max, so a cell whose only
-    points have z <= 0 (possible from the near-ground foliage z-jitter) stays 0
-    and counts as empty. Mirror that here: after labelling by highest point,
-    clear any cell the feature treats as empty, so the label and feature agree
-    cell-for-cell.
+    Each tree's foliage points (semantic 3) are hulled in 2D and the hull is
+    rasterised filled -- the same geometry as the CHM band 2 and the per-tree
+    canopy masks -- so interior cells with no point are labelled too. Where
+    two footprints overlap, the TALLER crown wins (greater max foliage
+    height), matching what the CHM shows from above. A foliage set that cannot
+    hull falls back to its point cells. NOTE: like the stem label, the label
+    is deliberately NOT clipped to the feature raster's point support.
     """
+    from canopy_map import canopy_footprint_hull
+    from stem_map import RasterGrid
     h, w, cell, x0, y1 = _grid_from_tif(feature_tif, anchor)
-    feat = _read_raster(feature_tif)
-    col, row = _to_pixel(pts[:, 0], pts[:, 1], x0, y1, cell, w, h)
+    grid = RasterGrid(x0, y1 - h * cell, x0 + w * cell, y1, cell)
+    # the extent->size roundtrip can land one pixel wide; the label array is
+    # exactly the raster's shape, so pin the grid to it
+    grid.width, grid.height = w, h
     lab = np.zeros((h, w), dtype=np.uint32)
-    order = np.argsort(pts[:, 2])                  # ascending z -> highest wins
-    lab[row[order], col[order]] = pts[order, 4].astype(np.uint32)
-    lab[feat <= 0] = 0                             # keep label == feature support
+    fol = pts[:, 3].astype(int) == schema.SEM_FOLIAGE
+    if not fol.any():
+        return lab, (x0, y1, cell)
+    ftid = pts[:, 4].astype(int)
+    tids = np.unique(ftid[fol])
+
+    def _maxz(t):
+        return float(pts[fol & (ftid == t), 2].max())
+
+    for t in sorted(tids, key=_maxz):             # ascending: taller overwrites
+        m = fol & (ftid == t)
+        xy = pts[m, :2]
+        fm = grid.counts(xy[:, 0], xy[:, 1]) > 0  # point cells always covered
+        hull = canopy_footprint_hull(xy)
+        if hull is not None:
+            fm = fm | grid.rasterize_polygon(hull, value=1).astype(bool)
+        lab[fm] = int(t)
     return lab, (x0, y1, cell)
 
 

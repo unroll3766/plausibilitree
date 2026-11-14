@@ -257,6 +257,45 @@ class RasterGrid:
             block[inside] = value
         return out
 
+    def rasterize_polygon(self, verts, out=None, value=1):
+        """Fill every cell whose centre lies inside the 2D polygon `verts`.
+
+        `verts` is an (N, 2) array of x-y hull vertices (e.g. a canopy
+        footprint). Point-in-polygon is tested with a Delaunay triangulation
+        of the vertices (find_simplex >= 0), so the result is the filled
+        polygon, interior included -- the canopy-map analog of the stem map's
+        filled discs (item W29). With fewer than 3 vertices (degenerate hull)
+        only the vertices' own cells are set, so a thin canopy never
+        vanishes. Returns the mask; pass `out` to accumulate into one.
+        """
+        from scipy.spatial import Delaunay
+        if out is None:
+            out = np.zeros((self.height, self.width), dtype=np.uint16)
+        v = np.asarray(verts, dtype=float).reshape(-1, 2)
+        col, row = self.to_pixel(v[:, 0], v[:, 1])
+        out[row, col] = value                      # vertices' cells always set
+        if len(v) < 3:
+            return out
+        tri = Delaunay(v)
+        c_lo = max(0, int(np.floor((v[:, 0].min() - self.x_min) / self.cell)))
+        c_hi = min(self.width - 1,
+                   int(np.ceil((v[:, 0].max() - self.x_min) / self.cell)))
+        r_lo = max(0, int(np.floor((self.y_max - v[:, 1].max()) / self.cell)))
+        r_hi = min(self.height - 1,
+                   int(np.ceil((self.y_max - v[:, 1].min()) / self.cell)))
+        if c_lo > c_hi or r_lo > r_hi:
+            return out
+        cols = np.arange(c_lo, c_hi + 1)
+        rows = np.arange(r_lo, r_hi + 1)
+        cxw = self.x_min + (cols + 0.5) * self.cell
+        cyw = self.y_max - (rows + 0.5) * self.cell
+        xx, yy = np.meshgrid(cxw, cyw)             # (nrows, ncols)
+        pts = np.column_stack([xx.ravel(), yy.ravel()])
+        inside = (tri.find_simplex(pts) >= 0).reshape(len(rows), len(cols))
+        rr, cc = np.meshgrid(rows, cols, indexing="ij")
+        out[rr[inside], cc[inside]] = value
+        return out
+
 
 # ---------------------------------------------------------------------------
 # Main
