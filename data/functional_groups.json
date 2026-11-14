@@ -1,60 +1,62 @@
-	
-DEFAULT	
-DESCRIPTION	"Fallback used when no key matches"
-A0	1.0587
-A1	0.6367
-TAPER	1.6
-SPLIT_HT_LO	0.15
-SPLIT_HT_HI	0.5
-SPLIT_PROB	0.15
-NUM_BRANCH_LO	60
-NUM_BRANCH_HI	100
-MIN_CAN_HT_LO	0.2
-MIN_CAN_HT_HI	0.5
-MAX_CAN_W_HT_LO	0.4
-MAX_CAN_W_HT_HI	0.8
-TOP_DIST	2.5
-MID_DIST	0.5
-FP_RAND_HT	0.5
-SPR_LO	0.1
-SPR_HI	0.3
-SW	
-DESCRIPTION	"Softwood / conifer (generic)"
-A0	1.0587
-A1	0.6367
-TAPER	1.6
-SPLIT_HT_LO	0.15
-SPLIT_HT_HI	0.5
-SPLIT_PROB	0.1
-NUM_BRANCH_LO	60
-NUM_BRANCH_HI	100
-MIN_CAN_HT_LO	0.25
-MIN_CAN_HT_HI	0.5
-MAX_CAN_W_HT_LO	0.35
-MAX_CAN_W_HT_HI	0.7
-TOP_DIST	2.0JS:2
-MID_DIST	0.4
-FP_RAND_HT	0.5
-SPR_LO	0.1
-SPR_HI	0.3
-HW	
-DESCRIPTION	"Hardwood / broadleaf (generic)"
-A0	1.427
-A1	0.63
-TAPER	1.4
-SPLIT_HT_LO	0.1
-SPLIT_HT_HI	0.4
-SPLIT_PROB	0.45
-NUM_BRANCH_LO	80
-NUM_BRANCH_HI	140
-MIN_CAN_HT_LO	0.15
-MIN_CAN_HT_HI	0.35
-MAX_CAN_W_HT_LO	0.45
-MAX_CAN_W_HT_HI	0.75
-TOP_DIST	3.5
-MID_DIST	0.8
-FP_RAND_HT	0.7
-SPR_LO	0.1
-SPR_HI	0.3
-DEFAULT
-NUM_BRANCH_HI
+{
+  "DEFAULT": {
+    "DESCRIPTION": "Fallback used when no key matches",
+    "A0": 1.0587,
+    "A1": 0.6367,
+    "TAPER": 1.6,
+    "SPLIT_HT_LO": 0.15,
+    "SPLIT_HT_HI": 0.5,
+    "SPLIT_PROB": 0.15,
+    "NUM_BRANCH_LO": 60,
+    "NUM_BRANCH_HI": 100,
+    "MIN_CAN_HT_LO": 0.2,
+    "MIN_CAN_HT_HI": 0.5,
+    "MAX_CAN_W_HT_LO": 0.4,
+    "MAX_CAN_W_HT_HI": 0.8,
+    "TOP_DIST": 2.5,
+    "MID_DIST": 0.5,
+    "FP_RAND_HT": 0.5,
+    "SPR_LO": 0.1,
+    "SPR_HI": 0.3
+  },
+  "SW": {
+    "DESCRIPTION": "Softwood / conifer (generic)",
+    "A0": 1.0587,
+    "A1": 0.6367,
+    "TAPER": 1.6,
+    "SPLIT_HT_LO": 0.15,
+    "SPLIT_HT_HI": 0.5,
+    "SPLIT_PROB": 0.1,
+    "NUM_BRANCH_LO": 60,
+    "NUM_BRANCH_HI": 100,
+    "MIN_CAN_HT_LO": 0.25,
+    "MIN_CAN_HT_HI": 0.5,
+    "MAX_CAN_W_HT_LO": 0.35,
+    "MAX_CAN_W_HT_HI": 0.7,
+    "TOP_DIST": 2.0,
+    "MID_DIST": 0.4,
+    "FP_RAND_HT": 0.5,
+    "SPR_LO": 0.1,
+    "SPR_HI": 0.3
+  },
+  "HW": {
+    "DESCRIPTION": "Hardwood / broadleaf (generic)",
+    "A0": 1.427,
+    "A1": 0.63,
+    "TAPER": 1.4,
+    "SPLIT_HT_LO": 0.1,
+    "SPLIT_HT_HI": 0.4,
+    "SPLIT_PROB": 0.45,
+    "NUM_BRANCH_LO": 80,
+    "NUM_BRANCH_HI": 140,
+    "MIN_CAN_HT_LO": 0.15,
+    "MIN_CAN_HT_HI": 0.35,
+    "MAX_CAN_W_HT_LO": 0.45,
+    "MAX_CAN_W_HT_HI": 0.75,
+    "TOP_DIST": 3.5,
+    "MID_DIST": 0.8,
+    "FP_RAND_HT": 0.7,
+    "SPR_LO": 0.1,
+    "SPR_HI": 0.3
+  }
+}
