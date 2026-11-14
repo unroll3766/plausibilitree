@@ -262,3 +262,11 @@ Re-entries only when behavior changes. Long-form narrative lives in
   manifest BA/A, report-geometry resolution, seed reproducibility,
   non-empty out-dir refusal; 20 checks) + CLI smoke on a 2-plot dir.
   check.py 30 modules clean; run_all.py exit 0, 400 PASS 0 FAIL.
+2026-11-14 — Second review pass (W28/W29/W30): demo regenerated in a fresh dir is
+  byte-identical to committed examples/plot_demo except the 4 generated_utc
+  timestamps; commit stats match their messages (24/28/1/6/1/2 files); largest
+  tracked file 256 KB. Fixed: stale "single-band" raster lines in stem_map.py /
+  canopy_map.py docstrings and README_canopy_map.md (both rasters are 2-band
+  since W6), and the W6 register row's "band 2 is the foliage mask" parenthetical
+  now points at the W28/W29 mask contracts. check.py 30 modules clean;
+  run_all.py exit 0, 400 PASS 0 FAIL.

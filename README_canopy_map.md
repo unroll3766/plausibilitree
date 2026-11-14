@@ -21,14 +21,15 @@ plot_11519/
 
 ## The CHM raster
 
-A top-down (x-y) raster whose value in each cell is the **height of the highest
-point** falling in it, and **0** where no point falls (no tree). Built from all
+A 2-band top-down (x-y) raster. Band 1's value in each cell is the **height of
+the highest point** falling in it, and **0** where no point falls (no tree).
+Band 2 is the canopy mask (see below). Built from all
 points of the placed scene `plot_placement/<PLOT_UID>_raw.laz`, so it is the top
 surface of the whole plot. Since every tree sits with its base at z = 0 and
 placement only shifts x-y, the value is height above ground directly. Written as
-single-band float32 GeoTIFF (DEFLATE-compressed, geotransform embedded, same
-writer as the stem map). Default cell size 0.05 m (`--chm-resolution`). Each cell
-holds the max z of the points in it, and the raster max equals the cloud's
+a 2-band float32 GeoTIFF (DEFLATE-compressed, geotransform embedded, same
+writer as the stem map). Default cell size 0.05 m (`--chm-resolution`). Each band-1
+cell holds the max z of the points in it, and the raster max equals the cloud's
 max z.
 
 ## 3D canopy bounding box

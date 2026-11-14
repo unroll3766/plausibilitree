@@ -12,7 +12,7 @@ returns. Produced from the placed scene (plot_placement/<PLOT_UID>_raw.las).
 Outputs, under the plot directory:
 
     plot_placement/<PLOT_UID>_raw_placement_stem_map.tif
-        single-band count raster (GeoTIFF), whole plot
+        2-band raster (GeoTIFF), whole plot: band 1 counts, band 2 the mask
     plot_placement/<PLOT_UID>_raw_placement_stem_map_bounding_boxes.json
         per-tree stem bounding boxes (pixel + world) and tree ids
     individual_trees/<PLOT_UID>_tree_<UID>_stem_map_bounding_box.tif

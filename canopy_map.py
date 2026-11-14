@@ -14,7 +14,8 @@ footprint (interior included), 0 elsewhere. Built from the placed scene
 Outputs, under the plot directory:
 
     plot_placement/<PLOT_UID>_raw_placement_canopy_map.tif
-        single-band float32 height raster (GeoTIFF), whole plot
+        2-band float32 raster (GeoTIFF), whole plot: band 1 heights, band 2
+        the canopy mask
     plot_placement/<PLOT_UID>_raw_placement_canopy_bounding_box.json
         per-tree 3D canopy bounding box (rectangular prism of branch points)
     plot_placement/<PLOT_UID>_raw_placement_canopy_convex_hull.json
