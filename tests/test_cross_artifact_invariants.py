@@ -502,7 +502,6 @@ def run_checks(fixroot, plot_dir):
                 b1, b2 = src.read(1), src.read(2)
                 check(f"{key} band 2 is binary",
                       set(np.unique(b2).tolist()) <= {0, 1})
-                tr = src.transform
             if key == "stem_feature_raw":
                 # W28: stem band 2 is a point mask, so it implies band 1 support
                 check(f"{key} band 2 implies band 1 support (point mask)",
