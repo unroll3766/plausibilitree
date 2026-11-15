@@ -132,7 +132,11 @@ adds facts specific to this repository.
   uniform split, manifest vary_env_manifest.json).
 - Open: W8 (HELIOS++), W9 (polygon mesh), W10 (downed woody debris), W20
   (param editor: derive a dictionary from a tree list), W26 (tree
-  skeleton viewer helper).
+  skeleton viewer helper), W31 (2026-11-14: no Section 8.6 schema
+  validation in the param editor's load/save — the param-editor-saved
+  data/functional_groups.json dropped DBH/HT bounds + SPLIT_NUM keys;
+  decide restore-vs-relax and add validation; see Plausibilitree.md
+  Section 11).
 - Owner rulings (2026-11 review round): deep learning is out of scope —
   normalize.py and the per-shrub deep_learning volume labels are retired,
   the remaining per-tree/plot deep_learning artifacts stay; at a fork the
