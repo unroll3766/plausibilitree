@@ -144,10 +144,16 @@ def discover_tables(inputs):
             csvs += fresh
         else:
             if not os.path.exists(p):
-                raise FileNotFoundError(p)
+                raise FileNotFoundError(
+                    f"input {p!r} does not exist (checked from cwd "
+                    f"{os.getcwd()!r}); pass an existing plot table or a "
+                    f"directory of plot_* tables")
             csvs.append(p)
     if not csvs:
-        raise RuntimeError("no plot tables found in the given input(s)")
+        raise RuntimeError(
+            f"no plot_* tables found in input(s) {list(inputs)!r} (cwd "
+            f"{os.getcwd()!r}); expected canonical plot_*.csv / plot_*.json "
+            f"tree lists, e.g. fia_helper.py output")
     return csvs
 
 

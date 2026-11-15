@@ -785,8 +785,40 @@ def check_vary_env(keep: bool = False):
         try:
             vary_env.vary([src], out, seed=7, force=False, verbose=False)
             check("e2e: non-empty out-dir refused without force", False)
-        except RuntimeError:
-            check("e2e: non-empty out-dir refused without force", True)
+        except RuntimeError as e:
+            check("e2e: non-empty out-dir refused without force, message names "
+                  "--force", "--force" in str(e), str(e))
+        # error messages say what failed, not just the bare path
+        try:
+            replicate.discover_tables([os.path.join(tmp, "no_such_dir")])
+            check("err: nonexistent input explained", False)
+        except FileNotFoundError as e:
+            check("err: nonexistent input says 'does not exist' + cwd",
+                  "does not exist" in str(e) and "cwd" in str(e), str(e))
+        empty = os.path.join(tmp, "empty_dir")
+        os.makedirs(empty)
+        try:
+            replicate.discover_tables([empty])
+            check("err: empty input dir explained", False)
+        except RuntimeError as e:
+            check("err: empty input dir names the plot_* pattern",
+                  "plot_*" in str(e), str(e))
+        as_file = os.path.join(tmp, "out_as_file")
+        open(as_file, "w").close()
+        try:
+            vary_env.vary([src], as_file, seed=7, force=True, verbose=False)
+            check("err: out-dir path that is a file refused", False)
+        except RuntimeError as e:
+            check("err: out-dir path that is a file says 'not a directory'",
+                  "not a directory" in str(e), str(e))
+        blocked = os.path.join(as_file, "out")  # parent path is a file
+        try:
+            vary_env.vary([src], blocked, seed=7, force=True, verbose=False)
+            check("err: uncreatable out-dir explained", False)
+        except RuntimeError as e:
+            check("err: uncreatable out-dir says 'cannot create output "
+                  "directory'", "cannot create output directory" in str(e),
+                  str(e))
     finally:
         if not keep:
             shutil.rmtree(tmp, ignore_errors=True)

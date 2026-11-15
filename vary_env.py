@@ -145,11 +145,23 @@ def vary(inputs, out_dir, *, seed=0, ranges=None, dtm_dir=None,
     if dtm_dir:
         dtm_files = sorted(glob.glob(os.path.join(dtm_dir, "*.asc")))
         if not dtm_files:
-            raise FileNotFoundError(f"no .asc DTMs under {dtm_dir}")
+            raise FileNotFoundError(
+                f"--dtm-dir {dtm_dir!r} contains no .asc DTMs "
+                f"(looked for {os.path.join(dtm_dir, '*.asc')})")
 
-    if (os.path.isdir(out_dir) and os.listdir(out_dir) and not force):
-        raise RuntimeError(f"{out_dir}: not empty (pass --force to overwrite)")
-    os.makedirs(out_dir, exist_ok=True)
+    if os.path.exists(out_dir) and not os.path.isdir(out_dir):
+        raise RuntimeError(f"output path {out_dir!r} exists and is not a "
+                           f"directory; choose a different -o/--out-dir")
+    if os.path.isdir(out_dir) and os.listdir(out_dir) and not force:
+        raise RuntimeError(f"output directory {out_dir!r} is not empty "
+                           f"({len(os.listdir(out_dir))} entries); pass "
+                           f"--force to overwrite it")
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+    except OSError as e:
+        raise RuntimeError(f"cannot create output directory {out_dir!r}: "
+                           f"{e.strerror or e} (check that the parent path "
+                           f"exists)") from None
 
     manifest = {
         "tool": "vary_env.py",
@@ -176,13 +188,18 @@ def vary(inputs, out_dir, *, seed=0, ranges=None, dtm_dir=None,
         env, cover_rec = draw_plot_env(prng, ranges, ba / area, dtm_files)
 
         table = os.path.join(out_dir, f"{uid}{ext}")
-        shutil.copyfile(src, table)
         # CSV tables read their plot geometry from the report sidecar; copy
         # it too so the copy is self-contained
         report_src = os.path.splitext(src)[0] + "_report.json"
         report_dst = os.path.join(out_dir, f"{uid}_report.json")
-        if os.path.exists(report_src):
-            shutil.copyfile(report_src, report_dst)
+        try:
+            shutil.copyfile(src, table)
+            if os.path.exists(report_src):
+                shutil.copyfile(report_src, report_dst)
+        except OSError as e:
+            raise RuntimeError(f"failed writing into output directory "
+                               f"{out_dir!r}: {e.strerror or e} (copied "
+                               f"{src!r} -> {table!r})") from None
         env_path = os.path.join(out_dir, f"{uid}.env.json")
         with open(env_path, "w") as f:
             json.dump({"plot_uid": uid, "source": src, "env": env}, f, indent=2)
@@ -293,8 +310,8 @@ def main():
              default_radius_m=args.radius, default_shape=args.plot_shape,
              default_length_m=args.plot_length, default_width_m=args.plot_width,
              force=args.force, verbose=not args.quiet)
-    except (RuntimeError, FileNotFoundError, ValueError) as e:
-        ap.exit(1, f"vary_env.py: {e}\n")
+    except (RuntimeError, ValueError, OSError) as e:
+        ap.exit(1, f"vary_env.py: error: {e}\n")
 
 
 if __name__ == "__main__":

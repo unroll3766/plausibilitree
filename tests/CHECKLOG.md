@@ -270,3 +270,9 @@ Re-entries only when behavior changes. Long-form narrative lives in
   since W6), and the W6 register row's "band 2 is the foliage mask" parenthetical
   now points at the W28/W29 mask contracts. check.py 30 modules clean;
   run_all.py exit 0, 400 PASS 0 FAIL.
+- 2026-11-14 — vary_env/replicate error messages now say what failed:
+  discover_tables reports nonexistent inputs with cwd + expected pattern,
+  vary() reports out-dir-as-file / non-empty (with --force hint) /
+  uncreatable out-dir, and main catches OSError; 5 new probes in
+  test_review_round_regression.py section F — run_all.py exit 0,
+  404 PASS 0 FAIL.
