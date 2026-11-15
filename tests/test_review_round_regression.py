@@ -819,6 +819,28 @@ def check_vary_env(keep: bool = False):
             check("err: uncreatable out-dir says 'cannot create output "
                   "directory'", "cannot create output directory" in str(e),
                   str(e))
+        # a bad table in the input dir is skipped, not fatal to the batch
+        bad = os.path.join(src, "plot_bad.csv")
+        open(bad, "w").close()
+        check("is_tree_list_csv: empty file is not a canonical table",
+              not tree_list.is_tree_list_csv(bad))
+        out_bad = os.path.join(tmp, "out_bad")
+        man_bad = vary_env.vary([src], out_bad, seed=7, force=True, verbose=False)
+        check("batch: empty plot_*.csv recorded in errors, good plots still written",
+              len(man_bad["errors"]) == 1
+              and "plot_bad" in man_bad["errors"][0]["source"]
+              and "canonical" in man_bad["errors"][0]["error"]
+              and len(man_bad["plots"]) == 2
+              and all(os.path.exists(os.path.join(out_bad, f"plot_{u}.env.json"))
+                      for u in ("a", "b")), str(man_bad["errors"]))
+        os.remove(bad)
+        # CLI: -i/-o interface
+        out_cli = os.path.join(tmp, "out_cli")
+        vary_env.main(["-i", src, "-o", out_cli, "--seed", "7", "--quiet"])
+        check("cli: -i/-o writes manifest + sidecars",
+              os.path.exists(os.path.join(out_cli, "vary_env_manifest.json"))
+              and os.path.exists(os.path.join(out_cli, "plot_a.env.json"))
+              and os.path.exists(os.path.join(out_cli, "plot_b.env.json")))
     finally:
         if not keep:
             shutil.rmtree(tmp, ignore_errors=True)

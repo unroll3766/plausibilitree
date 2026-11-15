@@ -6,9 +6,16 @@ environment), `vary_env.py` varies the environment **across** a directory of
 distinct plot tables: every plot gets its own terrain / shrub / grass draw.
 
 ```
-python vary_env.py plots -o plots_var --seed 7
+python vary_env.py -i plots -o plots_var --seed 7
 python run_pipeline.py plots_var --seed 42     # sidecars are applied per plot
 ```
+
+Inputs go to `-i/--input` (repeatable, may be tables or directories;
+positional paths work too and are combined with `-i`), output to
+`-o/--out-dir` (default `plots_var`). A table that fails -- unreadable,
+not a canonical plot table, missing plot geometry -- is skipped with a
+warning and recorded in the manifest's `errors` list; one bad table does
+not cancel the batch, but the run exits nonzero if any table failed.
 
 ## What it writes
 

@@ -276,3 +276,10 @@ Re-entries only when behavior changes. Long-form narrative lives in
   uncreatable out-dir, and main catches OSError; 5 new probes in
   test_review_round_regression.py section F — run_all.py exit 0,
   404 PASS 0 FAIL.
+- 2026-11-14 — vary_env CLI + batch resilience: inputs now positional and/or
+  -i/--input (repeatable), output -o/--out-dir; a failing table (e.g. empty
+  plot_*.csv, previously an uncaught pandas EmptyDataError that cancelled the
+  loop) is skipped and recorded in manifest "errors" with exit 1 at the end;
+  is_tree_list_csv returns False on empty files. Probes in regression
+  section F + live CLI run (2 good plots written, plot_bad skipped) —
+  run_all.py: only the known W31 dictionary FAIL remains.

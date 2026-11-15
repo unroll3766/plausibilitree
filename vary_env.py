@@ -12,7 +12,7 @@ env per plot), so a single pipeline run over the output directory generates
 each plot with different topography and understory values while the trees
 stay on the global --seed.
 
-    python vary_env.py plots -o plots_var --seed 7
+    python vary_env.py -i plots -o plots_var --seed 7
 
 Terrain/ground keys are uniform draws over CLI ranges (reusing
 replicate.py's machinery). The shrub/grass covers are a JOINT draw
@@ -26,11 +26,18 @@ parameters: realized understory area sits below T because grass is
 attenuated under canopies (canopy_attenuation) and shrubs keep a tree
 margin.
 
+Inputs are positional paths and/or -i/--input (repeatable); output is
+-o/--out-dir. A table that fails (unreadable, not a canonical table,
+missing plot geometry) is skipped and recorded in the manifest's
+`errors` list -- one bad table does not cancel the batch; the run
+exits nonzero if any table failed.
+
 Outputs in out_dir:
     plot_<UID>.csv|json        byte copy of the source table
     plot_<UID>_report.json     byte copy of the FIA report sidecar (CSVs)
     plot_<UID>.env.json        this plot's environment draw
     vary_env_manifest.json     sampler config + every draw + provenance
+                               (+ "errors": failed input tables)
 
 All draws derive from the run seed plus the plot UID, so they are
 order-independent and reproducible (spec principle 6).
@@ -46,6 +53,7 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 import time
 
 import numpy as np
@@ -173,56 +181,63 @@ def vary(inputs, out_dir, *, seed=0, ranges=None, dtm_dir=None,
                 "U[min(BA/A,0.5), max(1-BA/A,0.5)], uniform split; bounds and "
                 "split are recorded per plot",
         "plots": [],
+        "errors": [],
     }
 
     for src in csvs:
         src = os.path.abspath(src)
         uid, ext = os.path.splitext(os.path.basename(src))
-        if not (tree_list.is_tree_list_path(src) or tree_list.is_tree_list_csv(src)):
-            raise RuntimeError(f"{src}: not a canonical plot table (legacy SST "
-                               f"parameter CSVs carry no DBH)")
-        ba, area, geom = plot_basics(
-            src, default_radius_m=default_radius_m, default_shape=default_shape,
-            default_length_m=default_length_m, default_width_m=default_width_m)
-        prng = np.random.default_rng(per_plot_seed(seed, uid))
-        env, cover_rec = draw_plot_env(prng, ranges, ba / area, dtm_files)
-
-        table = os.path.join(out_dir, f"{uid}{ext}")
-        # CSV tables read their plot geometry from the report sidecar; copy
-        # it too so the copy is self-contained
-        report_src = os.path.splitext(src)[0] + "_report.json"
-        report_dst = os.path.join(out_dir, f"{uid}_report.json")
         try:
-            shutil.copyfile(src, table)
-            if os.path.exists(report_src):
-                shutil.copyfile(report_src, report_dst)
-        except OSError as e:
-            raise RuntimeError(f"failed writing into output directory "
-                               f"{out_dir!r}: {e.strerror or e} (copied "
-                               f"{src!r} -> {table!r})") from None
-        env_path = os.path.join(out_dir, f"{uid}.env.json")
-        with open(env_path, "w") as f:
-            json.dump({"plot_uid": uid, "source": src, "env": env}, f, indent=2)
+            if not (tree_list.is_tree_list_path(src) or tree_list.is_tree_list_csv(src)):
+                raise RuntimeError(f"{src}: not a canonical plot table (legacy SST "
+                                   f"parameter CSVs carry no DBH)")
+            ba, area, geom = plot_basics(
+                src, default_radius_m=default_radius_m, default_shape=default_shape,
+                default_length_m=default_length_m, default_width_m=default_width_m)
+            prng = np.random.default_rng(per_plot_seed(seed, uid))
+            env, cover_rec = draw_plot_env(prng, ranges, ba / area, dtm_files)
 
-        manifest["plots"].append({
-            "plot_uid": uid,
-            "source": src,
-            "table": os.path.abspath(table),
-            "report_copied": os.path.exists(report_src),
-            "env_path": os.path.abspath(env_path),
-            "basal_area_m2": round(ba, 6),
-            "plot_area_m2": round(area, 6),
-            "geometry": geom,
-            **cover_rec,
-            "env": env,
-        })
-        if verbose:
-            print(f"  {uid}: BA/A={cover_rec['ba_frac']:.4f} "
-                  f"T={cover_rec['cover_total']} in "
-                  f"[{cover_rec['cover_bounds'][0]}, {cover_rec['cover_bounds'][1]}] "
-                  f"-> shrub={env['shrub_cover']} grass={env['grass_cover']} "
-                  f"bump={env['gen_bumpiness']} relief={env['gen_relief']} "
-                  f"seed={env['seed']}")
+            table = os.path.join(out_dir, f"{uid}{ext}")
+            # CSV tables read their plot geometry from the report sidecar; copy
+            # it too so the copy is self-contained
+            report_src = os.path.splitext(src)[0] + "_report.json"
+            report_dst = os.path.join(out_dir, f"{uid}_report.json")
+            try:
+                shutil.copyfile(src, table)
+                if os.path.exists(report_src):
+                    shutil.copyfile(report_src, report_dst)
+            except OSError as e:
+                raise RuntimeError(f"failed writing into output directory "
+                                   f"{out_dir!r}: {e.strerror or e} (copied "
+                                   f"{src!r} -> {table!r})") from None
+            env_path = os.path.join(out_dir, f"{uid}.env.json")
+            with open(env_path, "w") as f:
+                json.dump({"plot_uid": uid, "source": src, "env": env}, f, indent=2)
+
+            manifest["plots"].append({
+                "plot_uid": uid,
+                "source": src,
+                "table": os.path.abspath(table),
+                "report_copied": os.path.exists(report_src),
+                "env_path": os.path.abspath(env_path),
+                "basal_area_m2": round(ba, 6),
+                "plot_area_m2": round(area, 6),
+                "geometry": geom,
+                **cover_rec,
+                "env": env,
+            })
+            if verbose:
+                print(f"  {uid}: BA/A={cover_rec['ba_frac']:.4f} "
+                      f"T={cover_rec['cover_total']} in "
+                      f"[{cover_rec['cover_bounds'][0]}, {cover_rec['cover_bounds'][1]}] "
+                      f"-> shrub={env['shrub_cover']} grass={env['grass_cover']} "
+                      f"bump={env['gen_bumpiness']} relief={env['gen_relief']} "
+                      f"seed={env['seed']}")
+        except (RuntimeError, ValueError, OSError) as e:
+            # one bad table must not cancel the batch: record it, keep going
+            manifest["errors"].append({"source": src, "error": str(e)})
+            if verbose:
+                print(f"  {uid}: skipped ({e})", file=sys.stderr)
 
     manifest_path = os.path.join(out_dir, "vary_env_manifest.json")
     with open(manifest_path, "w") as f:
@@ -230,19 +245,27 @@ def vary(inputs, out_dir, *, seed=0, ranges=None, dtm_dir=None,
     if verbose:
         print(f"\nwrote {len(manifest['plots'])} plot draw(s) from "
               f"{len(csvs)} table(s) -> {out_dir}")
+        if manifest["errors"]:
+            print(f"{len(manifest['errors'])} table(s) skipped; see 'errors' "
+                  f"in the manifest", file=sys.stderr)
         print(f"manifest: {manifest_path}")
         print(f"next: python run_pipeline.py {out_dir} --seed 42 "
               f"(sidecars are applied per plot)")
     return manifest
 
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser(
         description="Draw one environment per plot table in a batch "
                     "(terrain ranges + joint tree-conditioned shrub/grass "
                     "cover), writing copied tables + env sidecars to out-dir")
-    ap.add_argument("inputs", nargs="+",
-                    help="plot table csv/json(s) and/or directories of them")
+    ap.add_argument("inputs", nargs="*",
+                    help="plot table csv/json(s) and/or directories of them "
+                         "(combined with -i/--input)")
+    ap.add_argument("-i", "--input", dest="input", action="append", default=[],
+                    help="input plot table or directory; repeatable. Use "
+                         "-i INPUT -o OUT so the two paths cannot be "
+                         "confused")
     ap.add_argument("-o", "--out-dir", default="plots_var",
                     help="directory for the copied tables + env sidecars + "
                          "manifest (default plots_var); must be empty "
@@ -285,7 +308,12 @@ def main():
     r.add_argument("--attenuation", default=None,
                    help="grass attenuation under canopy, default 0.2:0.5")
     ap.add_argument("--quiet", action="store_true")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
+
+    inputs = list(args.inputs) + list(args.input)
+    if not inputs:
+        ap.error("no inputs: pass plot tables/directories positionally or "
+                 "via -i/--input (output goes to -o/--out-dir)")
 
     range_args = {
         "dtm_resolution": args.dtm_resolution,
@@ -305,13 +333,18 @@ def main():
     ranges = {k: replicate.parse_range(v) for k, v in range_args.items()
               if v is not None}
     try:
-        vary(args.inputs, args.out_dir, seed=args.seed, ranges=ranges,
-             dtm_dir=args.dtm_dir,
-             default_radius_m=args.radius, default_shape=args.plot_shape,
-             default_length_m=args.plot_length, default_width_m=args.plot_width,
-             force=args.force, verbose=not args.quiet)
+        manifest = vary(inputs, args.out_dir, seed=args.seed, ranges=ranges,
+                        dtm_dir=args.dtm_dir,
+                        default_radius_m=args.radius, default_shape=args.plot_shape,
+                        default_length_m=args.plot_length,
+                        default_width_m=args.plot_width,
+                        force=args.force, verbose=not args.quiet)
     except (RuntimeError, ValueError, OSError) as e:
         ap.exit(1, f"vary_env.py: error: {e}\n")
+    if manifest.get("errors"):
+        ap.exit(1, f"vary_env.py: error: {len(manifest['errors'])} input "
+                   f"table(s) failed; the rest were written -- see 'errors' "
+                   f"in {os.path.join(args.out_dir, 'vary_env_manifest.json')}\n")
 
 
 if __name__ == "__main__":

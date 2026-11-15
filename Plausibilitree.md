@@ -404,6 +404,11 @@ attenuated under canopies and shrubs keep a tree margin. Every draw,
 BA/A, the bounds and the split are recorded in the output manifest
 (`vary_env_manifest.json`) for provenance; per-plot seeds derive from the
 run seed + plot UID, so draws are order-independent (principle 6).
+Inputs are given positionally and/or via `-i/--input` (repeatable), output
+via `-o/--out-dir`. A table that fails (unreadable, not canonical, missing
+geometry) is skipped and recorded in the manifest's `errors` list -- one
+bad table does not cancel the batch -- and the run exits nonzero if any
+table failed.
 
 ### 6.6 Tree skeleton viewer — **[planned]** (item W26)
 

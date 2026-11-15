@@ -165,7 +165,10 @@ def is_tree_list_csv(path: str) -> bool:
     parameter tables (FUNC_GROUP + HT_LO/BASE_DIA_LO ranges) return False."""
     if not path.endswith(".csv"):
         return False
-    header = pd.read_csv(path, nrows=0)
+    try:
+        header = pd.read_csv(path, nrows=0)
+    except pd.errors.EmptyDataError:
+        return False
     return set(REQUIRED_TREE_ATTRS).issubset(set(header.columns))
 
 
